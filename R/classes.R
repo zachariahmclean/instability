@@ -6,49 +6,22 @@ fragments <- R6::R6Class("fragments", public = list(
   unique_id = NA_character_,
   plate_id = NA_character_,
   group_id = NA_character_,
+  metrics_baseline_control = FALSE,
   size_standard = FALSE,
   size_standard_repeat_length = NA_real_,
-  metrics_baseline_control = FALSE,
-  peak_data = NULL,
-  repeat_data = NULL,
 
-  initialize = function(unique_id,
-                        peak_data = NULL,
-                        repeat_data = NULL,
-                        plate_id = NA_character_,
-                        group_id = NA_character_,
-                        size_standard = FALSE,
-                        size_standard_repeat_length = NA_real_,
-                        metrics_baseline_control = FALSE) {
-
-    stopifnot(length(unique_id) == 1)
-
+  initialize = function(unique_id) {
+    if(length(unique_id) != 1) stop("Fragments must have a single unique id", call. = FALSE)
     self$unique_id <- unique_id
-    self$plate_id <- plate_id
-    self$group_id <- group_id
-    self$size_standard <- size_standard
-    self$size_standard_repeat_length <- size_standard_repeat_length
-    self$metrics_baseline_control <- metrics_baseline_control
-    self$peak_data <- peak_data
-    self$repeat_data <- repeat_data
   },
 
   add_metadata = function(metadata_data.frame,
-                          unique_id = "sample_file_name",
-                          plate_id = "plate_id",
-                          sample_group_id = "sample_group_id",
-                          repeat_positive_control_TF = "repeat_positive_control_TF",
-                          repeat_positive_control_length = "repeat_positive_control_length",
-                          metrics_baseline_control = "metrics_baseline_control_TF"){
-    # validate inputs to give good errors to user
-    function_input_vector <- c(unique_id, plate_id, sample_group_id, repeat_positive_control_TF, repeat_positive_control_length, metrics_baseline_control)
-    function_input_name_vector <- c("unique_id", "plate_id", "sample_group_id", "repeat_positive_control_TF", "repeat_positive_control_length", "metrics_baseline_control")
-    for (i in seq_along(function_input_vector)) {
-      if(!any(names(metadata_data.frame) == function_input_vector[[i]])){
-        stop(paste0(function_input_name_vector[[i]], " input '", function_input_vector[[i]], "' was not detected as a column name in the 'metadata_data.frame'. Check column names and supply the right character string for the ",function_input_name_vector[[i]]," input"),
-             call. = FALSE)
-      }
-    }
+                          unique_id,
+                          plate_id,
+                          sample_group_id,
+                          repeat_positive_control_TF,
+                          repeat_positive_control_length,
+                          metrics_baseline_control){
 
     # clone the class so that it doesn't modify in place
     self2 <- self$clone()
@@ -64,6 +37,9 @@ fragments <- R6::R6Class("fragments", public = list(
     self2$metrics_baseline_control <- as.character(sample_metadata[metrics_baseline_control])
 
     return(self2)
+  },
+  print = function(...) {
+    print_helper(self)
   }
 ),
 private = list(
@@ -85,6 +61,7 @@ bp_fragments <- R6::R6Class("bp_fragments",
   allele_1_height = NA_real_,
   allele_2_size = NA_real_,
   allele_2_height = NA_real_,
+  peak_data = NULL,
 
   find_main_peaks = function(number_of_peaks_to_return = 2,
                              peak_region_size_gap_threshold = 6,
@@ -140,6 +117,7 @@ repeats_fragments <- R6::R6Class(
     allele_1_height = NA_real_,
     allele_2_repeat = NA_real_,
     allele_2_height = NA_real_,
+    repeat_data = NULL,
     index_repeat = NA_real_,
     index_height = NA_real_,
     index_weighted_mean_repeat = NA_real_,
@@ -153,7 +131,7 @@ repeats_fragments <- R6::R6Class(
       self2 <- find_main_peaks_helper(
         fragments_class = self2,
         fragment_sizes = self2$repeat_data$repeats,
-        fragment_heights = self2$peak_data$height,
+        fragment_heights = self2$repeat_data$height,
         data_type = "repeat",
         number_of_peaks_to_return = number_of_peaks_to_return,
         peak_region_size_gap_threshold = peak_region_size_gap_threshold,
@@ -195,17 +173,9 @@ repeats_fragments <- R6::R6Class(
         self$index_height <- self$allele_1_height
       }
 
-      # filter dataset to user supplied thresholds
-      filtered_df <- repeat_table_subset(repeat_data = self$repeat_data,
-                                         allele_1_height = self$allele_1_height,
-                                         index_repeat =  self$index_repeat,
-                                         peak_threshold = peak_threshold,
-                                         window_around_main_peak = window_around_main_peak)
-
       # compute metrics
       metrics <- compute_metrics(
         self,
-        filtered_df,
         peak_threshold = peak_threshold,
         window_around_main_peak = window_around_main_peak,
         percentile_range = percentile_range,

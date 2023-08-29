@@ -1,28 +1,32 @@
 ## set class from peak table ----------------------------------------------------------------
 
-#' Convert peak table into fragments objects
+#' Convert Peak Table to Fragments
 #'
-#' A convenient function to turn a peak table (eg genemapper output) into a list, where each element is a sample of the chosen \code{fragment_class}.
+#' This function converts a peak table data frame into a list of fragment objects of the specified class.
 #'
-#' @param df data.frame
-#' @param fragment_class Class that data.frame will be converted into. Choose between classes: HTT_fragments
-#' @param data_format The format that the data.frame is in (for example a genemapper peak table). Choose between: genemapper5, generic
-#' @param peak_size_col The column in the data.frame as a character string giving the peak size
-#' @param peak_height_col The column in the data.frame as a character string giving the peak height
-#' @param unique_id The column in the data.frame as a character string giving the unique sample id (often the file name)
-#' @param dye_col The column in the data.frame as a character string indicating the dye channel
-#' @param dye_channel A character string indicating the channel to extract data from. For example 6-FAM is often "B"
-#' @param allele_col The column in the data.frame as a character string indicating the called alleles. This is often for when the peaks have been called in genemapper.
-#' @param min_size_bp Numeric value indicating the minimum size of peak table to import
-#' @param max_size_bp Numeric value indicating the maximum size of peak table to import
+#' @param df A data frame containing the peak data.
+#' @param data_format The format that the data frame is in (for example, a genemapper peak table). Choose between: genemapper5, generic.
+#' @param unique_id A character string specifying column name giving the unique sample id (often the file name).
+#' @param peak_size_col A character string specifying column name giving the peak size.
+#' @param peak_height_col A character string specifying column name giving the peak height.
+#' @param min_size_bp Numeric value indicating the minimum size of the peak table to import.
+#' @param max_size_bp Numeric value indicating the maximum size of the peak table to import.
+#' @param dye_col Genemapper specific. A character string specifying column name indicating the dye channel.
+#' @param dye_channel Genemapper specific. A character string indicating the channel to extract data from. For example, 6-FAM is often "B".
+#' @param allele_col Genemapper specific. A character string specifying column name indicating the called alleles. This is often used when the peaks have been called in genemapper.
 #'
-#' @return A list, where each element is a sample of the chosen \code{fragment_class}
-#' @export
+#' @return A list of bp_fragments objects.
+#'
+#' @details This function takes a peak table data frame (eg. Genemapper output) and converts it into a list of fragment objects.
+#' The function supports different data formats and allows specifying column names for various attributes.
+#'
+#' @seealso \code{\link{repeat_table_to_repeats}}
 #'
 #' @examples
 #'
+#'
+#' @export
 peak_table_to_fragments <- function(df,
-                                    fragment_class = "bp_fragments",
                                     data_format = NULL,
                                     peak_size_col = NULL,
                                     peak_height_col = NULL,
@@ -76,8 +80,10 @@ peak_table_to_fragments <- function(df,
                        call. = FALSE)
              }
 
-             bp_fragments$new(unique_id = unique(df$unique_id),
-                              peak_data = df)
+             new_bp_fragments <- bp_fragments$new(unique_id = unique(x$unique_id))
+             new_bp_fragments$peak_data <- df
+
+             return(new_bp_fragments)
              })
 
   return(fragments_list)
@@ -86,17 +92,19 @@ peak_table_to_fragments <- function(df,
 
 ## set class from repeats table ----------------------------------------------------------------
 
-#' Convert repeat table into repeats objects
+#' Convert Repeat Table to Repeats Fragments
 #'
-#' A convenient function to turn a repeat table (eg summarized sequencing data) into a list, where each element is a sample of the chosen \code{repeat_class}.
+#' This function converts a repeat table data frame into a list of repeats fragments class.
 #'
-#' @param df data.frame
-#' @param repeat_class Class that data.frame will be converted into. Choose between classes: HTT_repeats
-#' @param repeat_col The column in the data.frame as a character string giving the repeat size
-#' @param frequency_col The column in the data.frame as a character string giving the read count / height
-#' @param unique_id The column in the data.frame as a character string giving the unique sample id
+#' @param df A data frame containing the repeat data.
+#' @param unique_id A character string indicating the column name for unique identifiers.
+#' @param repeat_col A character string indicating the column name for the repeats.
+#' @param frequency_col A character string indicating the column name for the repeat frequencies.
 #'
-#' @return A list, where each element is a sample of the chosen \code{fragment_class}
+#' @return A list of repeats fragments.
+#'
+#' @details This function takes a repeat table data frame and converts it into a list of repeats fragments.
+#' The function allows specifying column names for repeats, frequencies, and unique identifiers.
 #' @export
 #'
 #' @examples
@@ -121,33 +129,37 @@ repeat_table_to_repeats <- function(df,
   names(df)[names(df) == frequency_col] <- 'height'
   names(df)[names(df) == unique_id] <- 'unique_id'
 
-
-  if (repeat_class == "repeats_fragments") {
-    repeats_list <-
-      lapply(split(df, df$unique_id),
+  repeats_list <- lapply(split(df, df$unique_id),
              function(x) {
-               repeats_fragments$new(unique_id = unique(x$unique_id),
-                                     repeat_data = x)
+               new_repeats_fragments$new(unique_id = unique(x$unique_id))
+               new_repeats_fragments$repeat_data <- x
+               return(new_repeats_fragments)
              })
-  }
+
 
   return(repeats_list)
 }
 
 # add metadata ------------------------------------------------------------
 
-#' Add metadata to a list of samples
+#' Add Metadata to Fragments List
 #'
-#' @param fragments_list a list of fragments class (can be either a fragments or repeats class)
-#' @param metadata_data.frame A data.frame containing a single row per sample with a unique id matching the samples in the fragments_list
-#' @param unique_id The column in the data.frame as a character string giving the unique sample id
-#' @param plate_id The column in the data.frame as a character string giving the plate or batch samples were run in
-#' @param sample_group_id The column in the data.frame as a character string indicating the sample grouping. This is used in the \code{calculate_instability_metrics()} function to set a common index peak among a group of samples. For example this could be a single mouse.
-#' @param metrics_baseline_control The column in the data.frame as a character string indicating if the sample should be used to set the index peak. For example, the tail of the mouse. The values within the column should be logical.
-#' @param repeat_positive_control_TF The column in the data.frame as a character string indicating if samples are positive controls that are to be used to correct repeat length. The values within the column should be logical.
-#' @param repeat_positive_control_length The column in the data.frame as a character string indicating the repeat size of the expanded allele for the positive control samples. The values within the column should be numeric.
+#' This function adds metadata information to a list of fragments.
 #'
-#' @return A list, where each element is a fragments or repeats class
+#' @param fragments_list A list of fragment objects to which metadata will be added.
+#' @param metadata_data.frame A data frame containing the metadata information.
+#' @param unique_id A character string indicating the column name for unique sample identifiers in the metadata.
+#' @param plate_id A character string indicating the column name for plate identifiers in the metadata.
+#' @param sample_group_id A character string indicating the column name for sample group identifiers in the metadata.
+#' @param metrics_baseline_control A character string indicating the column name for baseline control indicators in the metadata.
+#' @param repeat_positive_control_TF A character string indicating the column name for repeat positive control indicators in the metadata.
+#' @param repeat_positive_control_length A character string indicating the column name for repeat positive control lengths in the metadata.
+#'
+#' @return A modified list of fragment objects with added metadata.
+#'
+#' @details This function adds specified metadata attributes to each fragment in the list.
+#' It matches the unique sample identifiers from the fragments list with those in the metadata data frame.
+#'
 #' @export
 #'
 #' @examples
@@ -215,16 +227,21 @@ add_metadata <- function(fragments_list,
 # find alleles ------------------------------------------------------------
 
 
-#' Find modal peaks
+#' Find Alleles in Fragments List
 #'
-#' Find the modal peaks across the list of samples
-#' @param fragments_list a list of fragments class (can be either a fragments or repeats class)
-#' @param number_of_peaks_to_return Numeric value of 1 or 2 indicating if one (mouse) or two (human) modal peaks should be identified, respectively.
-#' @param peak_selection_method A heuristic to help chose the peak region that should be used to find the expanded allele. "tallest" will prioritize the peak region that has the tallest modal peak, while "largest" will pick the peak region that has the largest size. "largest" is often useful for when using in vitro cell models that have extremly long expanded alleles.
-#' @param peak_region_size_gap_threshold Numeric value to indicate how large the gap should be between peaks before they are no longer included in the same peak regions
-#' @param peak_region_height_threshold_multiplier Numeric value to set the peak height required to be in the same peak region. The threshold is the mean of all of the peaks and this is a multiplier that adjusts that threshold. For example, 0.5 will set the height threshold to be half of the mean peak height.
+#' This function identifies main alleles within each fragment in a list of fragments.
 #'
-#' @return A list, where each element is a fragments or repeats class
+#' @param fragments_list A list of fragment objects containing peak data.
+#' @param number_of_peaks_to_return Number of main peaks to be returned for each fragment. Default is 2.
+#' @param peak_region_size_gap_threshold Gap threshold for identifying peak regions. The peak_region_size_gap_threshold is a parameter used to determine the maximum allowed gap between peak sizes within a peak region. Adjusting this parameter affects the size range of peaks that can be grouped together in a region. A smaller value makes it more stringent, while a larger value groups peaks with greater size differences, leading to broader peak regions that may encompass wider size ranges.
+#' @param peak_region_height_threshold_multiplier Multiplier for the peak height threshold. The peak_region_height_threshold_multiplier parameter allows adjusting the threshold for identifying peak regions based on peak heights. Increasing this multiplier value will result in higher thresholds, making it more stringent to consider peaks as part of a peak region. Conversely, reducing the multiplier value will make the criteria less strict, potentially leading to more peaks being grouped into peak regions. It's important to note that this parameter's optimal value depends on the characteristics of the data and the specific analysis goals. Choosing an appropriate value for this parameter can help in accurately identifying meaningful peak regions in the data.
+#'
+#' @return A list of fragments with identified main alleles.
+#'
+#' @details This function finds the main alleles for each fragment in the list by identifying clusters of peaks ("peak regions")
+#' with the highest signal intensities. This is based on the idea that PCR amplicons of repeats have broad peaks and PCR artififacts that help identifying the alleles.
+#'  The number of peaks to be returned, and the parameters for identifying peak regions can be customized.
+#'  It's important to note that both peak_region_height_threshold_multiplier and peak_region_size_gap_threshold influence the criteria for identifying peak regions, and finding the right balance between them is crucial.
 #' @export
 #'
 #' @examples
@@ -245,23 +262,33 @@ find_alleles <- function(fragments_list,
 
 # call_repeats ------------------------------------------------------------
 
-#' Call repeats
+#' Call Repeats for Fragments
 #'
-#' Use base-pair level data and the identified modal peaks to call repeat size
+#' This function calls the repeat lengths for a list of fragments.
 #'
-#' @param fragments_list  a list of fragments class (can be either a fragments or repeats class)
-#' @param repeat_algorithm An optional algorithm that can be used to call the repeat size. Either "nearest_peak" (see description for more details) or "none" to just use the base-pair size and arithmetic to calculate the repeat.
-#' @param assay_size_without_repeat A numeric value indicating how many flanking bases there are around the repeat. Required when repeat size is to be directly calculted.
-#' @param repeat_size The number of nucleotides in each repeat unit. For example a triplet repeat would be 3
-#' @param repeat_length_correction Indicating whether sample metadata should be used to correct the repeat length across the samples. This requires metadata added via the \code{add_metadata()} function. Options are either "none", "from_metadata" (added via metadata on selected samples) or "from_genemapper" (when peak table exported from genemapper has expanded allele manually called)
+#' @param fragments_list A list of bp_fragments objects containing fragment data.
+#' @param repeat_algorithm A character specifying the repeat calling algorithm. Options: \code{"simple"} or \code{"nearest_peak"}.
+#' @param assay_size_without_repeat An integer specifying the assay size without repeat for repeat calling. Default is 87.
+#' @param repeat_size An integer specifying the repeat size for repeat calling. Default is 3.
+#' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
 #'
-#' @return A list, where each element is a repeats class
-#' @export
+#' @return A list of \code{\link{repeats_fragments}} objects with repeat data added.
+#'
+#' #' @details
+#' The calculated repeat lengths are assigned to the corresponding peaks in the provided `bp_fragments` object. The repeat lengths can be used for downstream instability analysis.
+#'
+#' The `simple` algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
+#'
+#' The `nearest_peak` algorithm aims to model and correct for the systematic variation in fragment sizes that occurs over base pairs. It calculates repeat lengths in a way that helps align peaks with the underlying repeat pattern, making the estimation of repeat lengths more reliable relative to the main peak. The calculated repeat lengths start from the main peak's repeat length (repeat length of the main peak calculated with simple algorithm described above) and increase in increments of the specified `repeat_size`. This approach is particularly useful for mitigating the impact of size measurement underestimate, often referred to as "drift," that can occur over base pairs. By ensuring that the calculated repeat lengths are evenly spaced apart by a fixed amount (`repeat_size`), this algorithm helps stabilize the estimation of repeat lengths across peaks, leading to more consistent results.
+#'
+#'
+#' @seealso \code{\link{find_main_peaks}}
 #'
 #' @examples
 #'
+#' @export
 call_repeats <- function(fragments_list,
-                         repeat_algorithm = "nearest_peak",
+                         repeat_algorithm = "simple",
                          assay_size_without_repeat = 87,
                          repeat_size = 3,
                          repeat_length_correction = "none" # or "from_metadata" or "from_genemapper"
@@ -323,9 +350,10 @@ calculate_instability_metrics <- function(fragments_list,
                               index_override_dataframe = NULL){
  # is it grouped and the index peak needs to be determined from another sample?
  if(grouped == TRUE){
-   fragments_list <- metrics_grouping_helper(fragments_list = fragments_list,
-                                             peak_threshold = peak_threshold,
-                                             window_around_main_peak = window_around_main_peak)
+   fragments_list <- metrics_grouping_helper(
+     fragments_list = fragments_list,
+     peak_threshold = peak_threshold,
+     window_around_main_peak = window_around_main_peak)
  } else if(is.null(index_override_dataframe)){
     #this is to make sure that we use the modal peak as the index peak
    #fixes cases where index peak has been assigned previously and we need to make sure it's the modal peak
@@ -354,7 +382,7 @@ calculate_instability_metrics <- function(fragments_list,
   })
   metrics <- do.call(rbind, metrics_list)
 
-  #add back in any samples that failed to calculate metrics (they are returned as NULL and therefore not in the dataframe)
+  #add back in any samples that were removed earlier or failed to calculate metrics (they are returned as NULL and therefore not in the dataframe)
   missing_samples <- names(fragments_list)[!names(fragments_list) %in% metrics$unique_id]
   if(length(missing_samples) > 0){
     metrics[nrow(metrics) + seq_along(missing_samples), "unique_id"] <- missing_samples

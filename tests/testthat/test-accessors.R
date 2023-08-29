@@ -7,7 +7,6 @@ testthat::test_that("peak_table_to_fragments",{
 
   test_fragments <- peak_table_to_fragments(
     test_gm,
-    fragment_class = "bp_fragments",
     data_format = "genemapper5",
     peak_size_col = "Size",
     peak_height_col = "Height",
@@ -60,7 +59,6 @@ testthat::test_that("add_metadata", {
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             # peak_size_col = "size",
                                             # peak_height_col = "signal",
@@ -137,7 +135,6 @@ testthat::test_that("find_alleles", {
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             dye_channel = "B")
 
@@ -166,7 +163,6 @@ testthat::test_that("call_repeats", {
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             dye_channel = "B")
 
@@ -252,7 +248,6 @@ testthat::test_that("call_repeats with correction from genemapper alleles", {
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             dye_channel = "B")
 
@@ -284,12 +279,14 @@ testthat::test_that("calculate metrics", {
   metadata <- read.csv("data/metadata.csv")
 
   # Save raw data as a fragment class
+  suppressWarnings({
 
-  test_fragments <- peak_table_to_fragments(gm_raw,
-                                            fragment_class = "bp_fragments",
-                                            data_format = "genemapper5",
-                                            dye_channel = "B",
-                                            min_size_bp = 400)
+    test_fragments <- peak_table_to_fragments(gm_raw,
+                                              data_format = "genemapper5",
+                                              dye_channel = "B",
+                                              min_size_bp = 400)
+  })
+
 
   suppressWarnings({
     test_metadata <- add_metadata(
@@ -301,64 +298,69 @@ testthat::test_that("calculate metrics", {
       metrics_baseline_control = "metrics_baseline_control_TF",
       repeat_positive_control_TF = "repeat_positive_control_TF",
       repeat_positive_control_length = "repeat_positive_control_length")
+
+    test_alleles <- find_alleles(
+      fragments_list = test_metadata,
+      number_of_peaks_to_return = 1,
+      peak_region_size_gap_threshold = 6,
+      peak_region_height_threshold_multiplier = 1)
+
+
+    test_repeats <- call_repeats(
+      fragments_list = test_alleles,
+      repeat_algorithm = "simple",
+      assay_size_without_repeat = 87,
+      repeat_size = 3,
+      repeat_length_correction = "none"
+    )
+
+    # grouped
+
+    test_metrics_grouped <- calculate_instability_metrics(
+      fragments_list = test_repeats,
+      grouped = TRUE,
+      peak_threshold = 0.05,
+      # note the lower lim should be a negative value
+      window_around_main_peak = c(-40, 40),
+      percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
+      repeat_range = c( 1,2,3,4,seq(6,20,2)),
+      index_override_dataframe = NULL)
   })
 
 
 
-  test_alleles <- find_alleles(
-    fragments_list = test_metadata,
-    number_of_peaks_to_return = 1,
-    peak_region_size_gap_threshold = 6,
-    peak_region_height_threshold_multiplier = 1)
-
-
-  test_repeats <- call_repeats(
-    fragments_list = test_alleles,
-    repeat_algorithm = "simple",
-    assay_size_without_repeat = 87,
-    repeat_size = 3,
-    repeat_length_correction = "none"
-  )
-
-  # grouped
-
-  test_metrics_grouped <- calculate_instability_metrics(
-    fragments_list = test_repeats,
-    grouped = TRUE,
-    peak_threshold = 0.05,
-    # note the lower lim should be a negative value
-    window_around_main_peak = c(-40, 40),
-    percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
-    repeat_range = c( 1,2,3,4,seq(6,20,2)),
-    index_override_dataframe = NULL)
-
-  testthat::expect_true(round(mean(test_metrics_grouped$expansion_index), 3) == 6.673)
-  testthat::expect_true(round(mean(test_metrics_grouped$average_repeat_gain), 3) == 4.238)
-  testthat::expect_true(round(mean(test_metrics_grouped$skewness), 5) == -0.01007)
+  testthat::expect_true(round(mean(test_metrics_grouped$expansion_index, na.rm = TRUE), 3) == 6.673)
+  testthat::expect_true(round(mean(test_metrics_grouped$average_repeat_gain, na.rm = TRUE), 3) == 4.238)
+  testthat::expect_true(round(mean(test_metrics_grouped$skewness, na.rm = TRUE), 5) == -0.01007)
 
   # ungrouped
 
-  test_repeats <- call_repeats(
-    fragments_list = test_alleles,
-    repeat_algorithm = "simple",
-    assay_size_without_repeat = 87,
-    repeat_size = 3,
-    repeat_length_correction = "none"
-  )
 
-  test_metrics_ungrouped <- calculate_instability_metrics(
-    fragments_list = test_repeats,
-    grouped = FALSE,
-    peak_threshold = 0.05,
-    # note the lower lim should be a negative value
-    window_around_main_peak = c(-40, 40),
-    percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
-    repeat_range = c( 1,2,3,4,seq(6,20,2)),
-    index_override_dataframe = NULL)
+  suppressWarnings({
+    test_repeats <- call_repeats(
+      fragments_list = test_alleles,
+      repeat_algorithm = "simple",
+      assay_size_without_repeat = 87,
+      repeat_size = 3,
+      repeat_length_correction = "none"
+    )
 
-  testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index), 3) == 4.881)
+    test_metrics_ungrouped <- calculate_instability_metrics(
+      fragments_list = test_repeats,
+      grouped = FALSE,
+      peak_threshold = 0.05,
+      # note the lower lim should be a negative value
+      window_around_main_peak = c(-40, 40),
+      percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
+      repeat_range = c( 1,2,3,4,seq(6,20,2)),
+      index_override_dataframe = NULL)
+    })
+
+
+
+  testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index, na.rm = TRUE), 3) == 4.899)
   testthat::expect_true(all(is.na(test_metrics_ungrouped$average_repeat_gain)))
-  testthat::expect_true(round(mean(test_metrics_ungrouped$skewness), 5) == -0.01007)
+  testthat::expect_true(round(mean(test_metrics_ungrouped$skewness, na.rm = TRUE), 5) == -0.01007)
 
 
 

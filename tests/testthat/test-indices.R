@@ -56,3 +56,4 @@ testthat::test_that("percentiles",{
   testthat::expect_true(repeat_test[[1]] == 0.2)
 
 })
+

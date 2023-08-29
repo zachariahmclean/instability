@@ -27,7 +27,6 @@ testthat::test_that("add_metadata function", {
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(test_df,
-                                       fragment_class = "bp_fragments",
                                        data_format = "genemapper5",
                                        dye_channel = "B")
 
@@ -53,14 +52,13 @@ testthat::test_that("add_metadata function", {
 testthat::test_that("main peaks bp_fragments",{
 
   gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  test_sample <- metadata$unique_id[1]
+  test_sample <- "20230413_A01.fsa"
 
   test_df <- gm_raw[which(gm_raw$Sample.File.Name == test_sample), ]
 
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(test_df,
-                                       fragment_class = "bp_fragments",
                                        data_format = "genemapper5",
                                        # peak_size_col = "size",
                                        # peak_height_col = "signal",
@@ -93,7 +91,6 @@ testthat::test_that("add_repeats",{
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(test_df,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             # peak_size_col = "size",
                                             # peak_height_col = "signal",
@@ -136,7 +133,6 @@ testthat::test_that("add_repeats",{
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(test_df,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             # peak_size_col = "size",
                                             # peak_height_col = "signal",
@@ -181,7 +177,6 @@ testthat::test_that("instability metrics",{
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(test_df,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             # peak_size_col = "size",
                                             # peak_height_col = "signal",
