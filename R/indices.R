@@ -1,7 +1,5 @@
-
-# Helper functions --------------------------------------------------------
-
-# instability index
+######################## Helper functions ####################################
+# instability index ---------------------------------------------------------
 instability_index <- function(repeats,
                               heights,
                               index_peak_height,
@@ -25,7 +23,7 @@ instability_index <- function(repeats,
   }
 }
 
-# function for finding quantiles
+# function for finding quantiles -----------------------------------------------
 
 find_percentiles <- function(repeats,
                              heights,
@@ -80,7 +78,7 @@ find_percentiles <- function(repeats,
 }
 
 
-# skewness
+# skewness ------------------------------------------------------------------
 
 fishers_skewness <- function(x, y) {
   mean_val <- sum(x * y)
@@ -92,7 +90,7 @@ fishers_skewness <- function(x, y) {
 }
 
 
-# kurtosis
+# kurtosis -----------------------------------------------------------------
 
 fishers_kurtosis <- function(x, y) {
   mean_val <- sum(x * y)
@@ -102,7 +100,7 @@ fishers_kurtosis <- function(x, y) {
   return(kurtosis)
 }
 
-# subsetting repeat table
+# subsetting repeat table ---------------------------------------------------
 
 repeat_table_subset <- function(repeat_data,
                                 allele_1_height,
@@ -128,19 +126,24 @@ repeat_table_subset <- function(repeat_data,
 }
 
 
-# class function ----------------------------------------------------------
+###################### R6 Class Method Helpers ####################################
 
-# Calculating metrics
+# Calculating metrics --------------------------------------------------------
 
 compute_metrics <- function(repeats_fragments,
-                            size_filtered_df,
                             peak_threshold ,
                             window_around_main_peak,
                             percentile_range,
                             repeat_range){
 
-  # Calculate metrics
-  # first subset to make some dataframe that are just for contractions or expansions
+  # filter dataset to user supplied thresholds
+  size_filtered_df <- repeat_table_subset(repeat_data = repeats_fragments$repeat_data,
+                                     allele_1_height = repeats_fragments$allele_1_height,
+                                     index_repeat =  repeats_fragments$index_repeat,
+                                     peak_threshold = peak_threshold,
+                                     window_around_main_peak = window_around_main_peak)
+
+    # first subset to make some dataframe that are just for contractions or expansions
   size_filtered_df$repeat_delta_index_peak <- size_filtered_df$repeats - repeats_fragments$index_repeat
   expansion_filtered <- size_filtered_df[which(size_filtered_df$repeat_delta_index_peak >= 0),]
   contraction_filtered <- size_filtered_df[which(size_filtered_df$repeat_delta_index_peak <= 0),]
@@ -244,7 +247,8 @@ compute_metrics <- function(repeats_fragments,
 }
 
 
-# accessor helper ----------------------------------------
+############################# accessor-function helper ##################################
+
 
 metrics_grouping_helper <- function(fragments_list,
                                     peak_threshold,
@@ -324,7 +328,7 @@ metrics_grouping_helper <- function(fragments_list,
   return(fragments_indexed_list)
 }
 
-# metrics_override_helper
+# metrics_override_helper ---------------------------------------------------------
 metrics_override_helper <- function(fragments_list,
                                     index_override_dataframe){
   lapply(fragments_list, function(x){
