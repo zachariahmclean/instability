@@ -31,7 +31,7 @@ find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_regio
   # Function to identify peak regions based on height and size
   find_peak_regions <- function(height, size, size_gap_threshold, region_height_threshold_multiplier) {
     smoothed_height <- as.vector(smooth(height))
-    peak_region <- rep(NA_real_, length(smoothed_height))
+    peak_regions <- rep(NA_real_, length(smoothed_height))
     mean_heights <- mean(smoothed_height) * region_height_threshold_multiplier
 
     for (i in seq_along(smoothed_height)) {
@@ -44,22 +44,22 @@ find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_regio
 
       # Determine peak regions
       if (smoothed_height[[i]] < mean_heights | i == 1 | i == length(smoothed_height)) {
-        peak_region[[i]] <- NA_real_
+        peak_regions[[i]] <- NA_real_
       } else if (smoothed_height[[i - 1]] < mean_heights & smoothed_height[[i + 1]] < mean_heights) {
-        peak_region[[i]] <- NA_real_
-      } else if (all(is.na(peak_region))) {
-        peak_region[[i]] <- 1
-      } else if (any(!is.na(peak_region[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))) {
-        unique_regions <- unique(na.omit(peak_region[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))
-        peak_region[[i]] <- unique_regions[length(unique_regions)]
-      } else if (any(is.na(peak_region[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))) {
-        above_threshold <- na.omit(peak_region)
-        peak_region[[i]] <- above_threshold[length(above_threshold)] + 1
+        peak_regions[[i]] <- NA_real_
+      } else if (all(is.na(peak_regions))) {
+        peak_regions[[i]] <- 1
+      } else if (any(!is.na(peak_regions[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))) {
+        unique_regions <- unique(na.omit(peak_regions[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))
+        peak_regions[[i]] <- unique_regions[length(unique_regions)]
+      } else if (any(is.na(peak_regions[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))) {
+        above_threshold <- na.omit(peak_regions)
+        peak_regions[[i]] <- above_threshold[length(above_threshold)] + 1
       } else {
-        peak_region[[i]] <- NA_real_
+        peak_regions[[i]] <- NA_real_
       }
     }
-    return(peak_region)
+    return(peak_regions)
   }
 
   # Function to add buffer positions to peak regions
@@ -111,7 +111,7 @@ find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_regio
   }
 
   # Return the peak regions and top regional peaks
-  return(list(peak_region = peak_regions, top_regional_peaks = top_peaks))
+  return(list(peak_regions = peak_regions, top_regional_peaks = top_peaks))
 }
 
 # candidate alleles ------------------------------------------------------------
@@ -119,8 +119,7 @@ find_candidate_peaks = function(heights,
                                 size,
                                 peak_region_size_gap_threshold,
                                 peak_region_height_threshold_multiplier,
-                                number_of_peaks_to_return,
-                                return_peak_regions) {
+                                number_of_peaks_to_return) {
   #find peaks
 
   output <- find_peaks(
@@ -137,7 +136,7 @@ find_candidate_peaks = function(heights,
 
   if (length(output$top_regional_peaks) == 1 &
       number_of_peaks_to_return == 2) {
-    region_positions <- which(output$peak_region == 1)
+    region_positions <- which(output$peak_regions== 1)
     region_heights <- heights[region_positions]
     region_maxima <- find_maxima(region_heights)
     significant_maxima <-
@@ -166,17 +165,11 @@ find_candidate_peaks = function(heights,
       top_peaks[order(heights[top_peaks], decreasing = TRUE)][1:number_of_peaks_to_return]
   }
 
-  if (return_peak_regions == FALSE) {
-    return(top_peaks)
-  }
-  else{
+
     return(list(
       top_peaks = top_peaks,
-      peak_region = output$peak_region
+      peak_regions = output$peak_regions
     ))
-  }
-
-
 
 }
 
@@ -203,8 +196,7 @@ find_main_peaks_helper <- function(fragments_class,
     fragment_sizes,
     number_of_peaks_to_return = number_of_peaks_to_return,
     peak_region_size_gap_threshold = peak_region_size_gap_threshold,
-    peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier,
-    return_peak_regions = TRUE
+    peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier
   )
 
   if (length(top_peaks$top_peaks) == 0) {

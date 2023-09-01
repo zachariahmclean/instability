@@ -326,27 +326,31 @@ call_repeats <- function(fragments_list,
 
 # Calculate metrics -------------------------------------------------------
 
-#' calculate instability metrics
+#' Calculate Repeat Instability Metrics
 #'
-#' Calculate repeat metrics from a list of repeats objects
-#' @param fragments_list a list of repeats class
-#' @param grouped A logical value for whether the samples should be grouped to have a common index peak. For example, using the mouse tail to send the repeat size of the inherited allele. This requires metadata added via the \code{add_metadata()} function.
-#' @param peak_threshold A threshold for the height of the peaks that should be includes for the calculations. Always proportional to the modal peak height of the expanded allele.
-#' @param window_around_main_peak A numeric vector with a length of two to limit set a threshold of size around the index peak. The first number being the the number of repeats before the index peak and the second being the number of repeats after. For example, c(-5, 40) when the index peak is 100 would limit the analysis to 95 to 140 repeats.
-#' @param percentile_range A numeric vector of any length to indicate which percentiles should be calculates.
-#' @param index_override_dataframe A data.frame which can be used to manually set the index peak. First column being the unique sample id and second column the desired index peak. The closest peak in the sample to the desired index peak will then be selected.
+#' This function computes instability metrics from a list of repeats_fragments data objects.
 #'
-#' @return data.frame
+#' @param fragments_list A list of "repeats_fragments" class objects representing fragment data.
+#' @param grouped Logical value indicating whether samples should be grouped to share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{add_metadata()}.
+#' @param peak_threshold The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.
+#' @param window_around_main_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140.
+#' @param percentile_range A numeric vector of percentiles to compute (e.g., c(0.5, 0.75, 0.9, 0.95)).
+#' @param repeat_range A numeric vector specifying ranges of repeats for the inverse quantile computation.
+#' @param index_override_dataframe A data.frame to manually set index peaks. Column 1: unique sample IDs, Column 2: desired index peaks. Closest peak in each sample is selected.
+#'
+#' @return A data.frame with calculated instability metrics for each sample.
+#'
 #' @export
 #'
 #' @examples
+#'
 calculate_instability_metrics <- function(fragments_list,
                               grouped = FALSE,
                               peak_threshold = 0.05,
                               # note the lower lim should be a negative value
                               window_around_main_peak = c(NA, NA),
-                              percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
-                              repeat_range = c( 1,2,3,4,seq(6,20,2)),
+                              percentile_range = c(0.5, 0.75, 0.9, 0.95),
+                              repeat_range = c(2, 5, 10, 20),
                               index_override_dataframe = NULL){
  # is it grouped and the index peak needs to be determined from another sample?
  if(grouped == TRUE){
@@ -397,12 +401,13 @@ calculate_instability_metrics <- function(fragments_list,
 
 # Extract alleles -------------------------------------------------------
 
-#' Extract modal peaks
+#' Extract Modal Peaks
 #'
-#' Extract the modal peak information from each sample in a list of fragments
-#' @param fragments_list  a list of fragments class (can be either a fragments or repeats class)
+#' Extracts modal peak information from each sample in a list of fragments.
 #'
-#' @return data.frame
+#' @param fragments_list A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).
+#'
+#' @return A data.frame containing modal peak information for each sample.
 #' @export
 #'
 #' @examples
@@ -415,8 +420,8 @@ extract_alleles <- function(fragments_list) {
       extracted <- lapply(fragments_list, function(x){
 
         data.frame(unique_id = rep(x$unique_id,2),
-                   size = c(x$allele_2_size, x$allele_1_size),
-                   height = c(x$allele_2_height, x$allele_1_height),
+                   size = c(x$allele_1_size, x$allele_2_size),
+                   height = c(x$allele_1_height, x$allele_2_height),
                    peak_allele = c(1, 2))
       })
       extracted_df <- do.call(rbind, extracted)
@@ -425,8 +430,8 @@ extract_alleles <- function(fragments_list) {
       extracted <- lapply(fragments_list, function(x){
 
         data.frame(unique_id = rep(x$unique_id,2),
-                   repeats = c(x$allele_2_repeat, x$allele_1_repeat),
-                   height = c(x$allele_2_height, x$allele_1_height),
+                   repeats = c(x$allele_1_repeat, x$allele_2_repeat),
+                   height = c(x$allele_1_height, x$allele_2_height),
                    peak_allele = c(1, 2))
       })
       extracted_df <- do.call(rbind, extracted)
@@ -441,12 +446,13 @@ extract_alleles <- function(fragments_list) {
 
 # Extract fragments -------------------------------------------------------
 
-#' Extract all fragments
+#' Extract All Fragments
 #'
-#' Extract the peak data from each sample in a list of fragments
-#' @param fragments_list a list of fragments class (can be either a fragments or repeats class)
+#' Extracts peak data from each sample in a list of fragments.
 #'
-#' @return data.frame
+#' @param fragments_list A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).
+#'
+#' @return A data.frame containing peak data for each sample.
 #' @export
 #'
 #' @examples
@@ -473,6 +479,7 @@ extract_fragments <- function(fragments_list) {
         if(is.null(x$repeat_data)){
           return(NULL)
         } else{
+
           df_length <- nrow(x$repeat_data)
           data.frame(unique_id = rep(x$unique_id,df_length),
                      main_peak_repeat = rep(x$allele_1_repeat,df_length),
@@ -495,12 +502,14 @@ extract_fragments <- function(fragments_list) {
 
 # remove fragments -------------------------------------------------------
 
-#' Remove samples from list
+#' Remove Samples from List
 #'
-#' A convenient function to remove samples from a list.
-#' @param fragments_list a list of fragments class (can be either a fragments or repeats class)
+#' A convenient function to remove specific samples from a list of fragments.
 #'
-#' @return data.frame
+#' @param fragments_list A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).
+#' @param samples_to_remove A character vector containing the unique IDs of the samples to be removed.
+#'
+#' @return A modified list of fragments with the specified samples removed.
 #' @export
 #'
 #' @examples
@@ -523,27 +532,28 @@ remove_fragments <- function(fragments_list,
 
 # plot fragment data -------------------------------------------------------
 
-#' Plot peak data
+#' Plot Peak Data
 #'
-#' Plots data from a list of fragments
-#' @param fragments_list  A list of fragments class (can be either a fragments or repeats class)
-#' @param sample_subset A character vector of unique sample ids of samples to pick out and plot
-#' @param zoom_in_on_peak A numeric value for which allele should be zoomed in on. Must be 1 or 2. NA will show the whole trace.
-#' @param zoom_range A numeric vector with a length of 2 to indicate the size around zoomed in peak to include. For example c(20, 20).
-#' @param show_peak_regions A logical value to indicate whether the peak regions should be included in the plot
-#' @param col_width A numeric value to for the column widths
-#' @param facet_nrow A numeric value for how many faceting rows. Is passed to 'nrow' in \code{facet_wrap()}.
-#' @param facet_ncol A numeric value for how many faceting columns. Is passed to 'ncol' in \code{facet_wrap()}.
-#' @param facet_scales A character string for setting the axis scales. Is passed to 'scales' in \code{facet_wrap()}.
+#' Plots peak data from a list of fragments.
 #'
-#' @return data.frame
+#' @param fragments_list A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).
+#' @param sample_subset A character vector of unique sample IDs of samples to pick out and plot.
+#' @param zoom_in_on_peak A numeric value (1 or 2) for which allele's peak should be zoomed in on. Use NA to show the whole trace.
+#' @param zoom_range A numeric vector with a length of 2 to indicate the size range around the zoomed-in peak. For example, c(-20, 20).
+#' @param show_peak_regions A logical value indicating whether peak regions should be included in the plot.
+#' @param col_width A numeric value for the column widths of the plotted bars.
+#' @param facet_nrow A numeric value indicating the number of rows for faceting in the plot (passed to 'nrow' in \code{facet_wrap()}).
+#' @param facet_ncol A numeric value indicating the number of columns for faceting in the plot (passed to 'ncol' in \code{facet_wrap()}).
+#' @param facet_scales A character string for setting the axis scales for faceting (passed to 'scales' in \code{facet_wrap()}).
+#'
+#' @return A ggplot object displaying the peak data.
 #' @export
 #'
 #' @examples
 plot_fragments <- function(fragments_list,
                            sample_subset = NULL,
-                           zoom_in_on_peak = NA, # 1 or 2
-                           zoom_range = NULL, #must be numeric vector with 2 values, first one negative
+                           zoom_in_on_peak = NA,
+                           zoom_range = NULL,
                            show_peak_regions = FALSE,
                            col_width = NULL,
                            facet_nrow = NULL,
@@ -650,7 +660,16 @@ plot_fragments <- function(fragments_list,
 
 
 
-
+#' Plot Repeat Correction Model
+#'
+#' Plots the results of the repeat correction model for a list of fragments.
+#'
+#' @param fragments_list A list of repeats_fragments class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.
+#'
+#' @return A ggplot object displaying the repeat correction model results.
+#' @export
+#'
+#' @examples
 plot_repeat_correction_model <- function(
     fragments_list
 ){

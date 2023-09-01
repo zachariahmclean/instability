@@ -3,10 +3,10 @@
 
 testthat::test_that("peak_table_to_fragments",{
 
-  test_gm <- read.csv("data/example_data.txt", sep = "\t")
+  gm_raw <- strimetrics::example_data
 
   test_fragments <- peak_table_to_fragments(
-    test_gm,
+    gm_raw,
     data_format = "genemapper5",
     peak_size_col = "Size",
     peak_height_col = "Height",
@@ -53,9 +53,8 @@ testthat::test_that("repeat_table_to_fragments",{
 
 testthat::test_that("add_metadata", {
 
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- strimetrics::example_data
+  metadata <- strimetrics::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -129,9 +128,8 @@ testthat::test_that("add_metadata", {
 # find alleles ---------------------------------
 
 testthat::test_that("find_alleles", {
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- strimetrics::example_data
+  metadata <- strimetrics::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -157,9 +155,8 @@ testthat::test_that("find_alleles", {
 # call repeats ---------------------------------------
 
 testthat::test_that("call_repeats", {
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- strimetrics::example_data
+  metadata <- strimetrics::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -242,9 +239,8 @@ testthat::test_that("call_repeats", {
 
 testthat::test_that("call_repeats with correction from genemapper alleles", {
 
-  gm_raw <- read.csv("data/example_data_genemapper_alleles.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- strimetrics::example_data_genemapper_alleles
+  metadata <- strimetrics::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -275,9 +271,8 @@ testthat::test_that("call_repeats with correction from genemapper alleles", {
 # metrics ---------------------------------------
 
 testthat::test_that("calculate metrics", {
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- strimetrics::example_data
+  metadata <- strimetrics::metadata
   # Save raw data as a fragment class
   suppressWarnings({
 

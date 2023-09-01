@@ -1,5 +1,5 @@
 ---
-title: "getting-started"
+title: "Getting Started"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{getting-started}
@@ -14,77 +14,106 @@ knitr::opts_chunk$set(
 )
 ```
 
+This vignette shows the basic pipeline for repeat instability analysis
+
 ```{r setup}
 library(strimetrics)
 library(tidyverse)
 ```
 
-# Import data
-```{r}
-gm_raw <- read.csv("data/bran edited.txt", sep = "\t")
-  metadata <- read.csv("data/metadata_20230414.csv")
+## Import data
 
-  # Save raw data as a fragment class
+Read in the raw data and the metadata. In this case we will used example data within this package, but usually this would be either raw genemapper output or a peak table from another source (e.g. the Fragman R package)
+
+```{r}
+gm_raw <- strimetrics::example_data
+metadata <- strimetrics::metadata
+```
+
+The raw data are coerced into a list of 'fragments' class, which is a fundamental data structure used in this pipeline.
+
+```{r,warning=FALSE}
+
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             dye_channel = "B",
                                             min_size_bp = 400)
 ```
 
-# add metadata
+## Add metadata
+
+Metadata can be incorporated to enhance the fragments class and allow additional functionality in the `call_repeats()` and `calculate_instability_metrics()` functions. You have to match up the column name in the metadata dataframe with the corresponding parameter in `add_metadata()`.
+
 ```{r}
-test_metadata <- add_metadata(
-    fragments_list = test_fragments,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    sample_group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    repeat_positive_control_TF = "repeat_positive_control_TF",
-    repeat_positive_control_length = "repeat_positive_control_length")
+    test_metadata <- add_metadata(
+      fragments_list = test_fragments,
+      metadata_data.frame = metadata,
+      unique_id = "unique_id",
+      plate_id = "plate_id",
+      sample_group_id = "cell_line",
+      metrics_baseline_control = "metrics_baseline_control_TF",
+      repeat_positive_control_TF = "repeat_positive_control_TF",
+      repeat_positive_control_length = "repeat_positive_control_length")
 
 ```
 
 # Identify modal peaks and call repeats
 
-```{r}
+Next we identify the modal peaks with `find_alleles()` and convert the base pair level data to repeats with `call_repeats(`).
+
+```{r,warning=FALSE}
 test_alleles <- find_alleles(
-    fragments_list = test_metadata,
-    number_of_peaks_to_return = 1,
-    peak_region_size_gap_threshold = 6,
-    peak_region_height_threshold_multiplier = 1)
+      fragments_list = test_metadata,
+      number_of_peaks_to_return = 1)
 
 
-  test_repeats <- call_repeats(
-    fragments_list = test_alleles,
-    repeat_algorithm = "simple",
-    assay_size_without_repeat = 87,
-    repeat_size = 3,
-    repeat_length_correction = "none"
-  )
+test_repeats <- call_repeats(
+      fragments_list = test_alleles,
+      repeat_length_correction = "from_metadata"
+    )
 ```
 
-# Calculate instability metrics
+We can view the distribution of repeat sizes and the identified modal peak (dot) with a plotting function.
+
+```{r}
+
+plot_fragments(test_repeats,
+               names(test_repeats)[1:9])
+
+```
+
+We can also view the data used to generate the model for calling the repeat size when we indicate size standard samples in the metadata and have `repeat_length_correction = "from_metadata"` in `call_repeats()`.
+
+```{r}
+
+plot_repeat_correction_model(test_repeats)
+
+
+```
+
+In this case the dots are basically overlapping and in the middle of the linear model, indicating that we have correctly identified the known tallest peak used for the size standards. If the wrong peak was selected for one of the samples, the dots would be shifted across 3 bp and no longer overlapping.
+
+## Calculate instability metrics
+
+Finally, the repeat instability metrics can be calculated. In the metadata, a subset of the samples are set as 'metrics_baseline_control', meaning they are the samples taken at day 0 in this experiment and are the control samples are compared to. This allows us to set `grouped = TRUE` and set the index peak (the repeat size at the start of the experiment, or inherited repeat length in the case of mice) for the expansion index and other metrics.
 
 ```{r}
 test_metrics_grouped <- calculate_instability_metrics(
-    fragments_list = test_repeats,
-    grouped = TRUE,
-    peak_threshold = 0.05,
-    # note the lower lim should be a negative value
-    window_around_main_peak = c(-40, 40),
-    percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
-    repeat_range = c( 1,2,3,4,seq(6,20,2)))
+      fragments_list = test_repeats,
+      grouped = TRUE,
+      peak_threshold = 0.05,
+      window_around_main_peak = c(-40, 40))
 ```
 
+These metrics can then be used to quantify repeat instability. For example, this reproduces Figure 7e of [our manuscript](https://www.biorxiv.org/content/10.1101/2023.07.25.550489v1).
 
 ```{r}
 test_metrics_grouped |>
     left_join(metadata) |>
     group_by(cell_line) |>
-    filter(day >0) |>
+    filter(day >0,
+           modal_peak_height > 500) |>
     mutate(rel_gain = average_repeat_gain / median(average_repeat_gain[which(treatment == 0)])) |>
     ggplot(aes(as.factor(treatment), rel_gain, colour = as.factor(treatment))) +
     geom_boxplot(outlier.shape = NA) +
@@ -94,4 +123,3 @@ test_metrics_grouped |>
   
 
 ```
-

@@ -146,7 +146,7 @@ model_repeat_length <- function(fragments_list,
   # Can now make a model based on the bp size and the known repeat size
   if(length(unique(controls_repeats_df$plate_id)) == 1){
     # when there's only one plate just set up simple lm
-    correction_mods <- lm(validated_repeats ~ size, data = controls_repeats_df)
+    correction_mods <- stats::lm(validated_repeats ~ size, data = controls_repeats_df)
     repeat_bp_size <- round(1/correction_mods$coefficients[2], 2)
     message(paste0("Repeat correction model: ", repeat_bp_size, " bp increase per repeat"))
 
@@ -157,7 +157,7 @@ model_repeat_length <- function(fragments_list,
 
   # check to see if any samples look off
 
-  controls_repeats_df$predicted_repeat <- predict.lm(correction_mods, controls_repeats_df)
+  controls_repeats_df$predicted_repeat <- stats::predict.lm(correction_mods, controls_repeats_df)
   controls_repeats_df$residuals <- correction_mods$residuals
   message(paste0("Repeat correction model: Average repeat residual ", round(mean(controls_repeats_df$residuals), 10)))
 
@@ -231,7 +231,7 @@ add_repeats_helper <- function(bp_fragments,
     if(correct_repeat_length == TRUE){
 
       repeat_data$plate_id <- rep(bp_fragments$plate_id, nrow(repeat_data))
-      repeat_data$repeats <- predict.lm(bp_fragments$.__enclos_env__$private$correction_mod, repeat_data)
+      repeat_data$repeats <- stats::predict.lm(bp_fragments$.__enclos_env__$private$correction_mod, repeat_data)
 
     }
 
