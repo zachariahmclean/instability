@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 This vignette shows the basic pipeline for repeat instability analysis
 
 ```{r setup}
-library(strimetrics)
+library(instability)
 library(tidyverse)
 ```
 
@@ -26,8 +26,8 @@ library(tidyverse)
 Read in the raw data and the metadata. In this case we will used example data within this package, but usually this would be either raw genemapper output or a peak table from another source (e.g. the Fragman R package)
 
 ```{r}
-gm_raw <- strimetrics::example_data
-metadata <- strimetrics::metadata
+gm_raw <- instability::example_data
+metadata <- instability::metadata
 ```
 
 The raw data are coerced into a list of 'fragments' class, which is a fundamental data structure used in this pipeline.

@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(strimetrics)
+library(instability)
 
-test_check("strimetrics")
+test_check("instability")

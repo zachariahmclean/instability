@@ -3,7 +3,7 @@
 
 testthat::test_that("peak_table_to_fragments",{
 
-  gm_raw <- strimetrics::example_data
+  gm_raw <- instability::example_data
 
   test_fragments <- peak_table_to_fragments(
     gm_raw,
@@ -53,8 +53,8 @@ testthat::test_that("repeat_table_to_fragments",{
 
 testthat::test_that("add_metadata", {
 
-  gm_raw <- strimetrics::example_data
-  metadata <- strimetrics::metadata
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -128,8 +128,8 @@ testthat::test_that("add_metadata", {
 # find alleles ---------------------------------
 
 testthat::test_that("find_alleles", {
-  gm_raw <- strimetrics::example_data
-  metadata <- strimetrics::metadata
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -155,8 +155,8 @@ testthat::test_that("find_alleles", {
 # call repeats ---------------------------------------
 
 testthat::test_that("call_repeats", {
-  gm_raw <- strimetrics::example_data
-  metadata <- strimetrics::metadata
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -239,8 +239,8 @@ testthat::test_that("call_repeats", {
 
 testthat::test_that("call_repeats with correction from genemapper alleles", {
 
-  gm_raw <- strimetrics::example_data_genemapper_alleles
-  metadata <- strimetrics::metadata
+  gm_raw <- instability::example_data_genemapper_alleles
+  metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -271,8 +271,8 @@ testthat::test_that("call_repeats with correction from genemapper alleles", {
 # metrics ---------------------------------------
 
 testthat::test_that("calculate metrics", {
-  gm_raw <- strimetrics::example_data
-  metadata <- strimetrics::metadata
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
   # Save raw data as a fragment class
   suppressWarnings({
 

@@ -2,7 +2,7 @@
 
 testthat::test_that("percentiles",{
 
-  gm_raw <- strimetrics::example_data
+  gm_raw <- instability::example_data
   test_sample <- "20230413_A01.fsa"
 
   test_df <- gm_raw[which(gm_raw$Sample.File.Name == test_sample), ]
