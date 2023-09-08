@@ -42,3 +42,22 @@ This function adds metadata information to a list of fragments.
 This function adds specified metadata attributes to each fragment in the list.
 It matches the unique sample identifiers from the fragments list with those in the metadata data frame.
 }
+\examples{
+
+gm_raw <- instability::example_data
+metadata <- instability::metadata
+
+test_fragments <- peak_table_to_fragments(gm_raw,
+  data_format = "genemapper5",
+  dye_channel = "B")
+
+test_metadata <- add_metadata(
+  fragments_list = test_fragments,
+  metadata_data.frame = metadata,
+  unique_id = "unique_id",
+  plate_id = "plate_id",
+  sample_group_id = "cell_line",
+  metrics_baseline_control = "metrics_baseline_control_TF",
+  repeat_positive_control_TF = "repeat_positive_control_TF",
+  repeat_positive_control_length = "repeat_positive_control_length")
+}

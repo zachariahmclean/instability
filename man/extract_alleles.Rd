@@ -15,3 +15,20 @@ A data.frame containing modal peak information for each sample.
 \description{
 Extracts modal peak information from each sample in a list of fragments.
 }
+\examples{
+ gm_raw <- instability::example_data
+
+ test_fragments <- peak_table_to_fragments(gm_raw,
+   data_format = "genemapper5",
+   dye_channel = "B",
+   min_size_bp = 400)
+
+ test_alleles <- find_alleles(
+   fragments_list = test_fragments,
+   number_of_peaks_to_return = 1,
+   peak_region_size_gap_threshold = 6,
+   peak_region_height_threshold_multiplier = 1)
+
+  extract_alleles(test_alleles)
+
+}

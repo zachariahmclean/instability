@@ -15,3 +15,35 @@ A ggplot object displaying the repeat correction model results.
 \description{
 Plots the results of the repeat correction model for a list of fragments.
 }
+\examples{
+gm_raw <- instability::example_data
+metadata <- instability::metadata
+
+test_fragments <- peak_table_to_fragments(
+  gm_raw,
+  data_format = "genemapper5",
+  dye_channel = "B")
+
+test_alleles <- find_alleles(
+  fragments_list = test_fragments,
+  number_of_peaks_to_return = 2,
+  peak_region_size_gap_threshold = 6,
+  peak_region_height_threshold_multiplier = 1)
+
+test_alleles_metadata <- add_metadata(
+  test_alleles, metadata,
+  sample_group_id = "cell_line",
+  unique_id = "unique_id")
+
+test_repeats_corrected <- call_repeats(
+  fragments_list = test_alleles_metadata,
+  repeat_algorithm = "simple",
+  assay_size_without_repeat = 87,
+  repeat_size = 3,
+  repeat_length_correction = "from_metadata"
+)
+
+plot_repeat_correction_model(test_repeats_corrected)
+
+
+}

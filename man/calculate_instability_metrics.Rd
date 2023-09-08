@@ -35,3 +35,47 @@ A data.frame with calculated instability metrics for each sample.
 \description{
 This function computes instability metrics from a list of repeats_fragments data objects.
 }
+\examples{
+ gm_raw <- instability::example_data
+ metadata <- instability::metadata
+
+ test_fragments <- peak_table_to_fragments(gm_raw,
+   data_format = "genemapper5",
+   dye_channel = "B",
+   min_size_bp = 400)
+
+ test_metadata <- add_metadata(
+   fragments_list = test_fragments,
+   metadata_data.frame = metadata,
+   unique_id = "unique_id",
+   plate_id = "plate_id",
+   sample_group_id = "cell_line",
+   metrics_baseline_control = "metrics_baseline_control_TF",
+   repeat_positive_control_TF = "repeat_positive_control_TF",
+   repeat_positive_control_length = "repeat_positive_control_length")
+
+ test_alleles <- find_alleles(
+   fragments_list = test_metadata,
+   number_of_peaks_to_return = 1,
+   peak_region_size_gap_threshold = 6,
+   peak_region_height_threshold_multiplier = 1)
+
+
+ test_repeats <- call_repeats(
+   fragments_list = test_alleles,
+   repeat_algorithm = "simple",
+   assay_size_without_repeat = 87,
+   repeat_size = 3,
+   repeat_length_correction = "none"
+  )
+
+  # grouped metrics
+  # uses t=0 samples as indicated in metadata
+ test_metrics_grouped <- calculate_instability_metrics(
+   fragments_list = test_repeats,
+   grouped = TRUE,
+   peak_threshold = 0.05,
+   window_around_main_peak = c(-40, 40),
+   percentile_range = c(0.5, 0.75, 0.9, 0.95),
+   repeat_range = c(2, 5, 10, 20))
+}

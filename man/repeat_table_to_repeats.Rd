@@ -4,22 +4,16 @@
 \alias{repeat_table_to_repeats}
 \title{Convert Repeat Table to Repeats Fragments}
 \usage{
-repeat_table_to_repeats(
-  df,
-  repeat_class = "repeats_fragments",
-  repeat_col,
-  frequency_col,
-  unique_id
-)
+repeat_table_to_repeats(df, unique_id, repeat_col, frequency_col)
 }
 \arguments{
 \item{df}{A data frame containing the repeat data.}
 
+\item{unique_id}{A character string indicating the column name for unique identifiers.}
+
 \item{repeat_col}{A character string indicating the column name for the repeats.}
 
 \item{frequency_col}{A character string indicating the column name for the repeat frequencies.}
-
-\item{unique_id}{A character string indicating the column name for unique identifiers.}
 }
 \value{
 A list of repeats fragments.
@@ -30,4 +24,13 @@ This function converts a repeat table data frame into a list of repeats fragment
 \details{
 This function takes a repeat table data frame and converts it into a list of repeats fragments.
 The function allows specifying column names for repeats, frequencies, and unique identifiers.
+}
+\examples{
+  repeat_table <- instability::example_data_repeat_table
+  test_fragments <- repeat_table_to_repeats(
+    repeat_table,
+    repeat_col = "repeats",
+    frequency_col = "height",
+    unique_id = "unique_id"
+    )
 }

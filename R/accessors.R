@@ -24,6 +24,13 @@
 #'
 #' @examples
 #'
+#'   gm_raw <- instability::example_data
+#'
+#'   test_fragments <- peak_table_to_fragments(
+#'     gm_raw,
+#'     data_format = "genemapper5",
+#'     dye_channel = "B",
+#'     min_size_bp = 400)
 #'
 #' @export
 peak_table_to_fragments <- function(df,
@@ -108,12 +115,19 @@ peak_table_to_fragments <- function(df,
 #' @export
 #'
 #' @examples
-#'
+#'   repeat_table <- instability::example_data_repeat_table
+#'   test_fragments <- repeat_table_to_repeats(
+#'     repeat_table,
+#'     repeat_col = "repeats",
+#'     frequency_col = "height",
+#'     unique_id = "unique_id"
+#'     )
+
 repeat_table_to_repeats <- function(df,
-                               repeat_class = "repeats_fragments",
-                               repeat_col,
-                               frequency_col,
-                               unique_id){
+                                    unique_id,
+                                    repeat_col,
+                                    frequency_col
+                               ){
   # validate inputs to give good errors to user
   ## check to make sure that if the user supplies a column name, that it's actually in the dataframe
   function_input_vector <- c(repeat_col, frequency_col, unique_id)
@@ -131,7 +145,7 @@ repeat_table_to_repeats <- function(df,
 
   repeats_list <- lapply(split(df, df$unique_id),
              function(x) {
-               new_repeats_fragments$new(unique_id = unique(x$unique_id))
+               new_repeats_fragments <- repeats_fragments$new(unique_id = unique(x$unique_id))
                new_repeats_fragments$repeat_data <- x
                return(new_repeats_fragments)
              })
@@ -164,6 +178,23 @@ repeat_table_to_repeats <- function(df,
 #'
 #' @examples
 #'
+#' gm_raw <- instability::example_data
+#' metadata <- instability::metadata
+#'
+#' test_fragments <- peak_table_to_fragments(gm_raw,
+#'   data_format = "genemapper5",
+#'   dye_channel = "B")
+#'
+#' test_metadata <- add_metadata(
+#'   fragments_list = test_fragments,
+#'   metadata_data.frame = metadata,
+#'   unique_id = "unique_id",
+#'   plate_id = "plate_id",
+#'   sample_group_id = "cell_line",
+#'   metrics_baseline_control = "metrics_baseline_control_TF",
+#'   repeat_positive_control_TF = "repeat_positive_control_TF",
+#'   repeat_positive_control_length = "repeat_positive_control_length")
+
 add_metadata <- function(fragments_list,
                          metadata_data.frame,
                          unique_id = "sample_file_name",
@@ -245,6 +276,19 @@ add_metadata <- function(fragments_list,
 #' @export
 #'
 #' @examples
+#'  gm_raw <- instability::example_data
+#'
+#' test_fragments <- peak_table_to_fragments(
+#'   gm_raw,
+#'   data_format = "genemapper5",
+#'   dye_channel = "B")
+#'
+#' test_alleles <- find_alleles(
+#'   fragments_list = test_fragments,
+#'   number_of_peaks_to_return = 2,
+#'   peak_region_size_gap_threshold = 6,
+#'   peak_region_height_threshold_multiplier = 1)
+
 find_alleles <- function(fragments_list,
                          number_of_peaks_to_return = 2,
                          peak_region_size_gap_threshold = 6,
@@ -282,11 +326,61 @@ find_alleles <- function(fragments_list,
 #' The `nearest_peak` algorithm aims to model and correct for the systematic variation in fragment sizes that occurs over base pairs. It calculates repeat lengths in a way that helps align peaks with the underlying repeat pattern, making the estimation of repeat lengths more reliable relative to the main peak. The calculated repeat lengths start from the main peak's repeat length (repeat length of the main peak calculated with simple algorithm described above) and increase in increments of the specified `repeat_size`. This approach is particularly useful for mitigating the impact of size measurement underestimate, often referred to as "drift," that can occur over base pairs. By ensuring that the calculated repeat lengths are evenly spaced apart by a fixed amount (`repeat_size`), this algorithm helps stabilize the estimation of repeat lengths across peaks, leading to more consistent results.
 #'
 #'
-#' @seealso \code{\link{find_main_peaks}}
+#' @seealso [instability::find_main_peaks()]
+#'
+#' @export
 #'
 #' @examples
 #'
-#' @export
+#' gm_raw <- instability::example_data
+#' metadata <- instability::metadata
+#'
+#' test_fragments <- peak_table_to_fragments(
+#'   gm_raw,
+#'   data_format = "genemapper5",
+#'   dye_channel = "B")
+#'
+#' test_alleles <- find_alleles(
+#'   fragments_list = test_fragments,
+#'   number_of_peaks_to_return = 2,
+#'   peak_region_size_gap_threshold = 6,
+#'   peak_region_height_threshold_multiplier = 1)
+#'
+#' # Simple conversion from bp size to repeat size
+#' test_repeats <- call_repeats(
+#'   fragments_list = test_alleles,
+#'   repeat_algorithm = "simple",
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3
+#' )
+#'
+#'
+#' # Use nearest peak algorithm to make sure called repeats are the exact number
+#' # of bp apart
+#'
+#' test_repeats_np <- call_repeats(
+#'   fragments_list = test_alleles,
+#'   repeat_algorithm = "nearest_peak",
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3
+#' )
+#'
+#'
+#' # correct repeat length from metadata
+#'
+#' test_alleles_metadata <- add_metadata(
+#'   test_alleles, metadata,
+#'   sample_group_id = "cell_line",
+#'   unique_id = "unique_id")
+#'
+#' test_repeats_corrected <- call_repeats(
+#'   fragments_list = test_alleles_metadata,
+#'   repeat_algorithm = "simple",
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3,
+#'   repeat_length_correction = "from_metadata"
+#' )
+
 call_repeats <- function(fragments_list,
                          repeat_algorithm = "simple",
                          assay_size_without_repeat = 87,
@@ -343,7 +437,49 @@ call_repeats <- function(fragments_list,
 #' @export
 #'
 #' @examples
+#'  gm_raw <- instability::example_data
+#'  metadata <- instability::metadata
 #'
+#'  test_fragments <- peak_table_to_fragments(gm_raw,
+#'    data_format = "genemapper5",
+#'    dye_channel = "B",
+#'    min_size_bp = 400)
+#'
+#'  test_metadata <- add_metadata(
+#'    fragments_list = test_fragments,
+#'    metadata_data.frame = metadata,
+#'    unique_id = "unique_id",
+#'    plate_id = "plate_id",
+#'    sample_group_id = "cell_line",
+#'    metrics_baseline_control = "metrics_baseline_control_TF",
+#'    repeat_positive_control_TF = "repeat_positive_control_TF",
+#'    repeat_positive_control_length = "repeat_positive_control_length")
+#'
+#'  test_alleles <- find_alleles(
+#'    fragments_list = test_metadata,
+#'    number_of_peaks_to_return = 1,
+#'    peak_region_size_gap_threshold = 6,
+#'    peak_region_height_threshold_multiplier = 1)
+#'
+#'
+#'  test_repeats <- call_repeats(
+#'    fragments_list = test_alleles,
+#'    repeat_algorithm = "simple",
+#'    assay_size_without_repeat = 87,
+#'    repeat_size = 3,
+#'    repeat_length_correction = "none"
+#'   )
+#'
+#'   # grouped metrics
+#'   # uses t=0 samples as indicated in metadata
+#'  test_metrics_grouped <- calculate_instability_metrics(
+#'    fragments_list = test_repeats,
+#'    grouped = TRUE,
+#'    peak_threshold = 0.05,
+#'    window_around_main_peak = c(-40, 40),
+#'    percentile_range = c(0.5, 0.75, 0.9, 0.95),
+#'    repeat_range = c(2, 5, 10, 20))
+
 calculate_instability_metrics <- function(fragments_list,
                               grouped = FALSE,
                               peak_threshold = 0.05,
@@ -411,6 +547,21 @@ calculate_instability_metrics <- function(fragments_list,
 #' @export
 #'
 #' @examples
+#'  gm_raw <- instability::example_data
+#'
+#'  test_fragments <- peak_table_to_fragments(gm_raw,
+#'    data_format = "genemapper5",
+#'    dye_channel = "B",
+#'    min_size_bp = 400)
+#'
+#'  test_alleles <- find_alleles(
+#'    fragments_list = test_fragments,
+#'    number_of_peaks_to_return = 1,
+#'    peak_region_size_gap_threshold = 6,
+#'    peak_region_height_threshold_multiplier = 1)
+#'
+#'   extract_alleles(test_alleles)
+#'
 extract_alleles <- function(fragments_list) {
 
   suppressWarnings(
@@ -456,6 +607,40 @@ extract_alleles <- function(fragments_list) {
 #' @export
 #'
 #' @examples
+#'  gm_raw <- instability::example_data
+#'  metadata <- instability::metadata
+#'
+#'  test_fragments <- peak_table_to_fragments(gm_raw,
+#'    data_format = "genemapper5",
+#'    dye_channel = "B",
+#'    min_size_bp = 400)
+#'
+#'  test_metadata <- add_metadata(
+#'    fragments_list = test_fragments,
+#'    metadata_data.frame = metadata,
+#'    unique_id = "unique_id",
+#'    plate_id = "plate_id",
+#'    sample_group_id = "cell_line",
+#'    metrics_baseline_control = "metrics_baseline_control_TF",
+#'    repeat_positive_control_TF = "repeat_positive_control_TF",
+#'    repeat_positive_control_length = "repeat_positive_control_length")
+#'
+#'  test_alleles <- find_alleles(
+#'    fragments_list = test_metadata,
+#'    number_of_peaks_to_return = 1,
+#'    peak_region_size_gap_threshold = 6,
+#'    peak_region_height_threshold_multiplier = 1)
+#'
+#'  test_repeats <- call_repeats(
+#'    fragments_list = test_alleles,
+#'    repeat_algorithm = "simple",
+#'    assay_size_without_repeat = 87,
+#'    repeat_size = 3,
+#'    repeat_length_correction = "none"
+#'   )
+#'
+#'   extract_alleles(test_repeats)
+#'
 extract_fragments <- function(fragments_list) {
 
   suppressWarnings(
@@ -513,6 +698,21 @@ extract_fragments <- function(fragments_list) {
 #' @export
 #'
 #' @examples
+#' gm_raw <- instability::example_data
+#' metadata <- instability::metadata
+#'
+#' test_fragments <- peak_table_to_fragments(
+#'   gm_raw,
+#'   data_format = "genemapper5",
+#'   dye_channel = "B")
+#'
+#' all_fragment_names <- names(test_fragments)
+#'
+#' #pull out unique ids of samples to remove
+#' samples_to_remove <- all_fragment_names[c(1,5,10)]
+#'
+#' samples_removed <- remove_fragments(test_fragments, samples_to_remove)
+#'
 remove_fragments <- function(fragments_list,
                              samples_to_remove){
 
@@ -550,6 +750,21 @@ remove_fragments <- function(fragments_list,
 #' @export
 #'
 #' @examples
+#' gm_raw <- instability::example_data
+#'
+#' test_fragments <- peak_table_to_fragments(gm_raw,
+#'   data_format = "genemapper5",
+#'   dye_channel = "B")
+#'
+#' test_alleles <- find_alleles(
+#'   fragments_list = test_fragments,
+#'   number_of_peaks_to_return = 2,
+#'   peak_region_size_gap_threshold = 6,
+#'   peak_region_height_threshold_multiplier = 1)
+#'
+#' plot_fragments(test_alleles,
+#'   names(test_alleles)[1:9])
+
 plot_fragments <- function(fragments_list,
                            sample_subset = NULL,
                            zoom_in_on_peak = NA,
@@ -631,27 +846,30 @@ plot_fragments <- function(fragments_list,
   }
 
   gg <- gg +
-    ggplot2::geom_col(ggplot2::aes(x = eval(parse(text = x_axis_col)),
-                 y = height,
-                 text = paste('Unique id: ', unique_id,
-                              '<br>Repeat:', round(eval(parse(text = x_axis_col)), digits = 2),
-                              '<br>Height:', height)),
-             width = defined_col_width) +
-    ggplot2::geom_point(data = modal_peaks,
-                        ggplot2::aes(x = eval(parse(text = x_axis_col)),
-                   y = height,
-                   colour = fct_rev(as.character(peak_allele)),
-                   text = paste('Unique id: ', unique_id,
-                                '<br>Repeat:', round(eval(parse(text = x_axis_col)), digits = 2),
-                                '<br>Height:', height)),
-               size = 1) +
-    ggplot2::facet_wrap(ggplot2::vars(unique_id),
-               nrow = facet_nrow,
-               ncol = facet_ncol,
-               scales = facet_scales) +
+    ggplot2::geom_col(
+      ggplot2::aes(
+        x = eval(parse(text = x_axis_col)),
+        y = height
+      ),
+      width = defined_col_width) +
+    ggplot2::geom_point(
+      data = modal_peaks,
+      ggplot2::aes(
+        x = eval(parse(text = x_axis_col)),
+        y = height,
+        colour = as.character(peak_allele)
+      ),
+      size = 1
+    ) +
+    ggplot2::facet_wrap(
+      ggplot2::vars(unique_id),
+      nrow = facet_nrow,
+      ncol = facet_ncol,
+      scales = facet_scales
+    ) +
     ggplot2::labs(x = x_axis_col,
-         fill = "Peak Region",
-         colour = NULL)
+                  fill = "Peak Region",
+                  colour = NULL)
   return(gg)
 }
 
@@ -670,6 +888,36 @@ plot_fragments <- function(fragments_list,
 #' @export
 #'
 #' @examples
+#' gm_raw <- instability::example_data
+#' metadata <- instability::metadata
+#'
+#' test_fragments <- peak_table_to_fragments(
+#'   gm_raw,
+#'   data_format = "genemapper5",
+#'   dye_channel = "B")
+#'
+#' test_alleles <- find_alleles(
+#'   fragments_list = test_fragments,
+#'   number_of_peaks_to_return = 2,
+#'   peak_region_size_gap_threshold = 6,
+#'   peak_region_height_threshold_multiplier = 1)
+#'
+#' test_alleles_metadata <- add_metadata(
+#'   test_alleles, metadata,
+#'   sample_group_id = "cell_line",
+#'   unique_id = "unique_id")
+#'
+#' test_repeats_corrected <- call_repeats(
+#'   fragments_list = test_alleles_metadata,
+#'   repeat_algorithm = "simple",
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3,
+#'   repeat_length_correction = "from_metadata"
+#' )
+#'
+#' plot_repeat_correction_model(test_repeats_corrected)
+#'
+#'
 plot_repeat_correction_model <- function(
     fragments_list
 ){

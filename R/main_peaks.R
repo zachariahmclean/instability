@@ -200,7 +200,7 @@ find_main_peaks_helper <- function(fragments_class,
   )
 
   if (length(top_peaks$top_peaks) == 0) {
-    warning(paste0(self2$unique_id, ": No main alleles identified"))
+    warning(paste0(fragments_class$unique_id, ": No main alleles identified"))
   }
 
   # data type
