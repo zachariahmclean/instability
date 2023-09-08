@@ -8,6 +8,11 @@ supplied metadata data-frame. The package identifies the modal peaks,
 calls repeats, then calculates repeat instability metrics (ie expansion
 index or average repeat gain).
 
+In this package, each sample is represented by an R6 ‘fragments’ object,
+which are organised in lists. As a user there are accessor functions
+that iterate over these lists, so you shouldn’t need to interact with
+the fragments object.
+
 We are working on a full pipeline for also processing the raw .fsa
 files. Alternatively, the
 [Fragman](https://cran.r-project.org/web/packages/Fragman/index.html)
@@ -52,26 +57,6 @@ devtools::install_github("zachariahmclean/instability")
 ``` r
 library(instability)
 library(tidyverse)
-#> Warning: package 'tidyverse' was built under R version 4.2.2
-#> Warning: package 'ggplot2' was built under R version 4.2.2
-#> Warning: package 'tibble' was built under R version 4.2.3
-#> Warning: package 'tidyr' was built under R version 4.2.2
-#> Warning: package 'readr' was built under R version 4.2.2
-#> Warning: package 'purrr' was built under R version 4.2.3
-#> Warning: package 'dplyr' was built under R version 4.2.3
-#> Warning: package 'stringr' was built under R version 4.2.2
-#> Warning: package 'forcats' was built under R version 4.2.2
-#> Warning: package 'lubridate' was built under R version 4.2.2
-#> ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-#> ✔ dplyr     1.1.2     ✔ readr     2.1.4
-#> ✔ forcats   1.0.0     ✔ stringr   1.5.0
-#> ✔ ggplot2   3.4.1     ✔ tibble    3.2.1
-#> ✔ lubridate 1.9.2     ✔ tidyr     1.3.0
-#> ✔ purrr     1.0.2     
-#> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-#> ✖ dplyr::filter() masks stats::filter()
-#> ✖ dplyr::lag()    masks stats::lag()
-#> ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 ```
 
 ## Import data

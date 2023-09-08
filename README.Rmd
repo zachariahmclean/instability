@@ -15,6 +15,8 @@ knitr::opts_chunk$set(
 
 The goal of instability is to provide a pipeline for short tandem repeat instability analysis from fragment analysis data. This package takes inputs of peak tables, usually from Genemapper5 software, and a user supplied metadata data-frame. The package identifies the modal peaks, calls repeats, then calculates repeat instability metrics (ie expansion index or average repeat gain).
 
+In this package, each sample is represented by an R6 'fragments' object, which are organised in lists. As a user there are accessor functions that iterate over these lists, so you shouldn't need to interact with the fragments object.
+
 We are working on a full pipeline for also processing the raw .fsa files. Alternatively, the [Fragman](https://cran.r-project.org/web/packages/Fragman/index.html) package can be used to process the .fsa files if you do not have access to Genemapper (see here for a vignette on using Fragman with this package). We usually only use Genemapper to convert the raw signal to bp size from the ladder and identify the peaks, all of which works well and is automated in the software.
 
 There are several important factors to a successful repeat instability experiment that this package helps with:
@@ -36,7 +38,7 @@ devtools::install_github("zachariahmclean/instability")
 
 ## Example
 
-```{r setup}
+```{r setup, warning=FALSE, message=FALSE}
 library(instability)
 library(tidyverse)
 ```
