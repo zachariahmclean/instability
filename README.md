@@ -200,4 +200,3 @@ ggplot(plot_data,
 ```
 
 <img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
->>>>>>> c0c68c0c42ce17a3f9d55549cb0bb4ae9419e0e8
