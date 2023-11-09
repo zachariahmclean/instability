@@ -11,5 +11,14 @@
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 scale_fill_viridis_d
+#' @importFrom stats aggregate
+#' @importFrom stats approx
+#' @importFrom stats lm
+#' @importFrom stats median
+#' @importFrom stats na.omit
+#' @importFrom stats predict.lm
+#' @importFrom stats setNames
+#' @importFrom stats smooth
+#' @importFrom stats weighted.mean
 ## usethis namespace: end
 NULL

@@ -18,8 +18,8 @@ testthat::test_that("fragments class initialization", {
 
 testthat::test_that("add_metadata function", {
 
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
 
   test_df <- gm_raw[which(gm_raw$Sample.File.Name == metadata$unique_id[1]), ]
   metadata <- metadata[which(metadata$unique_id == metadata$unique_id[1]), ]
@@ -51,7 +51,7 @@ testthat::test_that("add_metadata function", {
 
 testthat::test_that("main peaks bp_fragments",{
 
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
+  gm_raw <- instability::example_data
   test_sample <- "20230413_A01.fsa"
 
   test_df <- gm_raw[which(gm_raw$Sample.File.Name == test_sample), ]
@@ -83,7 +83,7 @@ testthat::test_that("main peaks bp_fragments",{
 
 testthat::test_that("add_repeats",{
 
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
+  gm_raw <- instability::example_data
   test_sample <-  "20230413_A01.fsa"
 
   test_df <- gm_raw[which(gm_raw$Sample.File.Name == test_sample), ]
@@ -125,7 +125,7 @@ testthat::test_that("add_repeats",{
 
 testthat::test_that("add_repeats",{
 
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
+  gm_raw <- instability::example_data
   test_sample <- "20230413_A01.fsa"
 
   test_df <- gm_raw[which(gm_raw$Sample.File.Name == test_sample), ]
@@ -169,7 +169,7 @@ testthat::test_that("add_repeats",{
 testthat::test_that("instability metrics",{
 
 
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
+  gm_raw <- instability::example_data
   test_sample <- "20230413_A01.fsa"
 
   test_df <- gm_raw[which(gm_raw$Sample.File.Name == test_sample), ]

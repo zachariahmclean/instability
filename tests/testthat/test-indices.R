@@ -2,7 +2,7 @@
 
 testthat::test_that("percentiles",{
 
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
+  gm_raw <- instability::example_data
   test_sample <- "20230413_A01.fsa"
 
   test_df <- gm_raw[which(gm_raw$Sample.File.Name == test_sample), ]
@@ -10,7 +10,6 @@ testthat::test_that("percentiles",{
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(test_df,
-                                            fragment_class = "bp_fragments",
                                             data_format = "genemapper5",
                                             # peak_size_col = "size",
                                             # peak_height_col = "signal",

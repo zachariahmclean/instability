@@ -3,10 +3,10 @@
 
 testthat::test_that("peak_table_to_fragments",{
 
-  test_gm <- read.csv("data/example_data.txt", sep = "\t")
+  gm_raw <- instability::example_data
 
   test_fragments <- peak_table_to_fragments(
-    test_gm,
+    gm_raw,
     data_format = "genemapper5",
     peak_size_col = "Size",
     peak_height_col = "Height",
@@ -44,6 +44,35 @@ testthat::test_that("peak_table_to_fragments",{
 # repeat_table_to_fragments -------------------------------------------------
 
 testthat::test_that("repeat_table_to_fragments",{
+  repeat_table <- instability::example_data_repeat_table
+
+  test_fragments <- repeat_table_to_repeats(
+    repeat_table,
+    repeat_col = "repeats",
+    frequency_col = "height",
+    unique_id = "unique_id"
+  )
+
+  test_sample <- test_fragments[[1]]
+
+  test_fragments_classes <- vector("character", length(test_fragments))
+  for (i in seq_along(test_fragments)) {
+    test_fragments_classes[i] <- class(test_fragments[[i]])[1]
+  }
+
+  test_fragments_ids <- vector("character", length(test_fragments))
+  for (i in seq_along(test_fragments)) {
+    test_fragments_ids[i] <- test_fragments[[i]]$unique_id
+  }
+
+  # it's a list
+  testthat::expect_true(class(test_fragments) == "list")
+  # we only expect one class
+  testthat::expect_true(length(unique(test_fragments_classes)) == 1)
+  # everything in the list is the class we expect
+  testthat::expect_true(unique(test_fragments_classes) == "repeats_fragments")
+  # no missing unique ids
+  testthat::expect_false(any(is.na(test_fragments_ids)))
 
 
 })
@@ -53,9 +82,8 @@ testthat::test_that("repeat_table_to_fragments",{
 
 testthat::test_that("add_metadata", {
 
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -129,9 +157,8 @@ testthat::test_that("add_metadata", {
 # find alleles ---------------------------------
 
 testthat::test_that("find_alleles", {
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -157,9 +184,8 @@ testthat::test_that("find_alleles", {
 # call repeats ---------------------------------------
 
 testthat::test_that("call_repeats", {
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -242,9 +268,8 @@ testthat::test_that("call_repeats", {
 
 testthat::test_that("call_repeats with correction from genemapper alleles", {
 
-  gm_raw <- read.csv("data/example_data_genemapper_alleles.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- instability::example_data_genemapper_alleles
+  metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
@@ -275,9 +300,8 @@ testthat::test_that("call_repeats with correction from genemapper alleles", {
 # metrics ---------------------------------------
 
 testthat::test_that("calculate metrics", {
-  gm_raw <- read.csv("data/example_data.txt", sep = "\t")
-  metadata <- read.csv("data/metadata.csv")
-
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
   # Save raw data as a fragment class
   suppressWarnings({
 
@@ -366,3 +390,53 @@ testthat::test_that("calculate metrics", {
 
 })
 
+
+# remove fragments --------------------------------------------------------
+
+testthat::test_that("remove fragments",{
+
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
+  # Save raw data as a fragment class
+
+  test_fragments <- peak_table_to_fragments(
+    gm_raw,
+    data_format = "genemapper5",
+    dye_channel = "B")
+
+  all_fragment_names <- names(test_fragments)
+  samples_to_remove <- all_fragment_names[c(1,length(all_fragment_names))]
+
+  samples_removed <- remove_fragments(test_fragments, samples_to_remove)
+
+  testthat::expect_true(all(!names(samples_removed) %in% samples_to_remove))
+
+})
+
+
+# plot fragments ----------------------------------------------------------
+
+testthat::test_that("plot fragments",{
+
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
+  # Save raw data as a fragment class
+
+  test_fragments <- peak_table_to_fragments(gm_raw,
+                                            data_format = "genemapper5",
+                                            dye_channel = "B")
+
+  test_alleles <- find_alleles(
+    fragments_list = test_fragments,
+    number_of_peaks_to_return = 2,
+    peak_region_size_gap_threshold = 6,
+    peak_region_height_threshold_multiplier = 1)
+
+  gg <- plot_fragments(test_alleles,
+                 names(test_alleles)[1:9])
+
+
+  ## come up with tests
+
+
+})
