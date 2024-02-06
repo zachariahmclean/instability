@@ -11,6 +11,7 @@
 #' @importFrom ggplot2 ggplot
 #' @importFrom ggplot2 labs
 #' @importFrom ggplot2 scale_fill_viridis_d
+#' @importFrom seqinr read.abif
 #' @importFrom stats aggregate
 #' @importFrom stats approx
 #' @importFrom stats lm

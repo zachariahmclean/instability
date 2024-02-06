@@ -1,4 +1,42 @@
 
+# ladder class ------------------------------------------------------------
+
+
+ladder <- R6::R6Class("ladder",
+                      list(
+                        unique_id = NULL,
+                        raw_ladder = NULL,
+                        raw_data = NULL,
+                        scan = NULL,
+                        ladder_sizes = NULL,
+                        indentified_ladder = NULL,
+                        bp_sizing_mod = NULL,
+                        ladder_rsq = NULL,
+                        bp_data.frame = NULL,
+                        plot_ladder = function(){
+                            g <- ggplot(data = self$bp_data.frame,
+                                   aes(scan, ladder_signal)) +
+                            geom_point() +
+                            geom_text(data = self$indentified_ladder,
+                                      aes(scan, max(self$bp_data.frame$ladder_signal) / 3,
+                                          label = size),
+                                      angle=90,
+                                      size = 3) +
+                            geom_vline(data = self$indentified_ladder,
+                                       aes(xintercept = scan),
+                                       lty = 3, alpha = 0.3) +
+                            theme_bw() +
+                            theme(panel.grid = element_blank())
+
+                            print(g)
+                        },
+                        initialize = function(unique_id, ladder, signal){
+                          self$unique_id <- unique_id
+                          self$raw_ladder <- ladder
+                          self$raw_data <- signal
+                        }
+                      ))
+
 
 # Fragments class ---------------------------------------------------------
 

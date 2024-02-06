@@ -1,3 +1,132 @@
+
+
+# read_fsa ----------------------------------------------------------------
+
+read_fsa <- function(files){
+  #make sure file extension is fsa
+  unique_file_ext = unique(tools::file_ext(files))
+  if(length(unique_file_ext) > 1){
+    stop("Files must be only be .fsa")
+  }
+  if(unique_file_ext != "fsa"){
+    stop("Files must be .fsa")
+  }
+
+  #read in samples
+  file_list <- list()
+  for(i in seq_along(files)){
+    file_list[[i]] <- seqinr::read.abif(files[i])
+  }
+
+  names(file_list) <- basename(files)
+
+  return(file_list)
+}
+
+
+# ladder ------------------------------------------------------------------
+
+
+find_ladders <- function(fsa_list,
+                             ladder_channel,
+                             signal_channel,
+                             sample_id_channel = 'SpNm.1',
+                             ladder_sizes = NULL,
+                             hq_ladder=TRUE,
+                             spike_location = NULL,
+                             max_combinations = 2500000,
+                             ladder_selection_window = 5){
+
+
+  ladder_list <- vector("list", length(fsa_list))
+  for(i in seq_along(fsa_list)){
+    ladder_list[[i]] <- ladder$new(unique_id = names(fsa_list[i]),
+                                   ladder = fsa_list[[i]]$Data[[ladder_channel]],
+                                   signal = fsa_list[[i]]$Data[[signal_channel]])
+  }
+
+  pb <- txtProgressBar(min = 0, max = length(ladder_list), style = 3)
+
+  #find ladder for each sample
+  for (i in seq_along(ladder_list)) {
+    ladder_list[[i]]$scan <- 0:(length(ladder_list[[i]]$raw_ladder) -1)
+    ladder_list[[i]]$ladder_sizes <- ladder_sizes
+
+    # print(paste0("Unique id: ", ladder_list[[i]]$unique_id))
+    #
+
+    ladder_list[[i]]$indentified_ladder <- fit_ladder(
+      ladder = ladder_list[[i]]$raw_ladder,
+      scans = ladder_list[[i]]$scan,
+      ladder_sizes = ladder_list[[i]]$ladder_sizes,
+      hq_ladder = hq_ladder,
+      spike_location = NULL,
+      max_combinations = max_combinations,
+      ladder_selection_window = ladder_selection_window)
+
+    setTxtProgressBar(pb, i)
+  }
+
+  # bp sizing
+
+  for (i in seq_along(ladder_list)) {
+    ladder_list[[i]]$bp_sizing_mod <- lm(size ~ scan,
+                                     data = ladder_list[[i]]$indentified_ladder[which(!is.na(ladder_list[[i]]$indentified_ladder$size)), ])
+    ladder_list[[i]]$ladder_rsq <- summary(ladder_list[[i]]$bp_sizing_mod)$r.squared
+    ladder_list[[i]]$bp_data.frame <- data.frame(
+         unique_id = rep(ladder_list[[i]]$unique_id, length(ladder_list[[i]]$scan)),
+         scan = ladder_list[[i]]$scan,
+         size = predict(ladder_list[[i]]$bp_sizing_mod, data.frame(scan = ladder_list[[i]]$scan)),
+         signal = ladder_list[[i]]$raw_data,
+         ladder_signal = ladder_list[[i]]$raw_ladder
+         )
+  }
+
+
+  # idea: loop over samples and compare models
+    # perhaps it will be able to catch when the ladder's wrong on a sample from the same run
+    # would need to add run information
+
+
+
+
+
+
+
+
+
+  names(ladder_list) <- names(fsa_list)
+
+  return(ladder_list)
+
+}
+
+
+
+extract_trace_table <- function(ladder_list){
+
+  #turn the output into a dataframe
+  plate_list <- lapply(ladder_list, function(x){
+    x$bp_data.frame
+  })
+
+  plate_combined_df <- do.call(rbind, plate_list)
+
+  return(plate_combined_df)
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
 ## set class from peak table ----------------------------------------------------------------
 
 #' Convert Peak Table to Fragments
