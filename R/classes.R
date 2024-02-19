@@ -4,14 +4,32 @@
 
 ladder <- R6::R6Class("ladder",
                       list(
+                        initialize = function(unique_id, raw_ladder, raw_data, scan,ladder_sizes,ladder_scans) {
+                          self$unique_id <- unique_id
+                          self$raw_ladder <- raw_ladder
+                          self$raw_data <- raw_data
+                          self$scan <- scan
+                        },
                         unique_id = NULL,
                         raw_ladder = NULL,
                         raw_data = NULL,
                         scan = NULL,
                         ladder_sizes = NULL,
-                        indentified_ladder = NULL,
-                        bp_sizing_mod = NULL,
-                        ladder_rsq = NULL,
+                        ladder_scans = NULL,
+
+                        #model related
+                        parameters = NULL,
+                        mod_parameters = function() {
+                          # Perform any necessary calculations to fit the model and save the parameters
+                          self$parameters <- local_southern_fit(self$ladder_scans, self$ladder_sizes)
+                        },
+                        predict_size = function() {
+                          # Predict fragment sizes for new data points
+                          predicted_sizes <- local_southern_predict(local_southern_fit =self$parameters , scans = self$scan)
+
+                          return(predicted_sizes)
+                        },
+
                         bp_data.frame = NULL,
                         plot_ladder = function(){
                             g <- ggplot(data = self$bp_data.frame,
@@ -29,13 +47,10 @@ ladder <- R6::R6Class("ladder",
                             theme(panel.grid = element_blank())
 
                             print(g)
-                        },
-                        initialize = function(unique_id, ladder, signal){
-                          self$unique_id <- unique_id
-                          self$raw_ladder <- ladder
-                          self$raw_data <- signal
                         }
                       ))
+
+
 
 
 # Fragments class ---------------------------------------------------------

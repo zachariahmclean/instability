@@ -1,4 +1,4 @@
-# helper functions --------------------------------------------------------
+# General helper functions --------------------------------------------------------
 
 nCr <- function(n, r){
   c = factorial(n) / (factorial(r) * factorial(n - r))
@@ -23,7 +23,63 @@ moving_average = function(x, n = 10){
   as.vector(stats::filter(x, rep(1 / n, n), sides = 2))
 }
 
+local_southern_fit <- function(x, y) {
+  browser()
+  # Sort the data points by x values
+  sorted_indices <- order(x)
+  x_sorted <- x[sorted_indices]
+  y_sorted <- y[sorted_indices]
 
+  # Function to calculate the fitting constants for each group of three neighboring points
+  mod_list <- vector("list", length = length(x_sorted) - 2)
+
+  for (i in 1:(length(x_sorted) - 2)) {
+    xi <- x_sorted[i:(i+2)]
+    yi <- y_sorted[i:(i+2)]
+    mod_list[[i]] <- list(mod = lm(yi ~ xi),
+                          first = xi[1],
+                          last = xi[3])
+  }
+
+  return(mod_list)
+}
+
+local_southern_predict <- function(local_southern_fit, scans) {
+
+  #total number of groups to brake the scans into:
+  ladder_scan_pos <- sapply(local_southern_fit, function(fit) fit$first)
+
+  # Find the nearest ladder position for each scan position
+  nearest_ladder_index <- sapply(scans, function(scan) which.min(abs(scan - ladder_scan_pos)))
+
+  # Assign the scan positions to corresponding groups based on nearest ladder position
+  group_assignments <- rep(NA, length(scans))
+  for (i in seq_along(nearest_ladder_index)) {
+    group_assignments[i] <- nearest_ladder_index[i]
+  }
+
+  scan_split <- split(scans, group_assignments)
+
+  size_split <- vector("list", length = length(scan_split))
+  for(i in seq_along(scan_split)){
+
+    if(i == 1 | i == length(scan_split)){
+      size_split[[i]] = predict(local_southern_fit[[i]]$mod, data.frame(xi = scan_split[[i]]))
+    }
+    else{
+      lower_prediction <- predict(local_southern_fit[[i-1]]$mod, data.frame(xi = scan_split[[i]]))
+      upper_prediction <- predict(local_southern_fit[[i]]$mod, data.frame(xi = scan_split[[i]]))
+      size_split[[i]] <- (lower_prediction + upper_prediction) / 2
+    }
+  }
+
+  size <- unlist(size_split)
+
+  return(size)
+}
+
+
+# method specific
 
 process_ladder_signal = function(ladder,
                                  scans,
