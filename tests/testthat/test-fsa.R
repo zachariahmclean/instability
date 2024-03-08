@@ -1,8 +1,4 @@
 
-#what is going on here?
-## I think I was trying out ladder recursive as an option for fun
-## is the actual code the one to use?
-
 
 test_that("find ladder peaks",{
 
@@ -149,43 +145,6 @@ test_that("local southern", {
 
 
 
-
-test_that("fit ladder bug where the selected peaks are different length to ladder", {
-
-  #still need to fix where it has NA in size for some reason?
-
-
-  files <- list.files("data/GT_Z.McLean_2023-04-14/", full.names = TRUE)
-
-  file_list <- read_fsa("data/GT_Z.McLean_2023-04-14/20230413_C04.fsa")
-
-  test_position <- which(names(file_list) == "20230413_E10.fsa")
-
-
-  test_ladder_signal <- file_list[[test_position]]$Data$DATA.105
-  test_scans <- 0:(length(file_list[[test_position]]$Data$DATA.105) -1)
-
-  #not fixed! too many scans are being selected
-
-
-  test_fit <- fit_ladder(
-    ladder = test_ladder_signal,
-    scans = test_scans,
-    ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-    hq_ladder = FALSE
-  )
-
-
-  mod <- lm(scan ~ size, data = test_fit)
-
-  testthat::expect_true(round(mod$coefficients[[1]],3) == 1348.234)
-  testthat::expect_true(round(mod$coefficients[[2]],5) == 6.24925)
-
-})
-
-
-
-
 test_that("find ladders", {
 
   files <- list.files("data/GT_Z.McLean_2023-04-14/", full.names = TRUE)
@@ -206,11 +165,56 @@ test_that("find ladders", {
 })
 
 
+#TOODO
+
+# ladder: add warning for mods with bad fit
+
+# ladder fixing: add option for some input, or one that is completely manual. make an accesor function for these. either one or many
+
+# try using pramca::findpeaks
 
 #trying out fitting a polynomial to detect peaks. Scan along whole trace and find polynomial inflections
 
 
 testthat::test_that("peak detection", {
+
+
+
+  # simple option:
+
+  files <- list.files("data/GT_Z.McLean_2023-04-14/", full.names = TRUE)
+
+  file_list <- read_fsa(files)
+
+
+  test_ladders <- find_ladders(file_list,
+                               ladder_channel = "DATA.105",
+                               signal_channel = "DATA.1",
+                               sample_id_channel = 'SpNm.1',
+                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                               hq_ladder = FALSE,
+                               max_combinations = 2500000,
+                               ladder_selection_window = 8)
+
+
+
+  tmp <- find_fragment_peaks(
+    test_ladders[[7]],
+    smoothing_window = 5,
+    minumum_peak_signal = 15,
+    min_bp_size = 100
+  )
+
+
+  test_ladders[[7]]$bp_data.frame |>
+    ggplot(aes(size, signal)) +
+    geom_line() +
+    geom_point(data = tmp,
+               aes(y = height))+
+    scale_x_continuous(limits = c(400,525)) +
+    scale_y_continuous(limits = c(NA, 1500))
+
+
 
  #  library(pracma)
  #  library(ggplot2)

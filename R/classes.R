@@ -14,14 +14,16 @@ ladder <- R6::R6Class("ladder",
                         raw_ladder = NULL,
                         raw_data = NULL,
                         scan = NULL,
-                        ladder_sizes = NULL,
-                        ladder_scans = NULL,
+                        ladder_df = NULL,
+                        bp_data.frame = NULL,
 
                         #model related
                         parameters = NULL,
                         mod_parameters = function() {
                           # Perform any necessary calculations to fit the model and save the parameters
-                          self$parameters <- local_southern_fit(self$ladder_scans, self$ladder_sizes)
+                          ladder_df <- self$ladder_df[which(!is.na(self$ladder_df$size)), ]
+                          ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
+                          self$parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
                         },
                         predict_size = function() {
                           # Predict fragment sizes for new data points
@@ -29,18 +31,27 @@ ladder <- R6::R6Class("ladder",
 
                           return(predicted_sizes)
                         },
+                        ladder_correction_auto = function(ladder_class,
+                                                          size_threshold = 60,
+                                                          size_tolerance = 2.5,
+                                                          rsq_threshold = 0.9985){
+                          self2 <- ladder_self_mod_predict(self,
+                                                  size_threshold = size_threshold,
+                                                  size_tolerance = size_tolerance,
+                                                  rsq_threshold = rsq_threshold)
+                          return(self2)
+                        },
 
-                        bp_data.frame = NULL,
                         plot_ladder = function(){
                             g <- ggplot(data = self$bp_data.frame,
                                    aes(scan, ladder_signal)) +
                             geom_point() +
-                            geom_text(data = self$indentified_ladder,
+                            geom_text(data = self$ladder_df,
                                       aes(scan, max(self$bp_data.frame$ladder_signal) / 3,
                                           label = size),
                                       angle=90,
                                       size = 3) +
-                            geom_vline(data = self$indentified_ladder,
+                            geom_vline(data = self$ladder_df,
                                        aes(xintercept = scan),
                                        lty = 3, alpha = 0.3) +
                             theme_bw() +

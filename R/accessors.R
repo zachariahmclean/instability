@@ -34,6 +34,7 @@ find_ladders <- function(fsa_list,
                              ladder_sizes = NULL,
                              hq_ladder=TRUE,
                              spike_location = NULL,
+                             smoothing_window = 5,
                              max_combinations = 2500000,
                              ladder_selection_window = 5){
 
@@ -49,29 +50,45 @@ find_ladders <- function(fsa_list,
 
   pb <- txtProgressBar(min = 0, max = length(ladder_list), style = 3)
 
-  #find ladder for each sample
+  #find ladder for each sample and use that to predict bp size
   for (i in seq_along(ladder_list)) {
-    ladder_list[[i]]$ladder_sizes <- ladder_sizes
 
-    # print(paste0("Unique id: ", ladder_list[[i]]$unique_id))
     # fit ladder
+
+    #ladder
 
     ladder_fit <- fit_ladder(
       ladder = ladder_list[[i]]$raw_ladder,
       scans = ladder_list[[i]]$scan,
-      ladder_sizes = ladder_list[[i]]$ladder_sizes,
+      ladder_sizes = ladder_sizes,
       hq_ladder = hq_ladder,
-      spike_location = NULL,
+      spike_location = spike_location,
+      smoothing_window = smoothing_window,
       max_combinations = max_combinations,
       ladder_selection_window = ladder_selection_window)
 
-    ladder_list[[i]]$ladder_scans <- ladder_fit$scan
+    ladder_list[[i]]$ladder_df <- ladder_fit
 
-    # bp sizing
-    # print(ladder_list[[i]]$unique_id)
-
+    # predict bp size
     ladder_list[[i]]$mod_parameters()
     data_bp <- ladder_list[[i]]$predict_size()
+
+    #make a warning if one of the ladder modes is bad
+
+    rsq <- sapply(ladder_list[[i]]$parameters, function(x) suppressWarnings(summary(x$mod)$r.squared))
+    if(any(rsq < 0.998)){
+      size_ranges <- sapply(ladder_list[[i]]$parameters, function(x) x$mod$model$yi)
+      size_ranges <- size_ranges[ , which(rsq < 0.998), drop = FALSE]
+      size_ranges_vector <- vector('numeric', ncol(size_ranges))
+      for (i in seq_along(size_ranges_vector)) {
+        size_ranges_vector <- paste0(size_ranges[1,i],"-",size_ranges[3,i])
+
+      }
+      warning(call. = FALSE,
+              paste("sample", ladder_list[[i]]$unique_id, "has badly fitting ladder for bp sizes:",
+                    paste0(size_ranges_vector, collapse = ", ")))
+    }
+
 
     ladder_list[[i]]$bp_data.frame <- data.frame(
       unique_id = rep(ladder_list[[i]]$unique_id, length(ladder_list[[i]]$scan)),
@@ -84,15 +101,19 @@ find_ladders <- function(fsa_list,
     setTxtProgressBar(pb, i)
   }
 
-
-  # idea: loop over samples and compare models
-    # perhaps it will be able to catch when the ladder's wrong on a sample from the same run
-    # would need to add run information
   names(ladder_list) <- names(fsa_list)
 
   return(ladder_list)
 
 }
+
+
+
+fix_ladders <- function(ladder_list,
+                        unique_ids){
+
+}
+
 
 
 
