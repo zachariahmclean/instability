@@ -2,7 +2,7 @@
 # ladder class ------------------------------------------------------------
 
 
-ladder <- R6::R6Class("ladder",
+fragments_trace <- R6::R6Class("fragments_trace",
                       list(
                         initialize = function(unique_id, raw_ladder, raw_data, scan,ladder_sizes,ladder_scans) {
                           self$unique_id <- unique_id
@@ -15,7 +15,8 @@ ladder <- R6::R6Class("ladder",
                         raw_data = NULL,
                         scan = NULL,
                         ladder_df = NULL,
-                        bp_data.frame = NULL,
+                        trace_bp_df = NULL,
+                        peak_table_df = NULL,
 
                         #model related
                         parameters = NULL,
@@ -24,6 +25,7 @@ ladder <- R6::R6Class("ladder",
                           ladder_df <- self$ladder_df[which(!is.na(self$ladder_df$size)), ]
                           ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
                           self$parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
+                          invisible(self)
                         },
                         predict_size = function() {
                           # Predict fragment sizes for new data points
@@ -31,10 +33,21 @@ ladder <- R6::R6Class("ladder",
 
                           return(predicted_sizes)
                         },
-                        ladder_correction_auto = function(ladder_class,
-                                                          size_threshold = 60,
+                        call_peaks = function(smoothing_window = 5,
+                                              minumum_peak_signal = 20,
+                                              min_bp_size = 100,
+                                              max_bp_size = 1000){
+                          self$peak_table_df <- find_fragment_peaks(self,
+                                                         smoothing_window = smoothing_window,
+                                                         minumum_peak_signal = minumum_peak_signal,
+                                                         min_bp_size = min_bp_size,
+                                                         max_bp_size = max_bp_size)
+                          invisible(self)
+                        },
+                        ladder_correction_auto = function(size_threshold = 60,
                                                           size_tolerance = 2.5,
                                                           rsq_threshold = 0.9985){
+
                           self2 <- ladder_self_mod_predict(self,
                                                   size_threshold = size_threshold,
                                                   size_tolerance = size_tolerance,
@@ -43,21 +56,27 @@ ladder <- R6::R6Class("ladder",
                         },
 
                         plot_ladder = function(){
-                            g <- ggplot(data = self$bp_data.frame,
+                            g <- ggplot(data = self$trace_bp_df,
                                    aes(scan, ladder_signal)) +
                             geom_point() +
                             geom_text(data = self$ladder_df,
-                                      aes(scan, max(self$bp_data.frame$ladder_signal) / 3,
+                                      aes(scan, max(self$trace_bp_df$ladder_signal) / 3,
                                           label = size),
                                       angle=90,
                                       size = 3) +
                             geom_vline(data = self$ladder_df,
                                        aes(xintercept = scan),
                                        lty = 3, alpha = 0.3) +
+                            labs(title = self$unique_id) +
                             theme_bw() +
                             theme(panel.grid = element_blank())
 
                             print(g)
+                        },
+                        print = function(...) {
+                          print_helper(self,
+                                       sample_attrs = c("unique_id", "raw_data", "raw_ladder", "scan", "ladder_df", "trace_bp_df","peak_table_df")
+                          )
                         }
                       ))
 
@@ -103,7 +122,9 @@ fragments <- R6::R6Class("fragments", public = list(
     return(self2)
   },
   print = function(...) {
-    print_helper(self)
+    print_helper(self,
+                 sample_attrs = c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_repeat_length")
+    )
   }
 ),
 private = list(

@@ -1,5 +1,7 @@
+
 print_helper <- function(fragment,
-                         exclude = NULL) {
+                         exclude = NULL,
+                         sample_attrs) {
 
   class_name <- class(fragment)[1]
   unique_id <- fragment$unique_id
@@ -8,7 +10,6 @@ print_helper <- function(fragment,
   cat("\033[1;36m-----------------------------\033[0m\n")
 
   # Section: Sample Attributes
-  sample_attrs <- c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_repeat_length")
   for (attr in sample_attrs) {
     if (attr %in% names(fragment)) {
       value <- fragment[[attr]]
@@ -19,9 +20,19 @@ print_helper <- function(fragment,
       } else if (is.logical(value)) {
         cat(ifelse(value, "\033[1;32mTRUE\033[0m", "\033[1;31mFALSE\033[0m"), "\n")
       } else if (is.numeric(value)) {
-        cat(format(value), "\n")
+          if(length(value) == 1){
+            cat(format(value), "\n")
+          }
+          else{
+            cat(format(paste("numeric vector length", length(value))), "\n")
+          }
       } else if (is.character(value)) {
-        cat(value, "\n")
+        if(length(value) == 1){
+          cat(format(value), "\n")
+        }
+        else{
+          cat(format(paste("character vector length", length(value))), "\n")
+        }
       } else {
         cat(class(value), "\n")
       }
@@ -51,9 +62,19 @@ print_helper <- function(fragment,
     } else if (is.logical(value)) {
       cat(ifelse(value, "\033[1;32mTRUE\033[0m", "\033[1;31mFALSE\033[0m"), "\n")
     } else if (is.numeric(value)) {
-      cat(format(value), "\n")
+      if(length(value) == 1){
+        cat(format(value), "\n")
+      }
+      else{
+        cat(format(paste("numeric vector length", length(value))), "\n")
+      }
     } else if (is.character(value)) {
-      cat(value, "\n")
+      if(length(value) == 1){
+        cat(format(value), "\n")
+      }
+      else{
+        cat(format(paste("character vector length", length(value))), "\n")
+      }
     } else if (is.data.frame(value)) {
       cat(sprintf("data.frame: %d rows × %d cols\n", nrow(value), ncol(value)))
     } else {

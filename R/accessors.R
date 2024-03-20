@@ -41,7 +41,7 @@ find_ladders <- function(fsa_list,
 
   ladder_list <- vector("list", length(fsa_list))
   for(i in seq_along(fsa_list)){
-    ladder_list[[i]] <- ladder$new(unique_id = names(fsa_list[i]),
+    ladder_list[[i]] <- fragments_trace$new(unique_id = names(fsa_list[i]),
                                    raw_ladder = fsa_list[[i]]$Data[[ladder_channel]],
                                    raw_data = fsa_list[[i]]$Data[[signal_channel]],
                                    scan = 0:(length(fsa_list[[i]]$Data[[signal_channel]])- 1)
@@ -52,8 +52,6 @@ find_ladders <- function(fsa_list,
 
   #find ladder for each sample and use that to predict bp size
   for (i in seq_along(ladder_list)) {
-
-    # fit ladder
 
     #ladder
 
@@ -73,6 +71,14 @@ find_ladders <- function(fsa_list,
     ladder_list[[i]]$mod_parameters()
     data_bp <- ladder_list[[i]]$predict_size()
 
+    ladder_list[[i]]$trace_bp_df <- data.frame(
+      unique_id = rep(ladder_list[[i]]$unique_id, length(ladder_list[[i]]$scan)),
+      scan = ladder_list[[i]]$scan,
+      size = ladder_list[[i]]$predict_size(),
+      signal = ladder_list[[i]]$raw_data,
+      ladder_signal = ladder_list[[i]]$raw_ladder
+    )
+
     #make a warning if one of the ladder modes is bad
 
     rsq <- sapply(ladder_list[[i]]$parameters, function(x) suppressWarnings(summary(x$mod)$r.squared))
@@ -80,8 +86,8 @@ find_ladders <- function(fsa_list,
       size_ranges <- sapply(ladder_list[[i]]$parameters, function(x) x$mod$model$yi)
       size_ranges <- size_ranges[ , which(rsq < 0.998), drop = FALSE]
       size_ranges_vector <- vector('numeric', ncol(size_ranges))
-      for (i in seq_along(size_ranges_vector)) {
-        size_ranges_vector <- paste0(size_ranges[1,i],"-",size_ranges[3,i])
+      for (j in seq_along(size_ranges_vector)) {
+        size_ranges_vector[j] <- paste0(size_ranges[1,j],"-",size_ranges[3,j])
 
       }
       warning(call. = FALSE,
@@ -89,14 +95,6 @@ find_ladders <- function(fsa_list,
                     paste0(size_ranges_vector, collapse = ", ")))
     }
 
-
-    ladder_list[[i]]$bp_data.frame <- data.frame(
-      unique_id = rep(ladder_list[[i]]$unique_id, length(ladder_list[[i]]$scan)),
-      scan = ladder_list[[i]]$scan,
-      size = ladder_list[[i]]$predict_size(),
-      signal = ladder_list[[i]]$raw_data,
-      ladder_signal = ladder_list[[i]]$raw_ladder
-    )
 
     setTxtProgressBar(pb, i)
   }
@@ -110,7 +108,25 @@ find_ladders <- function(fsa_list,
 
 
 fix_ladders <- function(ladder_list,
-                        unique_ids){
+                        unique_ids,
+                        size_threshold = 60,
+                        size_tolerance = 2.5,
+                        rsq_threshold = 0.9985){
+  ladder_list_2 <- vector("list", length(ladder_list))
+  for (i in seq_along(ladder_list)) {
+    if(ladder_list[[i]]$unique_id %in% unique_ids){
+      ladder_list_2[[i]] <- ladder_list[[i]]$ladder_correction_auto(size_threshold = size_threshold,
+                                                                  size_tolerance = size_tolerance,
+                                                                  rsq_threshold = rsq_threshold)
+    }
+    else{
+      ladder_list_2[[i]] <- ladder_list[[i]]
+      }
+  }
+
+  names(ladder_list_2) <- names(ladder_list)
+
+  return(ladder_list_2)
 
 }
 
@@ -121,7 +137,7 @@ extract_trace_table <- function(ladder_list){
 
   #turn the output into a dataframe
   plate_list <- lapply(ladder_list, function(x){
-    x$bp_data.frame
+    x$trace_bp_df
   })
 
   plate_combined_df <- do.call(rbind, plate_list)
@@ -389,6 +405,39 @@ add_metadata <- function(fragments_list,
 
 
 
+# find fragments ------------------------------------------------------------
+
+
+#' Find fragments in fragments_trace List
+#'
+#' This function identifies amplicon fragments within each continuous sample trace and turns them into a list of fragments classes.
+#'
+
+
+find_fragments <- function(fragments_trace_list,
+                           smoothing_window = 5,
+                           minumum_peak_signal = 20,
+                           min_bp_size = 100,
+                           max_bp_size = 1000){
+
+  fragments_list <- lapply(fragments_trace_list, function(x){
+
+    x$call_peaks(
+      smoothing_window = smoothing_window,
+      minumum_peak_signal = minumum_peak_signal,
+      min_bp_size = min_bp_size,
+      max_bp_size = max_bp_size
+    )
+
+    new_bp_fragments <- bp_fragments$new(unique_id = x$unique_id)
+    new_bp_fragments$peak_data <- x$peak_table_df
+
+    #placeholder for function that transfers metadata
+
+    return(new_bp_fragments)
+
+  })
+}
 
 # find alleles ------------------------------------------------------------
 

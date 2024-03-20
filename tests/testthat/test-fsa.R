@@ -161,22 +161,22 @@ test_that("find ladders", {
                max_combinations = 2500000,
                ladder_selection_window = 8)
 
+  test_ladders_fixed <- fix_ladders(test_ladders, "20230413_B03.fsa")
+
+
+
+  test_ladders$`20230413_B03.fsa`$plot_ladder()
+
+  test_ladders_fixed$`20230413_B03.fsa`$plot_ladder()
+
 
 })
 
 
-#TOODO
-
-# ladder: add warning for mods with bad fit
-
-# ladder fixing: add option for some input, or one that is completely manual. make an accesor function for these. either one or many
-
-# try using pramca::findpeaks
-
-#trying out fitting a polynomial to detect peaks. Scan along whole trace and find polynomial inflections
 
 
-testthat::test_that("peak detection", {
+
+testthat::test_that("find_fragment_peaks", {
 
 
 
@@ -197,143 +197,104 @@ testthat::test_that("peak detection", {
                                ladder_selection_window = 8)
 
 
+peak_list <- vector("list", length(test_ladders))
 
-  tmp <- find_fragment_peaks(
-    test_ladders[[7]],
+for (i in seq_along(peak_list)) {
+
+  peak_list[[i]]  <- test_ladders[[i]]$call_peaks(
     smoothing_window = 5,
-    minumum_peak_signal = 15,
+    minumum_peak_signal = 20,
     min_bp_size = 100
   )
 
+}
 
-  test_ladders[[7]]$bp_data.frame |>
+
+peak_list[[14]]$trace_bp_df |>
     ggplot(aes(size, signal)) +
     geom_line() +
-    geom_point(data = tmp,
+    geom_point(data = peak_list[[14]]$peak_table_df,
                aes(y = height))+
-    scale_x_continuous(limits = c(400,525)) +
-    scale_y_continuous(limits = c(NA, 1500))
+    scale_x_continuous(limits = c(420,600)) +
+    scale_y_continuous(limits = c(NA, 5000))
 
 
+peak_list <- find_fragments(test_ladders,
+                            smoothing_window = 5,
+                            minumum_peak_signal = 20,
+                            min_bp_size = 100)
 
- #  library(pracma)
- #  library(ggplot2)
- #
- # # Option 1:
- #
- #
- #  detect_peaks <- function(data, polynomial_degree, peak_window_size) {
- #    require(pracma) # for polyfit() and polyder() functions
- #
- #    # Initialize variables to store detected peaks
- #    peaks <- numeric(0)
- #
- #    # Iterate through each data point
- #    for (i in 1:(length(data) - peak_window_size)) {
- #      # Define window boundaries
- #      start <- max(1, i - floor(peak_window_size / 2))
- #      end <- min(length(data), i + floor(peak_window_size / 2))
- #
- #      # Fit polynomial curve to data within the window
- #      poly_fit <- tryCatch(pracma::polyfit(start:end, data[start:end], polynomial_degree), error = function(e) NULL)
- #
- #      # Check if polynomial fit is successful
- #      if (!is.null(poly_fit)) {
- #        # Compute second derivative of the polynomial curve
- #        second_derivative <- pracma::polyder(pracma::polyder(poly_fit))
- #
- #        # Plot polynomial fit
- #        plot(x = start:end, y = data[start:end], type = "l", ylim = range(data), main = "Polynomial Fit",
- #             xlab = "Data Point Index", ylab = "Signal Value")
- #        lines(start:end, polyval(poly_fit, start:end), col = "red")
- #
- #        # Check if the second derivative changes sign at the current data point
- #        if (!is.na(second_derivative[1]) && !is.na(second_derivative[2]) && second_derivative[1] < 0 && second_derivative[2] > 0) {
- #          points(i, data[i], col = "blue", pch = 16)
- #          peaks <- c(peaks, i)
- #        }
- #      }
- #    }
- #
- #    # Return the positions of detected peaks
- #    return(peaks)
- #  }
- #
- #  #option two
- #
- #
- #  # Function to detect peaks from signal data
- #  detect_peaks <- function(signal_data) {
- #    # Calculate the first derivative
- #    first_derivative <- diff(signal_data)
- #
- #    # Find zero crossings in the first derivative
- #    zero_crossings <- which(first_derivative[-1] * first_derivative[-length(first_derivative)] < 0)
- #
- #    # Initialize list to store peak positions
- #    peak_positions <- c()
- #
- #    # Identify peak positions
- #    for (i in zero_crossings) {
- #      if (first_derivative[i] > 0) {
- #        peak_positions <- c(peak_positions, i)
- #      }
- #    }
- #
- #    # Represent peaks in a list
- #    peak_list <- list()
- #
- #    # Extract characteristics for each peak
- #    for (position in peak_positions) {
- #      peak <- list()
- #      peak$retention_time <- position # Retention time
- #      peak$amplitude <- signal_data[position] # Amplitude
- #
- #      # Calculate peak shape using cubic spline interpolation
- #      # Assuming k = 1 (3 consecutive time points on each side of the peak center)
- #      spline_points <- stats::spline(x = (position - 1):(position + 1), y = signal_data[(position - 1):(position + 1)], n = 5 * 2 + 1)
- #      peak$shape <- spline_points$y
- #      browser()
- #
- #      peak_list <- c(peak_list, list(peak))
- #    }
- #
- #    return(peak_list)
- #  }
- #
- #  # Example usage
- #  peaks <- detect_peaks(file_list[[1]]$Data$DATA.1)
- #  print(peaks)
- #
- #
- #
- #  # Example usage
- #
- #  files <- list.files("data/GT_Z.McLean_2023-04-14/", full.names = TRUE)
- #
- #  file_list <- read_fsa("data/GT_Z.McLean_2023-04-14/20230413_C04.fsa")
- #
- #
- #  test_scan <-   4200:4250
- #  test_signal <- file_list[[1]]$Data$DATA.1[test_scan]
- #
- #  # Set peak detection parameters
- #  polynomial_degree <- 3
- #  peak_window_size <- 16
- #
- #
- #  # Detect peaks
- #  detected_peaks <- detect_peaks(test_signal, polynomial_degree, peak_window_size)
- #  print(detected_peaks)
- #
- #
- #
- #  data.frame(scan = test_scan,
- #             signal = test_signal) |>
- #    ggplot(aes(scan, signal)) +
- #    geom_line() +
- #    geom_vline(xintercept = detected_peaks + 4200)
- #
 
 })
 
+
+testthat::test_that("full pipline", {
+
+
+
+  # simple option:
+
+  files <- list.files("data/GT_Z.McLean_2023-04-14/", full.names = TRUE)
+
+  file_list <- read_fsa(files)
+
+
+  test_ladders <- find_ladders(file_list,
+                               ladder_channel = "DATA.105",
+                               signal_channel = "DATA.1",
+                               sample_id_channel = 'SpNm.1',
+                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                               hq_ladder = FALSE,
+                               max_combinations = 2500000,
+                               ladder_selection_window = 8)
+
+  peak_list <- find_fragments(test_ladders,
+                              smoothing_window = 5,
+                              minumum_peak_signal = 20,
+                              min_bp_size = 300)
+
+  fragment_metadata <- add_metadata(
+    fragments_list = peak_list,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    sample_group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    repeat_positive_control_TF = "repeat_positive_control_TF",
+    repeat_positive_control_length = "repeat_positive_control_length")
+
+  fragment_alleles <- find_alleles(
+    fragments_list = fragment_metadata,
+    number_of_peaks_to_return = 1)
+
+  test_repeats <- call_repeats(
+    fragments_list = fragment_alleles,
+    repeat_length_correction = "from_metadata"
+  )
+
+  test_metrics_grouped <- calculate_instability_metrics(
+    fragments_list = test_repeats,
+    grouped = TRUE,
+    peak_threshold = 0.05,
+    window_around_main_peak = c(-40, 40))
+
+  plot_data <- test_metrics_grouped |>
+    dplyr::left_join(metadata) |>
+    dplyr::filter(day >0,
+                  modal_peak_height > 500) |>
+    dplyr::group_by(cell_line) |>
+    dplyr::mutate(rel_gain = average_repeat_gain / median(average_repeat_gain[which(treatment == 0)]),
+                  genotype = forcats::fct_rev(genotype))
+
+  ggplot2::ggplot(plot_data,
+         aes(as.factor(treatment), rel_gain,
+             colour = as.factor(treatment))) +
+    ggplot2::geom_boxplot(outlier.shape = NA) +
+    ggplot2::geom_jitter() +
+    facet_wrap(ggplot2::vars(genotype)) +
+    labs(y = "Average repeat gain\n(relative to DMSO)",
+         x = "Branaplam (nM)") +
+    ggplot2::theme(legend.position = "none")
+
+
+})
