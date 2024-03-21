@@ -300,19 +300,19 @@ local_southern_predict <- function(local_southern_fit, scans) {
 # peak calling ------------------------------------------------------------
 
 
-find_fragment_peaks <- function(ladder_class,
+find_fragment_peaks <- function(fragments_trace,
                                 smoothing_window,
                                 minumum_peak_signal,
                                 min_bp_size,
                                 max_bp_size){
 
-  smoothed_signal <- moving_average(ladder_class$trace_bp_df$signal,
+  smoothed_signal <- moving_average(fragments_trace$trace_bp_df$signal,
                                     n = smoothing_window)
 
   peaks <- pracma::findpeaks(smoothed_signal,
                              peakpat = "[+]{3,}[0]*[-]{3,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
                              minpeakheight = minumum_peak_signal)
-  n_scans <- length(ladder_class$trace_bp_df$signal)
+  n_scans <- length(fragments_trace$trace_bp_df$signal)
   window_width <- 3
 
   peak_position <- numeric(nrow(peaks))
@@ -320,7 +320,7 @@ find_fragment_peaks <- function(ladder_class,
 
 
     if(peaks[i,2] + window_width > 1 & peaks[i,2] + window_width < n_scans ){
-      max_peak <- which.max(ladder_class$trace_bp_df$signal[(peaks[i,2] - window_width):(peaks[i,2] + window_width)])
+      max_peak <- which.max(fragments_trace$trace_bp_df$signal[(peaks[i,2] - window_width):(peaks[i,2] + window_width)])
 
       peak_position[i] <- peaks[i,2] - window_width -1 + max_peak
     }
@@ -330,9 +330,9 @@ find_fragment_peaks <- function(ladder_class,
   }
 
 
-  df <- ladder_class$trace_bp_df[peak_position, c("scan", "size", "signal")]
+  df <- fragments_trace$trace_bp_df[peak_position, c("scan", "size", "signal")]
   colnames(df) <- c("scan", "size", "height")
-  df$unique_id <- rep(ladder_class$unique_id, nrow(df))
+  df$unique_id <- rep(fragments_trace$unique_id, nrow(df))
   df <- df[which(df$size > min_bp_size & df$size < max_bp_size), ]
 
   return(df)
@@ -345,24 +345,24 @@ find_fragment_peaks <- function(ladder_class,
 
 
 
-ladder_self_mod_predict <- function(ladder_class,
+ladder_self_mod_predict <- function(fragments_trace,
                               size_threshold,
                               size_tolerance,
                               rsq_threshold){
-  ladder_class_copy <- ladder_class$clone()
+  fragments_trace_copy <- fragments_trace$clone()
 
-  ladder_sizes <- ladder_class_copy$ladder_df[which(!is.na(ladder_class_copy$ladder_df$size)), "size"]
-  ladder_peaks <- ladder_class_copy$ladder_df$scan
+  ladder_sizes <- fragments_trace_copy$ladder_df[which(!is.na(fragments_trace_copy$ladder_df$size)), "size"]
+  ladder_peaks <- fragments_trace_copy$ladder_df$scan
 
-  mod_validations <- vector("list", length(ladder_class_copy$parameters))
-  for (i in seq_along(ladder_class_copy$parameters)) {
+  mod_validations <- vector("list", length(fragments_trace_copy$mod_parameters))
+  for (i in seq_along(fragments_trace_copy$mod_parameters)) {
 
-    predictions <- predict(ladder_class_copy$parameters[[i]]$mod, newdata = data.frame(xi = ladder_peaks))
-    low_size_threshold <- ladder_class_copy$parameters[[i]]$mod$model$yi[1] - size_threshold
-    high_size_threshold <- ladder_class_copy$parameters[[i]]$mod$model$yi[3] + size_threshold
+    predictions <- predict(fragments_trace_copy$mod_parameters[[i]]$mod, newdata = data.frame(xi = ladder_peaks))
+    low_size_threshold <- fragments_trace_copy$mod_parameters[[i]]$mod$model$yi[1] - size_threshold
+    high_size_threshold <- fragments_trace_copy$mod_parameters[[i]]$mod$model$yi[3] + size_threshold
 
     predictions_close <- predictions[which(predictions > low_size_threshold & predictions < high_size_threshold)]
-    mod_sizes <- ladder_class_copy$parameters[[i]]$mod$model$yi
+    mod_sizes <- fragments_trace_copy$mod_parameters[[i]]$mod$model$yi
 
     ladder_hits <- sapply(predictions_close, function(x){
       diff = ladder_sizes - x
@@ -381,9 +381,9 @@ ladder_self_mod_predict <- function(ladder_class,
     mod_validations[[i]]$predictions <- predictions
     mod_validations[[i]]$predictions_close <- predictions_close
     mod_validations[[i]]$mod_sizes <- mod_sizes
-    mod_validations[[i]]$rsq <- summary(ladder_class_copy$parameters[[i]]$mod)$r.squared
+    mod_validations[[i]]$rsq <- summary(fragments_trace_copy$mod_parameters[[i]]$mod)$r.squared
     mod_validations[[i]]$ladder_hits <- ladder_hits
-    mod_validations[[i]]$mod <- ladder_class_copy$parameters[[i]]$mod
+    mod_validations[[i]]$mod <- fragments_trace_copy$mod_parameters[[i]]$mod
   }
 
   #predicted to be a good model if it has some ladder hits and good rsq
@@ -433,11 +433,11 @@ ladder_self_mod_predict <- function(ladder_class,
   )
 
   ladder_df <- rbind(assigned_df,
-        ladder_class_copy$ladder_df[which(ladder_class_copy$ladder_df$size %in% confirmed_sizes),] )
+        fragments_trace_copy$ladder_df[which(fragments_trace_copy$ladder_df$size %in% confirmed_sizes),] )
 
-  ladder_class_copy$ladder_df <- ladder_df
+  fragments_trace_copy$ladder_df <- ladder_df
 
-  return(ladder_class_copy)
+  return(fragments_trace_copy)
 
 }
 

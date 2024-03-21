@@ -7,7 +7,7 @@
 remove_fragments(fragments_list, samples_to_remove)
 }
 \arguments{
-\item{fragments_list}{A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).}
+\item{fragments_list}{A list of "fragments" class objects (can be either "bp_fragments" or "fragments_repeats" class).}
 
 \item{samples_to_remove}{A character vector containing the unique IDs of the samples to be removed.}
 }

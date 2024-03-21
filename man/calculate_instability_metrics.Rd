@@ -15,7 +15,7 @@ calculate_instability_metrics(
 )
 }
 \arguments{
-\item{fragments_list}{A list of "repeats_fragments" class objects representing fragment data.}
+\item{fragments_list}{A list of "fragments_repeats" class objects representing fragment data.}
 
 \item{grouped}{Logical value indicating whether samples should be grouped to share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{add_metadata()}.}
 
@@ -33,7 +33,7 @@ calculate_instability_metrics(
 A data.frame with calculated instability metrics for each sample.
 }
 \description{
-This function computes instability metrics from a list of repeats_fragments data objects.
+This function computes instability metrics from a list of fragments_repeats data objects.
 }
 \examples{
  gm_raw <- instability::example_data
@@ -49,10 +49,10 @@ This function computes instability metrics from a list of repeats_fragments data
    metadata_data.frame = metadata,
    unique_id = "unique_id",
    plate_id = "plate_id",
-   sample_group_id = "cell_line",
+   group_id = "cell_line",
    metrics_baseline_control = "metrics_baseline_control_TF",
-   repeat_positive_control_TF = "repeat_positive_control_TF",
-   repeat_positive_control_length = "repeat_positive_control_length")
+   size_standard = "size_standard",
+   size_standard_repeat_length = "size_standard_repeat_length")
 
  test_alleles <- find_alleles(
    fragments_list = test_metadata,

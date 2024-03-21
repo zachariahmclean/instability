@@ -7,7 +7,7 @@
 plot_repeat_correction_model(fragments_list)
 }
 \arguments{
-\item{fragments_list}{A list of repeats_fragments class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.}
+\item{fragments_list}{A list of fragments_repeats class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.}
 }
 \value{
 A ggplot object displaying the repeat correction model results.
@@ -32,7 +32,7 @@ test_alleles <- find_alleles(
 
 test_alleles_metadata <- add_metadata(
   test_alleles, metadata,
-  sample_group_id = "cell_line",
+  group_id = "cell_line",
   unique_id = "unique_id")
 
 test_repeats_corrected <- call_repeats(

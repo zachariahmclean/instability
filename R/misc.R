@@ -93,9 +93,9 @@ add_metadata_helper <- function(
   metadata_data.frame,
   unique_id,
   plate_id,
-  sample_group_id,
-  repeat_positive_control_TF,
-  repeat_positive_control_length,
+  group_id,
+  size_standard,
+  size_standard_repeat_length,
   metrics_baseline_control
 ) {
 
@@ -106,12 +106,38 @@ add_metadata_helper <- function(
 
   # add metadata to slots
   fragment$plate_id <- as.character(sample_metadata[plate_id])
-  fragment$group_id <- as.character(sample_metadata[sample_group_id])
-  fragment$size_standard <- as.logical(sample_metadata[repeat_positive_control_TF]) #give a better error if this coercion isn't possible
-  fragment$size_standard_repeat_length <- as.double(sample_metadata[repeat_positive_control_length])
+  fragment$group_id <- as.character(sample_metadata[group_id])
+  fragment$size_standard <- as.logical(sample_metadata[size_standard]) #give a better error if this coercion isn't possible
+  fragment$size_standard_repeat_length <- as.double(sample_metadata[size_standard_repeat_length])
   fragment$metrics_baseline_control <- as.logical(sample_metadata[metrics_baseline_control])
 
 
 
+}
+
+transfer_metadata_helper <- function(old_fragment,
+                                     new_fragment){
+
+ metadata_names <- c(
+   "unique_id",
+   "plate_id",
+   "group_id",
+   "size_standard",
+   "size_standard_repeat_length",
+   "metrics_baseline_control")
+
+
+ for (name in metadata_names){
+   eval(parse(
+     text = paste0(
+       "new_fragment$",
+       name,
+       "<- old_fragment$",
+       name
+     )
+   ))
+ }
+
+ return(new_fragment)
 }
 

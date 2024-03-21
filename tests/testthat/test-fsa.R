@@ -8,7 +8,8 @@ test_that("find ladder peaks",{
 
   test_processed <- process_ladder_signal(file_list[[1]]$Data$DATA.105,
                                           scans = 0:(length(file_list[[1]]$Data$DATA.105) -1),
-                                          spike_location = 1000)
+                                          spike_location = 1000,
+                                          smoothing_window = 10)
 
 
   ladder_sizes=c(50, 75, 100, 139, 150, 160, 200, 300, 350, 400, 450, 490, 500)
@@ -91,8 +92,8 @@ test_that("fit ladder", {
 
   mod <- lm(scan ~ size, data = test_fit)
 
-  testthat::expect_true(round(mod$coefficients[[1]],3) == 1348.234)
-  testthat::expect_true(round(mod$coefficients[[2]],5) == 6.24925)
+  testthat::expect_true(round(mod$coefficients[[1]],3) == 1347.69)
+  testthat::expect_true(round(mod$coefficients[[2]],5) == 6.25118)
 
 })
 
@@ -138,7 +139,7 @@ test_that("local southern", {
   #plot(predicted_sizes, file_list[[1]]$Data$DATA.1)
 
 
-  testthat::expect_true(round(rsq_diff,5) == -0.00276)
+  testthat::expect_true(round(rsq_diff,5) == -0.00343)
 
 
 })
@@ -151,8 +152,8 @@ test_that("find ladders", {
 
   file_list <- read_fsa(files)
 
-
-  test_ladders <- find_ladders(file_list,
+  suppressWarnings(
+  test_ladders <- find_ladders(file_list[which(names(file_list) == "20230413_B03.fsa")],
                ladder_channel = "DATA.105",
                signal_channel = "DATA.1",
                sample_id_channel = 'SpNm.1',
@@ -160,20 +161,22 @@ test_that("find ladders", {
                hq_ladder = FALSE,
                max_combinations = 2500000,
                ladder_selection_window = 8)
+  )
 
   test_ladders_fixed <- fix_ladders(test_ladders, "20230413_B03.fsa")
 
 
 
-  test_ladders$`20230413_B03.fsa`$plot_ladder()
+  test_ladders$`20230413_B03.fsa`$plot_ladder(scan_limits = c(1400, 4500))
 
-  test_ladders_fixed$`20230413_B03.fsa`$plot_ladder()
+  test_ladders_fixed$`20230413_B03.fsa`$plot_ladder(scan_limits = c(1400, 4500))
+
+  testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1568, 1633, 1926, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
+  testthat::expect_true(all(test_ladders_fixed$`20230413_B03.fsa`$ladder_df$scan == c(1633, 1926, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
+
 
 
 })
-
-
-
 
 
 testthat::test_that("find_fragment_peaks", {
@@ -182,10 +185,7 @@ testthat::test_that("find_fragment_peaks", {
 
   # simple option:
 
-  files <- list.files("data/GT_Z.McLean_2023-04-14/", full.names = TRUE)
-
-  file_list <- read_fsa(files)
-
+  file_list <- read_fsa("data/GT_Z.McLean_2023-04-14/20230413_B03.fsa")
 
   test_ladders <- find_ladders(file_list,
                                ladder_channel = "DATA.105",
@@ -209,14 +209,14 @@ for (i in seq_along(peak_list)) {
 
 }
 
-
-peak_list[[14]]$trace_bp_df |>
-    ggplot(aes(size, signal)) +
-    geom_line() +
-    geom_point(data = peak_list[[14]]$peak_table_df,
-               aes(y = height))+
-    scale_x_continuous(limits = c(420,600)) +
-    scale_y_continuous(limits = c(NA, 5000))
+#
+# peak_list[[1]]$trace_bp_df |>
+#     ggplot(aes(size, signal)) +
+#     geom_line() +
+#     geom_point(data = peak_list[[1]]$peak_table_df,
+#                aes(y = height))+
+#     ggplot2::scale_x_continuous(limits = c(420,600)) +
+#   ggplot2::scale_y_continuous(limits = c(NA, 5000))
 
 
 peak_list <- find_fragments(test_ladders,
@@ -226,6 +226,50 @@ peak_list <- find_fragments(test_ladders,
 
 
 })
+
+
+
+#metadata transfer
+
+
+
+testthat::test_that("metadata transfer", {
+
+  file_list <- read_fsa("data/GT_Z.McLean_2023-04-14/20230413_B03.fsa")
+
+  test_ladders <- find_ladders(file_list,
+                               ladder_channel = "DATA.105",
+                               signal_channel = "DATA.1",
+                               sample_id_channel = 'SpNm.1',
+                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                               hq_ladder = FALSE,
+                               max_combinations = 2500000,
+                               ladder_selection_window = 8)
+  test_ladders_fixed <- fix_ladders(test_ladders, "20230413_B03.fsa")
+  suppressWarnings(
+  metadata_added <- add_metadata(test_ladders_fixed, metadata,
+                                 unique_id = "unique_id",
+                                  plate_id = "plate_id",
+                                  group_id = "cell_line",
+                                  metrics_baseline_control = "metrics_baseline_control_TF",
+                                  size_standard = "repeat_positive_control_TF",
+                                  size_standard_repeat_length = "repeat_positive_control_length")
+  )
+
+  peak_list <- find_fragments(metadata_added,
+                              smoothing_window = 5,
+                              minumum_peak_signal = 20,
+                              min_bp_size = 300)
+
+  testthat::expect_true(metadata_added[[1]]$unique_id == peak_list[[1]]$unique_id)
+  testthat::expect_true(metadata_added[[1]]$plate_id == peak_list[[1]]$plate_id)
+  testthat::expect_true(metadata_added[[1]]$group_id == peak_list[[1]]$group_id)
+  testthat::expect_true(metadata_added[[1]]$metrics_baseline_control == peak_list[[1]]$metrics_baseline_control)
+  testthat::expect_true(metadata_added[[1]]$size_standard == peak_list[[1]]$size_standard)
+  testthat::expect_true(metadata_added[[1]]$size_standard_repeat_length == peak_list[[1]]$size_standard_repeat_length)
+
+})
+
 
 
 testthat::test_that("full pipline", {
@@ -247,8 +291,21 @@ testthat::test_that("full pipline", {
                                hq_ladder = FALSE,
                                max_combinations = 2500000,
                                ladder_selection_window = 8)
+  test_ladders_fixed <- fix_ladders(test_ladders, "20230413_B03.fsa")
 
-  peak_list <- find_fragments(test_ladders,
+
+  # # Start a PDF device
+  # pdf(file = "C:/Users/zlm2/Downloads/ladder.pdf", width = 12, height = 6) # Set width and height as desired
+  #
+  # # Loop through the list of plots
+  # for (i in seq_along(test_ladders_fixed)) {
+  #   test_ladders_fixed[[i]]$plot_ladder(scan_limits = c(1400, 4500))
+  # }
+  #
+  # # Close the PDF device
+  # dev.off()
+
+  peak_list <- find_fragments(test_ladders_fixed,
                               smoothing_window = 5,
                               minumum_peak_signal = 20,
                               min_bp_size = 300)
@@ -258,10 +315,10 @@ testthat::test_that("full pipline", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    sample_group_id = "cell_line",
+    group_id = "cell_line",
     metrics_baseline_control = "metrics_baseline_control_TF",
-    repeat_positive_control_TF = "repeat_positive_control_TF",
-    repeat_positive_control_length = "repeat_positive_control_length")
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length")
 
   fragment_alleles <- find_alleles(
     fragments_list = fragment_metadata,

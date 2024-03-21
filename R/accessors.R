@@ -41,11 +41,10 @@ find_ladders <- function(fsa_list,
 
   ladder_list <- vector("list", length(fsa_list))
   for(i in seq_along(fsa_list)){
-    ladder_list[[i]] <- fragments_trace$new(unique_id = names(fsa_list[i]),
-                                   raw_ladder = fsa_list[[i]]$Data[[ladder_channel]],
-                                   raw_data = fsa_list[[i]]$Data[[signal_channel]],
-                                   scan = 0:(length(fsa_list[[i]]$Data[[signal_channel]])- 1)
-                                   )
+    ladder_list[[i]] <- fragments_trace$new(unique_id = names(fsa_list[i]))
+    ladder_list[[i]]$raw_ladder <- fsa_list[[i]]$Data[[ladder_channel]]
+    ladder_list[[i]]$raw_data <- fsa_list[[i]]$Data[[signal_channel]]
+    ladder_list[[i]]$scan <- 0:(length(fsa_list[[i]]$Data[[signal_channel]])- 1)
   }
 
   pb <- txtProgressBar(min = 0, max = length(ladder_list), style = 3)
@@ -68,7 +67,7 @@ find_ladders <- function(fsa_list,
     ladder_list[[i]]$ladder_df <- ladder_fit
 
     # predict bp size
-    ladder_list[[i]]$mod_parameters()
+    ladder_list[[i]]$generate_mod_parameters()
     data_bp <- ladder_list[[i]]$predict_size()
 
     ladder_list[[i]]$trace_bp_df <- data.frame(
@@ -81,9 +80,9 @@ find_ladders <- function(fsa_list,
 
     #make a warning if one of the ladder modes is bad
 
-    rsq <- sapply(ladder_list[[i]]$parameters, function(x) suppressWarnings(summary(x$mod)$r.squared))
+    rsq <- sapply(ladder_list[[i]]$mod_parameters, function(x) suppressWarnings(summary(x$mod)$r.squared))
     if(any(rsq < 0.998)){
-      size_ranges <- sapply(ladder_list[[i]]$parameters, function(x) x$mod$model$yi)
+      size_ranges <- sapply(ladder_list[[i]]$mod_parameters, function(x) x$mod$model$yi)
       size_ranges <- size_ranges[ , which(rsq < 0.998), drop = FALSE]
       size_ranges_vector <- vector('numeric', ncol(size_ranges))
       for (j in seq_along(size_ranges_vector)) {
@@ -107,36 +106,36 @@ find_ladders <- function(fsa_list,
 
 
 
-fix_ladders <- function(ladder_list,
+fix_ladders <- function(fragments_trace_list,
                         unique_ids,
                         size_threshold = 60,
                         size_tolerance = 2.5,
                         rsq_threshold = 0.9985){
-  ladder_list_2 <- vector("list", length(ladder_list))
-  for (i in seq_along(ladder_list)) {
-    if(ladder_list[[i]]$unique_id %in% unique_ids){
-      ladder_list_2[[i]] <- ladder_list[[i]]$ladder_correction_auto(size_threshold = size_threshold,
+  fragments_trace_list_2 <- vector("list", length(fragments_trace_list))
+  for (i in seq_along(fragments_trace_list)) {
+    if(fragments_trace_list[[i]]$unique_id %in% unique_ids){
+      fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]$ladder_correction_auto(size_threshold = size_threshold,
                                                                   size_tolerance = size_tolerance,
                                                                   rsq_threshold = rsq_threshold)
     }
     else{
-      ladder_list_2[[i]] <- ladder_list[[i]]
+      fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]
       }
   }
 
-  names(ladder_list_2) <- names(ladder_list)
+  names(fragments_trace_list_2) <- names(fragments_trace_list)
 
-  return(ladder_list_2)
+  return(fragments_trace_list_2)
 
 }
 
 
 
 
-extract_trace_table <- function(ladder_list){
+extract_trace_table <- function(fragments_trace_list){
 
   #turn the output into a dataframe
-  plate_list <- lapply(ladder_list, function(x){
+  plate_list <- lapply(fragments_trace_list, function(x){
     x$trace_bp_df
   })
 
@@ -151,9 +150,9 @@ extract_trace_table <- function(ladder_list){
 
 ## set class from peak table ----------------------------------------------------------------
 
-#' Convert Peak Table to Fragments
+#' Convert Peak Table to Fragments_repeats class
 #'
-#' This function converts a peak table data frame into a list of fragment objects of the specified class.
+#' This function converts a peak table data frame into a list of fragments_repeats objects.
 #'
 #' @param df A data frame containing the peak data.
 #' @param data_format The format that the data frame is in (for example, a genemapper peak table). Choose between: genemapper5, generic.
@@ -166,7 +165,7 @@ extract_trace_table <- function(ladder_list){
 #' @param dye_channel Genemapper specific. A character string indicating the channel to extract data from. For example, 6-FAM is often "B".
 #' @param allele_col Genemapper specific. A character string specifying column name indicating the called alleles. This is often used when the peaks have been called in genemapper.
 #'
-#' @return A list of bp_fragments objects.
+#' @return A list of fragments_repeats. objects.
 #'
 #' @details This function takes a peak table data frame (eg. Genemapper output) and converts it into a list of fragment objects.
 #' The function supports different data formats and allows specifying column names for various attributes.
@@ -238,10 +237,10 @@ peak_table_to_fragments <- function(df,
                        call. = FALSE)
              }
 
-             new_bp_fragments <- bp_fragments$new(unique_id = unique(x$unique_id))
-             new_bp_fragments$peak_data <- df
+             new_fragments_repeats <- fragments_repeats$new(unique_id = unique(x$unique_id))
+             new_fragments_repeats$peak_table_df <- df
 
-             return(new_bp_fragments)
+             return(new_fragments_repeats)
              })
 
   return(fragments_list)
@@ -252,14 +251,14 @@ peak_table_to_fragments <- function(df,
 
 #' Convert Repeat Table to Repeats Fragments
 #'
-#' This function converts a repeat table data frame into a list of repeats fragments class.
+#' This function converts a repeat table data frame into a list of fragments_repeats. class.
 #'
 #' @param df A data frame containing the repeat data.
 #' @param unique_id A character string indicating the column name for unique identifiers.
 #' @param repeat_col A character string indicating the column name for the repeats.
 #' @param frequency_col A character string indicating the column name for the repeat frequencies.
 #'
-#' @return A list of repeats fragments.
+#' @return A list of fragments_repeats.
 #'
 #' @details This function takes a repeat table data frame and converts it into a list of repeats fragments.
 #' The function allows specifying column names for repeats, frequencies, and unique identifiers.
@@ -296,9 +295,9 @@ repeat_table_to_repeats <- function(df,
 
   repeats_list <- lapply(split(df, df$unique_id),
              function(x) {
-               new_repeats_fragments <- repeats_fragments$new(unique_id = unique(x$unique_id))
-               new_repeats_fragments$repeat_data <- x
-               return(new_repeats_fragments)
+               new_fragments_repeats <- fragments_repeats$new(unique_id = unique(x$unique_id))
+               new_fragments_repeats$repeat_table_df <- x
+               return(new_fragments_repeats)
              })
 
 
@@ -315,10 +314,10 @@ repeat_table_to_repeats <- function(df,
 #' @param metadata_data.frame A data frame containing the metadata information.
 #' @param unique_id A character string indicating the column name for unique sample identifiers in the metadata.
 #' @param plate_id A character string indicating the column name for plate identifiers in the metadata.
-#' @param sample_group_id A character string indicating the column name for sample group identifiers in the metadata.
+#' @param group_id A character string indicating the column name for sample group identifiers in the metadata.
 #' @param metrics_baseline_control A character string indicating the column name for baseline control indicators in the metadata.
-#' @param repeat_positive_control_TF A character string indicating the column name for repeat positive control indicators in the metadata.
-#' @param repeat_positive_control_length A character string indicating the column name for repeat positive control lengths in the metadata.
+#' @param size_standard A character string indicating the column name for repeat positive control indicators in the metadata.
+#' @param size_standard_repeat_length A character string indicating the column name for repeat positive control lengths in the metadata.
 #'
 #' @return A modified list of fragment objects with added metadata.
 #'
@@ -341,26 +340,26 @@ repeat_table_to_repeats <- function(df,
 #'   metadata_data.frame = metadata,
 #'   unique_id = "unique_id",
 #'   plate_id = "plate_id",
-#'   sample_group_id = "cell_line",
+#'   group_id = "cell_line",
 #'   metrics_baseline_control = "metrics_baseline_control_TF",
-#'   repeat_positive_control_TF = "repeat_positive_control_TF",
-#'   repeat_positive_control_length = "repeat_positive_control_length")
+#'   size_standard = "size_standard",
+#'   size_standard_repeat_length = "size_standard_repeat_length")
 
 add_metadata <- function(fragments_list,
                          metadata_data.frame,
                          unique_id = "sample_file_name",
                          plate_id = "plate_id",
-                         sample_group_id = "sample_group_id",
+                         group_id = "group_id",
                          metrics_baseline_control = "metrics_baseline_control_TF",
-                         repeat_positive_control_TF = "repeat_positive_control_TF",
-                         repeat_positive_control_length = "repeat_positive_control_length") {
+                         size_standard = "size_standard",
+                         size_standard_repeat_length = "size_standard_repeat_length") {
 
   # validate inputs to give good errors to user
   ## check to make sure that if the user supplies a column name, that it's actually in the dataframe they supplied
-  function_input_vector <- c(plate_id, sample_group_id, unique_id, repeat_positive_control_TF,
-                             repeat_positive_control_length, metrics_baseline_control)
-  function_input_name_vector <- c("plate_id", "sample_group_id", "unique_id", "repeat_positive_control_TF",
-                                  "repeat_positive_control_length", "metrics_baseline_control")
+  function_input_vector <- c(plate_id, group_id, unique_id, size_standard,
+                             size_standard_repeat_length, metrics_baseline_control)
+  function_input_name_vector <- c("plate_id", "group_id", "unique_id", "size_standard",
+                                  "size_standard_repeat_length", "metrics_baseline_control")
   for (i in seq_along(function_input_vector)) {
     if(!any(names(metadata_data.frame) == function_input_vector[[i]])){
       stop(paste0(function_input_name_vector[[i]], " input '", function_input_vector[[i]], "' was not detected as a column name in the supplied dataframe. Check column names and supply the right character string for the ",function_input_name_vector[[i]]," input"),
@@ -395,9 +394,9 @@ add_metadata <- function(fragments_list,
                                metadata_data.frame = metadata_data.frame,
                                unique_id = unique_id,
                                plate_id = plate_id,
-                               sample_group_id = sample_group_id,
-                               repeat_positive_control_TF = repeat_positive_control_TF,
-                               repeat_positive_control_length = repeat_positive_control_length,
+                               group_id = group_id,
+                               size_standard = size_standard,
+                               size_standard_repeat_length = size_standard_repeat_length,
                                metrics_baseline_control = metrics_baseline_control
                              )
                            })
@@ -429,12 +428,14 @@ find_fragments <- function(fragments_trace_list,
       max_bp_size = max_bp_size
     )
 
-    new_bp_fragments <- bp_fragments$new(unique_id = x$unique_id)
-    new_bp_fragments$peak_data <- x$peak_table_df
+    new_fragments_repeats <- fragments_repeats$new(unique_id = x$unique_id)
+    new_fragments_repeats$trace_bp_df <- x$trace_bp_df
+    new_fragments_repeats$peak_table_df <- x$peak_table_df
+    new_fragments_repeats <- transfer_metadata_helper(x, new_fragments_repeats)
 
     #placeholder for function that transfers metadata
 
-    return(new_bp_fragments)
+    return(new_fragments_repeats)
 
   })
 }
@@ -494,16 +495,16 @@ find_alleles <- function(fragments_list,
 #'
 #' This function calls the repeat lengths for a list of fragments.
 #'
-#' @param fragments_list A list of bp_fragments objects containing fragment data.
+#' @param fragments_list A list of fragments_repeats objects containing fragment data.
 #' @param repeat_algorithm A character specifying the repeat calling algorithm. Options: \code{"simple"} or \code{"nearest_peak"}.
 #' @param assay_size_without_repeat An integer specifying the assay size without repeat for repeat calling. Default is 87.
 #' @param repeat_size An integer specifying the repeat size for repeat calling. Default is 3.
 #' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
 #'
-#' @return A list of \code{\link{repeats_fragments}} objects with repeat data added.
+#' @return A list of \code{\link{fragments_repeats}} objects with repeat data added.
 #'
 #' #' @details
-#' The calculated repeat lengths are assigned to the corresponding peaks in the provided `bp_fragments` object. The repeat lengths can be used for downstream instability analysis.
+#' The calculated repeat lengths are assigned to the corresponding peaks in the provided `fragments_repeats` object. The repeat lengths can be used for downstream instability analysis.
 #'
 #' The `simple` algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
 #'
@@ -554,7 +555,7 @@ find_alleles <- function(fragments_list,
 #'
 #' test_alleles_metadata <- add_metadata(
 #'   test_alleles, metadata,
-#'   sample_group_id = "cell_line",
+#'   group_id = "cell_line",
 #'   unique_id = "unique_id")
 #'
 #' test_repeats_corrected <- call_repeats(
@@ -606,9 +607,9 @@ call_repeats <- function(fragments_list,
 
 #' Calculate Repeat Instability Metrics
 #'
-#' This function computes instability metrics from a list of repeats_fragments data objects.
+#' This function computes instability metrics from a list of fragments_repeats data objects.
 #'
-#' @param fragments_list A list of "repeats_fragments" class objects representing fragment data.
+#' @param fragments_list A list of "fragments_repeats" class objects representing fragment data.
 #' @param grouped Logical value indicating whether samples should be grouped to share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{add_metadata()}.
 #' @param peak_threshold The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.
 #' @param window_around_main_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140.
@@ -634,10 +635,10 @@ call_repeats <- function(fragments_list,
 #'    metadata_data.frame = metadata,
 #'    unique_id = "unique_id",
 #'    plate_id = "plate_id",
-#'    sample_group_id = "cell_line",
+#'    group_id = "cell_line",
 #'    metrics_baseline_control = "metrics_baseline_control_TF",
-#'    repeat_positive_control_TF = "repeat_positive_control_TF",
-#'    repeat_positive_control_length = "repeat_positive_control_length")
+#'    size_standard = "size_standard",
+#'    size_standard_repeat_length = "size_standard_repeat_length")
 #'
 #'  test_alleles <- find_alleles(
 #'    fragments_list = test_metadata,
@@ -725,7 +726,7 @@ calculate_instability_metrics <- function(fragments_list,
 #'
 #' Extracts modal peak information from each sample in a list of fragments.
 #'
-#' @param fragments_list A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).
+#' @param fragments_list A list of "fragments" class objects (can be either "fragments_repeats" or "fragments_repeats" class).
 #'
 #' @return A data.frame containing modal peak information for each sample.
 #' @export
@@ -748,32 +749,16 @@ calculate_instability_metrics <- function(fragments_list,
 #'
 extract_alleles <- function(fragments_list) {
 
-  suppressWarnings(
 
-    if(grepl("bp", class(fragments_list[[1]])[1])){
+  extracted <- lapply(fragments_list, function(x){
 
-      extracted <- lapply(fragments_list, function(x){
-
-        data.frame(unique_id = rep(x$unique_id,2),
-                   size = c(x$allele_1_size, x$allele_2_size),
-                   height = c(x$allele_1_height, x$allele_2_height),
-                   peak_allele = c(1, 2))
-      })
-      extracted_df <- do.call(rbind, extracted)
-
-    }else if(grepl("repeats", class(fragments_list[[1]])[1])){
-      extracted <- lapply(fragments_list, function(x){
-
-        data.frame(unique_id = rep(x$unique_id,2),
-                   repeats = c(x$allele_1_repeat, x$allele_2_repeat),
-                   height = c(x$allele_1_height, x$allele_2_height),
-                   peak_allele = c(1, 2))
-      })
-      extracted_df <- do.call(rbind, extracted)
-
-    }
-
-  )
+    data.frame(unique_id = rep(x$unique_id,2),
+               size = c(x$allele_1_size, x$allele_2_size),
+               repeats = c(x$allele_1_repeat, x$allele_2_repeat),
+               height = c(x$allele_1_height, x$allele_2_height),
+               peak_allele = c(1, 2))
+  })
+  extracted_df <- do.call(rbind, extracted)
 
   return(extracted_df)
 
@@ -785,7 +770,7 @@ extract_alleles <- function(fragments_list) {
 #'
 #' Extracts peak data from each sample in a list of fragments.
 #'
-#' @param fragments_list A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).
+#' @param fragments_list A list of "fragments" class objects (can be either "fragments_repeats" or "fragments_repeats" class).
 #'
 #' @return A data.frame containing peak data for each sample.
 #' @export
@@ -804,10 +789,10 @@ extract_alleles <- function(fragments_list) {
 #'    metadata_data.frame = metadata,
 #'    unique_id = "unique_id",
 #'    plate_id = "plate_id",
-#'    sample_group_id = "cell_line",
+#'    group_id = "cell_line",
 #'    metrics_baseline_control = "metrics_baseline_control_TF",
-#'    repeat_positive_control_TF = "repeat_positive_control_TF",
-#'    repeat_positive_control_length = "repeat_positive_control_length")
+#'    size_standard = "size_standard",
+#'    size_standard_repeat_length = "size_standard_repeat_length")
 #'
 #'  test_alleles <- find_alleles(
 #'    fragments_list = test_metadata,
@@ -831,36 +816,58 @@ extract_fragments <- function(fragments_list) {
 
     if(grepl("bp", class(fragments_list[[1]])[1])){
       extracted <- lapply(fragments_list, function(x){
-        if(is.null(x$peak_data)){
+        if(is.null(x$peak_table_df) & is.null(x$repeat_table_df)){
           return(NULL)
         } else{
-          df_length <- nrow(x$peak_data)
+          df_length <- nrow(x$peak_table_df)
           data.frame(unique_id = rep(x$unique_id,df_length),
                      main_peak_size = rep(x$allele_1_size,df_length),
                      main_peak_height = rep(x$allele_1_height, df_length),
-                     height = x$peak_data$height,
-                     size = x$peak_data$size,
+                     height = x$peak_table_df$height,
+                     size = x$peak_table_df$size,
                      peak_region = x$.__enclos_env__$private$peak_regions)
         }
       })
     }else if(grepl("repeats", class(fragments_list[[1]])[1])){
       extracted <- lapply(fragments_list, function(x){
-        if(is.null(x$repeat_data)){
+        if(is.null(x$repeat_table_df)){
           return(NULL)
         } else{
 
-          df_length <- nrow(x$repeat_data)
+          df_length <- nrow(x$repeat_table_df)
           data.frame(unique_id = rep(x$unique_id,df_length),
                      main_peak_repeat = rep(x$allele_1_repeat,df_length),
                      main_peak_height = rep(x$allele_1_height, df_length),
-                     height = x$repeat_data$height,
-                     repeats = x$repeat_data$repeats,
+                     height = x$repeat_table_df$height,
+                     repeats = x$repeat_table_df$repeats,
                      peak_region = x$.__enclos_env__$private$peak_regions)
         }
       })
     }
 
   )
+
+  if(is.null(x$peak_table_df) & is.null(x$repeat_table_df)){
+    return(NULL)
+  }
+  else if(!is.null(x$peak_table_df) & is.null(x$repeat_table_df)){
+    df_length <- nrow(x$peak_table_df)
+    data.frame(unique_id = rep(x$unique_id,df_length),
+               main_peak_size = rep(x$allele_1_size,df_length),
+               main_peak_height = rep(x$allele_1_height, df_length),
+               height = x$peak_table_df$height,
+               size = x$peak_table_df$size,
+               peak_region = x$.__enclos_env__$private$peak_regions)
+  }
+  else if(!is.null(x$repeat_table_df)){
+    df_length <- nrow(x$repeat_table_df)
+    data.frame(unique_id = rep(x$unique_id,df_length),
+               main_peak_repeat = rep(x$allele_1_repeat,df_length),
+               main_peak_height = rep(x$allele_1_height, df_length),
+               height = x$repeat_table_df$height,
+               repeats = x$repeat_table_df$repeats,
+               peak_region = x$.__enclos_env__$private$peak_regions)
+  }
 
   extracted_df <- do.call(rbind, extracted)
 
@@ -875,7 +882,7 @@ extract_fragments <- function(fragments_list) {
 #'
 #' A convenient function to remove specific samples from a list of fragments.
 #'
-#' @param fragments_list A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).
+#' @param fragments_list A list of "fragments" class objects (can be either "fragments_repeats" or "fragments_repeats" class).
 #' @param samples_to_remove A character vector containing the unique IDs of the samples to be removed.
 #'
 #' @return A modified list of fragments with the specified samples removed.
@@ -920,7 +927,7 @@ remove_fragments <- function(fragments_list,
 #'
 #' Plots peak data from a list of fragments.
 #'
-#' @param fragments_list A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).
+#' @param fragments_list A list of "fragments" class objects (can be either "fragments_repeats" or "fragments_repeats" class).
 #' @param sample_subset A character vector of unique sample IDs of samples to pick out and plot.
 #' @param zoom_in_on_peak A numeric value (1 or 2) for which allele's peak should be zoomed in on. Use NA to show the whole trace.
 #' @param zoom_range A numeric vector with a length of 2 to indicate the size range around the zoomed-in peak. For example, c(-20, 20).
@@ -1066,7 +1073,7 @@ plot_fragments <- function(fragments_list,
 #'
 #' Plots the results of the repeat correction model for a list of fragments.
 #'
-#' @param fragments_list A list of repeats_fragments class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.
+#' @param fragments_list A list of fragments_repeats class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.
 #'
 #' @return A ggplot object displaying the repeat correction model results.
 #' @export
@@ -1088,7 +1095,7 @@ plot_fragments <- function(fragments_list,
 #'
 #' test_alleles_metadata <- add_metadata(
 #'   test_alleles, metadata,
-#'   sample_group_id = "cell_line",
+#'   group_id = "cell_line",
 #'   unique_id = "unique_id")
 #'
 #' test_repeats_corrected <- call_repeats(

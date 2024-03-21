@@ -25,7 +25,7 @@ There are several important factors to a successful repeat instability experimen
 
 -   An appropriate baseline control for your experiment. For example, the tail of a mouse or a sample at the start of a time-course experiment. This is indicated with a `TRUE` in the `metrics_baseline_control` column of the metadata.
 
--   Samples of known repeat length to correct across fragment analysis runs. There are slight fluctuations of repeat length size across runs, so if samples are to be compared for different runs you must correct the repeat length so they are comparable. This is usually achieved by running running positive control samples with a known validated repeat size of the modal peak in each fragment analysis run. These samples are then indicated `TRUE` in the column `repeat_positive_control_TF` in the metadata, and the known repeat length of the modal peak given in the `repeat_positive_control_length` column.
+-   Samples of known repeat length to correct across fragment analysis runs. There are slight fluctuations of repeat length size across runs, so if samples are to be compared for different runs you must correct the repeat length so they are comparable. This is usually achieved by running running positive control samples with a known validated repeat size of the modal peak in each fragment analysis run. These samples are then indicated `TRUE` in the column `size_standard` in the metadata, and the known repeat length of the modal peak given in the `size_standard_repeat_length` column.
 
 ## Installation
 
@@ -73,10 +73,10 @@ Metadata can be incorporated to enhance the fragments class and allow additional
       metadata_data.frame = metadata,
       unique_id = "unique_id",
       plate_id = "plate_id",
-      sample_group_id = "cell_line",
+      group_id = "cell_line",
       metrics_baseline_control = "metrics_baseline_control_TF",
-      repeat_positive_control_TF = "repeat_positive_control_TF",
-      repeat_positive_control_length = "repeat_positive_control_length")
+      size_standard = "size_standard",
+      size_standard_repeat_length = "size_standard_repeat_length")
 
 ```
 

@@ -1,88 +1,3 @@
-
-# ladder class ------------------------------------------------------------
-
-
-fragments_trace <- R6::R6Class("fragments_trace",
-                      list(
-                        initialize = function(unique_id, raw_ladder, raw_data, scan,ladder_sizes,ladder_scans) {
-                          self$unique_id <- unique_id
-                          self$raw_ladder <- raw_ladder
-                          self$raw_data <- raw_data
-                          self$scan <- scan
-                        },
-                        unique_id = NULL,
-                        raw_ladder = NULL,
-                        raw_data = NULL,
-                        scan = NULL,
-                        ladder_df = NULL,
-                        trace_bp_df = NULL,
-                        peak_table_df = NULL,
-
-                        #model related
-                        parameters = NULL,
-                        mod_parameters = function() {
-                          # Perform any necessary calculations to fit the model and save the parameters
-                          ladder_df <- self$ladder_df[which(!is.na(self$ladder_df$size)), ]
-                          ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
-                          self$parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
-                          invisible(self)
-                        },
-                        predict_size = function() {
-                          # Predict fragment sizes for new data points
-                          predicted_sizes <- local_southern_predict(local_southern_fit =self$parameters , scans = self$scan)
-
-                          return(predicted_sizes)
-                        },
-                        call_peaks = function(smoothing_window = 5,
-                                              minumum_peak_signal = 20,
-                                              min_bp_size = 100,
-                                              max_bp_size = 1000){
-                          self$peak_table_df <- find_fragment_peaks(self,
-                                                         smoothing_window = smoothing_window,
-                                                         minumum_peak_signal = minumum_peak_signal,
-                                                         min_bp_size = min_bp_size,
-                                                         max_bp_size = max_bp_size)
-                          invisible(self)
-                        },
-                        ladder_correction_auto = function(size_threshold = 60,
-                                                          size_tolerance = 2.5,
-                                                          rsq_threshold = 0.9985){
-
-                          self2 <- ladder_self_mod_predict(self,
-                                                  size_threshold = size_threshold,
-                                                  size_tolerance = size_tolerance,
-                                                  rsq_threshold = rsq_threshold)
-                          return(self2)
-                        },
-
-                        plot_ladder = function(){
-                            g <- ggplot(data = self$trace_bp_df,
-                                   aes(scan, ladder_signal)) +
-                            geom_point() +
-                            geom_text(data = self$ladder_df,
-                                      aes(scan, max(self$trace_bp_df$ladder_signal) / 3,
-                                          label = size),
-                                      angle=90,
-                                      size = 3) +
-                            geom_vline(data = self$ladder_df,
-                                       aes(xintercept = scan),
-                                       lty = 3, alpha = 0.3) +
-                            labs(title = self$unique_id) +
-                            theme_bw() +
-                            theme(panel.grid = element_blank())
-
-                            print(g)
-                        },
-                        print = function(...) {
-                          print_helper(self,
-                                       sample_attrs = c("unique_id", "raw_data", "raw_ladder", "scan", "ladder_df", "trace_bp_df","peak_table_df")
-                          )
-                        }
-                      ))
-
-
-
-
 # Fragments class ---------------------------------------------------------
 
 fragments <- R6::R6Class("fragments", public = list(
@@ -101,9 +16,9 @@ fragments <- R6::R6Class("fragments", public = list(
   add_metadata = function(metadata_data.frame,
                           unique_id,
                           plate_id,
-                          sample_group_id,
-                          repeat_positive_control_TF,
-                          repeat_positive_control_length,
+                          group_id,
+                          size_standard,
+                          size_standard_repeat_length,
                           metrics_baseline_control){
 
     # clone the class so that it doesn't modify in place
@@ -114,9 +29,9 @@ fragments <- R6::R6Class("fragments", public = list(
 
     # add metadata to slots
     self2$plate_id <- as.character(sample_metadata[plate_id])
-    self2$group_id <- as.character(sample_metadata[sample_group_id])
-    self2$size_standard <- as.logical(sample_metadata[repeat_positive_control_TF]) #give a better error if this coercion isn't possible
-    self2$size_standard_repeat_length <- as.double(sample_metadata[repeat_positive_control_length])
+    self2$group_id <- as.character(sample_metadata[group_id])
+    self2$size_standard <- as.logical(sample_metadata[size_standard]) #give a better error if this coercion isn't possible
+    self2$size_standard_repeat_length <- as.double(sample_metadata[size_standard_repeat_length])
     self2$metrics_baseline_control <- as.character(sample_metadata[metrics_baseline_control])
 
     return(self2)
@@ -136,88 +51,116 @@ private = list(
   peak_regions = NA_real_
 ))
 
-# HTT_fragments -------------------------------
-#responsibility of this class is to turn the bp level peak table into called repeats
 
-bp_fragments <- R6::R6Class("bp_fragments",
-                         inherit = fragments,
-                         public = list(
-  allele_1_size = NA_real_,
-  allele_1_height = NA_real_,
-  allele_2_size = NA_real_,
-  allele_2_height = NA_real_,
-  peak_data = NULL,
 
-  find_main_peaks = function(number_of_peaks_to_return = 2,
-                             peak_region_size_gap_threshold = 6,
-                             peak_region_height_threshold_multiplier = 1){
-    # clone the class so that it doesn't modify in place
-    self2 <- self$clone()
+# fragments_trace class ------------------------------------------------------------
 
-    self2 <- find_main_peaks_helper(
-      fragments_class = self2,
-      fragment_sizes = self2$peak_data$size,
-      fragment_heights = self2$peak_data$height,
-      data_type = "bp_size",
-      number_of_peaks_to_return = number_of_peaks_to_return,
-      peak_region_size_gap_threshold = peak_region_size_gap_threshold,
-      peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier
-    )
 
-    #finally, indicate in the private part of the class that this function has been used since that is required for next steps
-    self2$.__enclos_env__$private$find_main_peaks_used <- TRUE
+fragments_trace <- R6::R6Class(
+  "fragments_trace",
+  inherit = fragments,
+  public = list(
+    unique_id = NULL,
+    raw_ladder = NULL,
+    raw_data = NULL,
+    scan = NULL,
+    ladder_df = NULL,
+    trace_bp_df = NULL,
+    peak_table_df = NULL,
 
-    return(self2)
+    #model related
+    mod_parameters = NULL,
+    generate_mod_parameters = function() {
+      # Perform any necessary calculations to fit the model and save the parameters
+      ladder_df <- self$ladder_df[which(!is.na(self$ladder_df$size)), ]
+      ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
+      self$mod_parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
+      invisible(self)
+    },
+    predict_size = function() {
+      # Predict fragment sizes for new data points
+      predicted_sizes <- local_southern_predict(local_southern_fit = self$mod_parameters , scans = self$scan)
 
-  },
+      return(predicted_sizes)
+    },
+    call_peaks = function(smoothing_window = 5,
+                          minumum_peak_signal = 20,
+                          min_bp_size = 100,
+                          max_bp_size = 1000){
+      self$peak_table_df <- find_fragment_peaks(self,
+                                     smoothing_window = smoothing_window,
+                                     minumum_peak_signal = minumum_peak_signal,
+                                     min_bp_size = min_bp_size,
+                                     max_bp_size = max_bp_size)
+      invisible(self)
+    },
+    ladder_correction_auto = function(size_threshold = 60,
+                                      size_tolerance = 2.5,
+                                      rsq_threshold = 0.9985){
 
-  add_repeats = function(repeat_algorithm = "simple", # "simple" or "nearest_peak"
-                         assay_size_without_repeat = 87,
-                         repeat_size = 3,
-                         correct_repeat_length = FALSE){
+      self2 <- ladder_self_mod_predict(self,
+                              size_threshold = size_threshold,
+                              size_tolerance = size_tolerance,
+                              rsq_threshold = rsq_threshold)
+      return(self2)
+    },
 
-    repeat_class <- add_repeats_helper(self,
-                                       repeat_algorithm = repeat_algorithm,
-                                       assay_size_without_repeat = assay_size_without_repeat,
-                                       repeat_size = repeat_size,
-                                       correct_repeat_length = correct_repeat_length)
+    plot_ladder = function(scan_limits = c(NA,NA)){
+        # Scatter plot
+        plot(self$trace_bp_df$scan, self$trace_bp_df$ladder_signal,
+             xlab = "Scan", ylab = "Ladder Signal",
+             main = self$unique_id,
+             pch = 16,
+             xlim = scan_limits)
 
-    return(repeat_class)
-  }
-  )
-)
+        # Adding text
+        text(self$ladder_df$scan, rep(max(self$trace_bp_df$ladder_signal) / 3, nrow(self$ladder_df)),
+             labels = self$ladder_df$size,
+             adj = 0.5, cex = 0.7, srt = 90)
 
+        # Adding vertical lines with transparency
+        for (i in 1:nrow(self$ladder_df)) {
+          abline(v = self$ladder_df$scan[i],
+                 lty = 3,
+                 col = rgb(1, 0, 0, alpha = 0.3))
+        }
+
+
+
+    }
+  ))
 
 
 # repeats -------------------------------
-# responsibility if this class is to calculate the instability metrics from a repeat table
+# responsibility if this class is to calculate the instability metrics from non-continuous data
 
 
 
-repeats_fragments <- R6::R6Class(
-  "repeats_fragments",
+fragments_repeats <- R6::R6Class(
+  "fragments_repeats",
   inherit = fragments,
   public = list(
+    allele_1_size = NA_real_,
     allele_1_repeat = NA_real_,
     allele_1_height = NA_real_,
+    allele_2_size = NA_real_,
     allele_2_repeat = NA_real_,
     allele_2_height = NA_real_,
-    repeat_data = NULL,
+    trace_bp_df = NULL,
+    peak_table_df = NULL,
+    repeat_table_df = NULL,
     index_repeat = NA_real_,
     index_height = NA_real_,
     index_weighted_mean_repeat = NA_real_,
 
     find_main_peaks = function(number_of_peaks_to_return = 2,
-                               peak_region_size_gap_threshold = 2, #this is the only thing different with the find main peaks above
+                               peak_region_size_gap_threshold = 6,
                                peak_region_height_threshold_multiplier = 1) {
       # clone the class so that it doesn't modify in place
       self2 <- self$clone()
 
       self2 <- find_main_peaks_helper(
-        fragments_class = self2,
-        fragment_sizes = self2$repeat_data$repeats,
-        fragment_heights = self2$repeat_data$height,
-        data_type = "repeat",
+        fragments_repeats_class = self2,
         number_of_peaks_to_return = number_of_peaks_to_return,
         peak_region_size_gap_threshold = peak_region_size_gap_threshold,
         peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier
@@ -230,6 +173,19 @@ repeats_fragments <- R6::R6Class(
 
       return(self2)
 
+    },
+    add_repeats = function(repeat_algorithm = "simple", # "simple" or "nearest_peak"
+                           assay_size_without_repeat = 87,
+                           repeat_size = 3,
+                           correct_repeat_length = FALSE){
+
+      repeat_class <- add_repeats_helper(self,
+                                         repeat_algorithm = repeat_algorithm,
+                                         assay_size_without_repeat = assay_size_without_repeat,
+                                         repeat_size = repeat_size,
+                                         correct_repeat_length = correct_repeat_length)
+
+      return(repeat_class)
     },
 
     instability_metrics = function(peak_threshold = 0.05,

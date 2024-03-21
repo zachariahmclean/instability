@@ -102,7 +102,7 @@ fishers_kurtosis <- function(x, y) {
 
 # subsetting repeat table ---------------------------------------------------
 
-repeat_table_subset <- function(repeat_data,
+repeat_table_subset <- function(repeat_table_df,
                                 allele_1_height,
                                 index_repeat,
                                 peak_threshold,
@@ -110,8 +110,8 @@ repeat_table_subset <- function(repeat_data,
 
   # Filter to include only the peaks above the certain threshold
   # height threshold is set on the modal peak rather than the index peak
-  repeat_data$peak_percent <- repeat_data$height / allele_1_height
-  height_filtered_df <- repeat_data[which(repeat_data$peak_percent > peak_threshold),]
+  repeat_table_df$peak_percent <- repeat_table_df$height / allele_1_height
+  height_filtered_df <- repeat_table_df[which(repeat_table_df$peak_percent > peak_threshold),]
 
   # Filter to include only peaks of a certain size
   lower_lim <- ifelse(is.na(window_around_main_peak[1]),
@@ -130,36 +130,36 @@ repeat_table_subset <- function(repeat_data,
 
 # Calculating metrics --------------------------------------------------------
 
-compute_metrics <- function(repeats_fragments,
+compute_metrics <- function(fragments_repeats,
                             peak_threshold ,
                             window_around_main_peak,
                             percentile_range,
                             repeat_range){
 
   # filter dataset to user supplied thresholds
-  size_filtered_df <- repeat_table_subset(repeat_data = repeats_fragments$repeat_data,
-                                     allele_1_height = repeats_fragments$allele_1_height,
-                                     index_repeat =  repeats_fragments$index_repeat,
+  size_filtered_df <- repeat_table_subset(repeat_table_df = fragments_repeats$repeat_table_df,
+                                     allele_1_height = fragments_repeats$allele_1_height,
+                                     index_repeat =  fragments_repeats$index_repeat,
                                      peak_threshold = peak_threshold,
                                      window_around_main_peak = window_around_main_peak)
 
     # first subset to make some dataframe that are just for contractions or expansions
-  size_filtered_df$repeat_delta_index_peak <- size_filtered_df$repeats - repeats_fragments$index_repeat
+  size_filtered_df$repeat_delta_index_peak <- size_filtered_df$repeats - fragments_repeats$index_repeat
   expansion_filtered <- size_filtered_df[which(size_filtered_df$repeat_delta_index_peak >= 0),]
   contraction_filtered <- size_filtered_df[which(size_filtered_df$repeat_delta_index_peak <= 0),]
 
   # QCs
-  QC_modal_peak_height <- if(repeats_fragments$allele_1_height > 500){
+  QC_modal_peak_height <- if(fragments_repeats$allele_1_height > 500){
     NA_character_
-  } else if(repeats_fragments$allele_1_height > 100){
+  } else if(fragments_repeats$allele_1_height > 100){
     "Low"
   } else {
     "Extremly low"
   }
 
-  QC_peak_number <- if(nrow(repeats_fragments$repeat_data) > 20){
+  QC_peak_number <- if(nrow(fragments_repeats$repeat_table_df) > 20){
     NA_character_
-  } else if(nrow(repeats_fragments$repeat_data) > 10){
+  } else if(nrow(fragments_repeats$repeat_table_df) > 10){
     "Low"
   } else {
     "Extremly low"
@@ -167,16 +167,16 @@ compute_metrics <- function(repeats_fragments,
 
   # make a wide dataframe
   metrics <- data.frame(
-    unique_id = repeats_fragments$unique_id,
+    unique_id = fragments_repeats$unique_id,
     QC_comments = NA_character_,
     QC_modal_peak_height = QC_modal_peak_height,
     QC_peak_number = QC_peak_number,
-    modal_peak_repeat = repeats_fragments$allele_1_repeat,
-    modal_peak_height = repeats_fragments$allele_1_height,
-    index_peak_repeat = repeats_fragments$index_repeat,
-    index_peak_height = repeats_fragments$index_height,
-    index_weighted_mean_repeat = repeats_fragments$index_weighted_mean_repeat,
-    n_peaks_total = nrow(repeats_fragments$repeat_data),
+    modal_peak_repeat = fragments_repeats$allele_1_repeat,
+    modal_peak_height = fragments_repeats$allele_1_height,
+    index_peak_repeat = fragments_repeats$index_repeat,
+    index_peak_height = fragments_repeats$index_height,
+    index_weighted_mean_repeat = fragments_repeats$index_weighted_mean_repeat,
+    n_peaks_total = nrow(fragments_repeats$repeat_table_df),
     n_peaks_analysis_subset = nrow(size_filtered_df),
     n_peaks_analysis_subset_expansions = nrow(expansion_filtered),
     min_repeat = min(size_filtered_df$repeats),
@@ -187,35 +187,35 @@ compute_metrics <- function(repeats_fragments,
     max_height = max(size_filtered_df$height),
     max_delta_neg = min(size_filtered_df$repeat_delta_index_peak),
     max_delta_pos = max(size_filtered_df$repeat_delta_index_peak),
-    average_repeat_gain = weighted.mean(size_filtered_df$repeats, size_filtered_df$height) - repeats_fragments$index_weighted_mean_repeat,
+    average_repeat_gain = weighted.mean(size_filtered_df$repeats, size_filtered_df$height) - fragments_repeats$index_weighted_mean_repeat,
     instabity_index_jml = instability_index(
       repeats = size_filtered_df$repeats,
       heights = size_filtered_df$height,
-      index_peak_height = repeats_fragments$allele_1_height,
-      index_peak_repeat = repeats_fragments$index_repeat,
+      index_peak_height = fragments_repeats$allele_1_height,
+      index_peak_repeat = fragments_repeats$index_repeat,
       peak_threshold = peak_threshold,
       abs_sum = FALSE),
     abs_index = instability_index(
       repeats = size_filtered_df$repeats,
       heights = size_filtered_df$height,
-      index_peak_height = repeats_fragments$allele_1_height,
-      index_peak_repeat = repeats_fragments$index_repeat,
+      index_peak_height = fragments_repeats$allele_1_height,
+      index_peak_repeat = fragments_repeats$index_repeat,
       peak_threshold = peak_threshold,
       abs_sum = TRUE),
     expansion_index = instability_index(
       repeats = expansion_filtered$repeats,
       heights = expansion_filtered$height,
-      index_peak_height = repeats_fragments$allele_1_height,
-      index_peak_repeat = repeats_fragments$index_repeat,
+      index_peak_height = fragments_repeats$allele_1_height,
+      index_peak_repeat = fragments_repeats$index_repeat,
       peak_threshold = peak_threshold,
       abs_sum = FALSE),
     pps_index = sum(expansion_filtered$peak_percent) - 1, # remove the main peak from the pps by subracting 1
-    som_mos_index = (sum(expansion_filtered$height) - repeats_fragments$allele_1_height) / repeats_fragments$allele_1_height,
+    som_mos_index = (sum(expansion_filtered$height) - fragments_repeats$allele_1_height) / fragments_repeats$allele_1_height,
     contration_index = instability_index(
       repeats = contraction_filtered$repeats,
       heights = contraction_filtered$height,
-      index_peak_height = repeats_fragments$allele_1_height,
-      index_peak_repeat = repeats_fragments$index_repeat,
+      index_peak_height = fragments_repeats$allele_1_height,
+      index_peak_repeat = fragments_repeats$index_repeat,
       peak_threshold = peak_threshold,
       abs_sum = FALSE),
     skewness = fishers_skewness(size_filtered_df$repeats, size_filtered_df$height),
@@ -225,7 +225,7 @@ compute_metrics <- function(repeats_fragments,
   expansion_percentile <- find_percentiles(
     expansion_filtered$repeats,
     expansion_filtered$height,
-    repeats_fragments$index_repeat,
+    fragments_repeats$index_repeat,
     type = "percentile",
     range = percentile_range,
     col_preffix = "expansion_percentile"
@@ -234,7 +234,7 @@ compute_metrics <- function(repeats_fragments,
   expansion_repeat <- find_percentiles(
     expansion_filtered$repeats,
     expansion_filtered$height,
-    repeats_fragments$index_repeat,
+    fragments_repeats$index_repeat,
     type = "repeat",
     range = repeat_range,
     col_preffix = "expansion_percentile_for_repeat"
@@ -258,7 +258,7 @@ metrics_grouping_helper <- function(fragments_list,
     # we need to do this to find the weighted mean repeat for the index sample
     # therefore only do the computational work if it's actual the index samples
     if(x$metrics_baseline_control == TRUE){
-      filtered_df <- repeat_table_subset(repeat_data = x$repeat_data,
+      filtered_df <- repeat_table_subset(repeat_table_df = x$repeat_table_df,
                                          allele_1_height = x$allele_1_height,
                                          index_repeat =  x$allele_1_repeat,
                                          peak_threshold = peak_threshold,
@@ -308,16 +308,16 @@ metrics_grouping_helper <- function(fragments_list,
 
     # since the repeat size may not be an integer, need t find what the closest peak is to the control sample
     #delta between repeat of index sample and all repeats of sample
-    index_delta = x$repeat_data$repeats - controls_df[which(controls_df$group_id == x$group_id), 'repeats']
+    index_delta = x$repeat_table_df$repeats - controls_df[which(controls_df$group_id == x$group_id), 'repeats']
     closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
 
     if(length(closest_peak) == 1){
-      x$index_repeat <- x$repeat_data$repeats[closest_peak]
-      x$index_height <- x$repeat_data$height[closest_peak]
+      x$index_repeat <- x$repeat_table_df$repeats[closest_peak]
+      x$index_height <- x$repeat_table_df$height[closest_peak]
     } else{
-      tallest_candidate <- closest_peak[which(x$repeat_data$height[closest_peak] == max(x$repeat_data$height[closest_peak]))]
-      x$index_repeat <- x$repeat_data$repeats[tallest_candidate]
-      x$index_height <- x$repeat_data$height[tallest_candidate]
+      tallest_candidate <- closest_peak[which(x$repeat_table_df$height[closest_peak] == max(x$repeat_table_df$height[closest_peak]))]
+      x$index_repeat <- x$repeat_table_df$repeats[tallest_candidate]
+      x$index_height <- x$repeat_table_df$height[tallest_candidate]
     }
 
     x$index_weighted_mean_repeat <- controls_df[which(controls_df$group_id == x$group_id), 'weighted_mean_repeat']
@@ -337,16 +337,16 @@ metrics_override_helper <- function(fragments_list,
       x$index_repeat <- x$index_repeat
       x$index_height <- x$index_height
     }else if(any(index_override_dataframe[,1] == x$unique_id)){
-      index_delta = x$repeat_data$repeats - index_override_dataframe[which(index_override_dataframe[,1] == x$unique_id), 2]
+      index_delta = x$repeat_table_df$repeats - index_override_dataframe[which(index_override_dataframe[,1] == x$unique_id), 2]
 
       closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
       if(length(closest_peak) == 1){
-        x$index_repeat <- x$repeat_data$repeats[closest_peak]
-        x$index_height <- x$repeat_data$height[closest_peak]
+        x$index_repeat <- x$repeat_table_df$repeats[closest_peak]
+        x$index_height <- x$repeat_table_df$height[closest_peak]
       } else{
-        tallest_candidate <- closest_peak[which(x$repeat_data$height[closest_peak] == max(x$repeat_data$height[closest_peak]))]
-        x$index_repeat <- x$repeat_data$repeats[tallest_candidate]
-        x$index_height <- x$repeat_data$height[tallest_candidate]
+        tallest_candidate <- closest_peak[which(x$repeat_table_df$height[closest_peak] == max(x$repeat_table_df$height[closest_peak]))]
+        x$index_repeat <- x$repeat_table_df$repeats[tallest_candidate]
+        x$index_height <- x$repeat_table_df$height[tallest_candidate]
       }
     }
   })

@@ -51,11 +51,11 @@ model_repeat_length <- function(fragments_list,
     #use np_repeat to accurately call the repeat length of the neighboring peaks
     #extract a dataframe of the called repeats that can then be used to make a model
     controls_fragments_df_list <- lapply(controls_fragments, function(x){
-      df_length <- nrow(x$peak_data)
+      df_length <- nrow(x$peak_table_df)
       #identify peaks close to modal peak and at least 20% as high
-      main_peak_delta <- x$peak_data$size - x$allele_1_size
-      height_prop <- x$peak_data$height / x$allele_1_height
-      peak_cluster <- vector("logical", length = nrow(x$peak_data))
+      main_peak_delta <- x$peak_table_df$size - x$allele_1_size
+      height_prop <- x$peak_table_df$height / x$allele_1_height
+      peak_cluster <- vector("logical", length = nrow(x$peak_table_df))
       for (i in seq_along(main_peak_delta)) {
         if(abs(main_peak_delta[[i]]) < 30 & height_prop[[i]] > 0.2){
           peak_cluster[[i]] <- TRUE
@@ -63,7 +63,7 @@ model_repeat_length <- function(fragments_list,
           peak_cluster[[i]] <- FALSE
         }
       }
-      cluster_df <- x$peak_data[peak_cluster,]
+      cluster_df <- x$peak_table_df[peak_cluster,]
       cluster_df_length <- nrow(cluster_df)
       # use np_repeat method to accurately call the neighboring repeats
       data.frame(unique_id = rep(x$unique_id, cluster_df_length),
@@ -105,7 +105,7 @@ model_repeat_length <- function(fragments_list,
 
   } else if(repeat_length_correction == "from_genemapper"){
     # Do some checks by identify samples that have genemapper called alleles
-    controls_samples_list <- lapply(fragments_list, function(x) x$peak_data[which(!is.na(x$peak_data$allele)), ] )
+    controls_samples_list <- lapply(fragments_list, function(x) x$peak_table_df[which(!is.na(x$peak_table_df$allele)), ] )
     controls_samples_df <- do.call(rbind, controls_samples_list)
     if(nrow(controls_samples_df) == 0){
       stop(paste("Correction could not go ahead because no genemapper alleles could be indetified"),
@@ -183,8 +183,8 @@ model_repeat_length <- function(fragments_list,
 
 
 ##################### R6 Class Method Helpers ##################################
-
-add_repeats_helper <- function(bp_fragments,
+#bp_fragments
+add_repeats_helper <- function(fragments_repeats,
                                repeat_algorithm,
                                assay_size_without_repeat,
                                repeat_size,
@@ -196,23 +196,23 @@ add_repeats_helper <- function(bp_fragments,
   #### 3) use a method to calculate repeats
 
   # check to make sure all the required inputs for the function have been given
-  if(bp_fragments$.__enclos_env__$private$find_main_peaks_used == FALSE){
-    stop(paste0(bp_fragments$unique_id, " requires main alleles to be identified before repeats can be called. Find alleles using 'find_main_peaks()' whitin the class, or use the 'find_alleles()' accesesor to find the main peaks across a list of 'HTT_fragments' objects"),
+  if(fragments_repeats$.__enclos_env__$private$find_main_peaks_used == FALSE){
+    stop(paste0(fragments_repeats$unique_id, " requires main alleles to be identified before repeats can be called. Find alleles using 'find_main_peaks()' whitin the class, or use the 'find_alleles()' accesesor to find the main peaks across a list of 'HTT_fragments' objects"),
          call. = FALSE)
-  } else if(correct_repeat_length == TRUE & is.null(bp_fragments$.__enclos_env__$private$correction_mod)){
+  } else if(correct_repeat_length == TRUE & is.null(fragments_repeats$.__enclos_env__$private$correction_mod)){
     stop("Correcting the repeat length requires a model based on positive controls, so 'correct_repeat_length' & 'correction_mod' inputs are not meant for users to directly use. To correct the repeat length, you need to work on the 'HTT_fragments' objects in a list format and use accessor functions. On a list of 'HTT_fragments' objects, i) use 'add_metadata()' to indicate which samples are positive controls, and ii) use 'find_alleles()' accesesor function to call and correct repeat lengths across all samples",
          call. = FALSE)
   }
 
-  #only continue from here if main peaks were successfully found, otherwise, don't return repeat data (ie it can stay NULL)
-  if(is.na(bp_fragments$allele_1_size) | is.na(bp_fragments$allele_1_height)){
-    bp_fragments$.__enclos_env__$private$repeats_not_called_reason <- "No main peaks"
-    warning(paste0(bp_fragments$unique_id, ": repeats were not called (no main peaks in sample)"),
+  #only continue from here if main peaks were successfully found, otherwise, don't return repeat data (ie it can be an empty df)
+  repeat_class <- fragments_repeats$clone()
+
+  if(is.na(fragments_repeats$allele_1_size) | is.na(fragments_repeats$allele_1_height)){
+    repeat_class$.__enclos_env__$private$repeats_not_called_reason <- "No main peaks"
+    warning(paste0(repeat_class$unique_id, ": repeats were not called (no main peaks in sample)"),
             call. = FALSE)
-    repeat_class <- repeats_fragments$new(
-      unique_id = bp_fragments$unique_id)
     #populate with empty dataframe to help the rest of the pipeline
-    repeat_class$repeat_data <- data.frame(
+    repeat_class$repeat_table_df <- data.frame(
       unique_id = character(),
       size = numeric(),
       height = numeric(),
@@ -222,61 +222,32 @@ add_repeats_helper <- function(bp_fragments,
   }
   else{
     #need to save info that isn't cloned over
-    repeat_data <-  data.frame(unique_id = bp_fragments$peak_data$unique_id,
-                               size = bp_fragments$peak_data$size,
-                               height = bp_fragments$peak_data$height,
-                               repeats = (bp_fragments$peak_data$size - assay_size_without_repeat) / repeat_size)
+    repeat_table_df <-  data.frame(unique_id = fragments_repeats$peak_table_df$unique_id,
+                               size = fragments_repeats$peak_table_df$size,
+                               height = fragments_repeats$peak_table_df$height,
+                               repeats = (fragments_repeats$peak_table_df$size - assay_size_without_repeat) / repeat_size)
 
     # Correct repeat length with positive controls
     if(correct_repeat_length == TRUE){
 
-      repeat_data$plate_id <- rep(bp_fragments$plate_id, nrow(repeat_data))
-      repeat_data$repeats <- stats::predict.lm(bp_fragments$.__enclos_env__$private$correction_mod, repeat_data)
+      repeat_table_df$plate_id <- rep(fragments_repeats$plate_id, nrow(repeat_table_df))
+      repeat_table_df$repeats <- stats::predict.lm(fragments_repeats$.__enclos_env__$private$correction_mod, repeat_table_df)
 
     }
 
     # use different repeat calling algorithm
-    if(repeat_algorithm == "simple"){
-      # don't need to do anything
-
-    } else if(repeat_algorithm == "nearest_peak"){
-      repeat_data$repeats <- np_repeat(
-        size = bp_fragments$peak_data$size,
-        main_peak_size = bp_fragments$allele_1_size,
-        main_peak_repeat = repeat_data$repeats[which(bp_fragments$peak_data$size == bp_fragments$allele_1_size)],
+    if(repeat_algorithm == "nearest_peak"){
+      repeat_table_df$repeats <- np_repeat(
+        size = fragments_repeats$peak_table_df$size,
+        main_peak_size = fragments_repeats$allele_1_size,
+        main_peak_repeat = repeat_table_df$repeats[which(fragments_repeats$peak_table_df$size == fragments_repeats$allele_1_size)],
         repeat_size = repeat_size)
     }
 
-    ## initialize new class
-    repeat_class <- repeats_fragments$new(
-      unique_id = bp_fragments$unique_id)
-
     # Finally save main peak repeat length and repeats data
-    repeat_class$allele_1_repeat <- repeat_data$repeats[which(bp_fragments$peak_data$size == bp_fragments$allele_1_size)]
-    repeat_class$allele_2_repeat <- repeat_data$repeats[which(bp_fragments$peak_data$size == bp_fragments$allele_2_size)]
-    repeat_class$repeat_data <- repeat_data
-  }
-
-  # transfer over public items
-  public_items <- names(bp_fragments)
-  public_items_classes <- as.vector(sapply(bp_fragments, class))
-  public_items_to_transfer <- public_items[which(public_items_classes != "function" & public_items != ".__enclos_env__"& public_items != "repeat_data" )]
-  public_items_repeats <- names(repeat_class)
-  public_items_to_transfer <- public_items_repeats[which(public_items_repeats %in% public_items_to_transfer)]
-
-  for (i in seq_along(public_items_to_transfer)) {
-    repeat_class[[ public_items_to_transfer[i] ]] <- bp_fragments[[ public_items_to_transfer[i] ]]
-  }
-
-  # transfer over private items
-  private_items <- names(bp_fragments$.__enclos_env__$private)
-  private_items_classes <- as.vector(sapply(bp_fragments$.__enclos_env__$private, class))
-  private_items_to_transfer <- private_items[which(private_items_classes != "function")]
-  private_items_repeats <- names(repeat_class$.__enclos_env__$private)
-  private_items_to_transfer <- private_items_repeats[which(private_items_repeats %in% private_items_to_transfer)]
-
-  for (i in seq_along(private_items_to_transfer)) {
-    repeat_class$.__enclos_env__$private[[ private_items_to_transfer[i] ]] <- bp_fragments$.__enclos_env__$private[[ private_items_to_transfer[i] ]]
+    repeat_class$allele_1_repeat <- repeat_table_df$repeats[which(fragments_repeats$peak_table_df$size == fragments_repeats$allele_1_size)]
+    repeat_class$allele_2_repeat <- repeat_table_df$repeats[which(fragments_repeats$peak_table_df$size == fragments_repeats$allele_2_size)]
+    repeat_class$repeat_table_df <- repeat_table_df
   }
 
   return(repeat_class)

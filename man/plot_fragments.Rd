@@ -17,7 +17,7 @@ plot_fragments(
 )
 }
 \arguments{
-\item{fragments_list}{A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).}
+\item{fragments_list}{A list of "fragments" class objects (can be either "bp_fragments" or "fragments_repeats" class).}
 
 \item{sample_subset}{A character vector of unique sample IDs of samples to pick out and plot.}
 

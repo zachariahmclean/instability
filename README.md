@@ -38,9 +38,9 @@ experiment that this package helps with:
   the repeat length so they are comparable. This is usually achieved by
   running running positive control samples with a known validated repeat
   size of the modal peak in each fragment analysis run. These samples
-  are then indicated `TRUE` in the column `repeat_positive_control_TF`
+  are then indicated `TRUE` in the column `size_standard`
   in the metadata, and the known repeat length of the modal peak given
-  in the `repeat_positive_control_length` column.
+  in the `size_standard_repeat_length` column.
 
 ## Installation
 
@@ -97,10 +97,10 @@ in `add_metadata()`.
       metadata_data.frame = metadata,
       unique_id = "unique_id",
       plate_id = "plate_id",
-      sample_group_id = "cell_line",
+      group_id = "cell_line",
       metrics_baseline_control = "metrics_baseline_control_TF",
-      repeat_positive_control_TF = "repeat_positive_control_TF",
-      repeat_positive_control_length = "repeat_positive_control_length")
+      size_standard = "size_standard",
+      size_standard_repeat_length = "size_standard_repeat_length")
 ```
 
 # Identify modal peaks and call repeats
