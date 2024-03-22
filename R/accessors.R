@@ -2,6 +2,18 @@
 
 # read_fsa ----------------------------------------------------------------
 
+#' Read fsa file
+#'
+#' This function is just a wrapper of seqinr::read.abif where each samples is an
+#' element of a list
+#'
+#' @param files folder path containing the fsa files
+#'
+#' @return
+#' @export
+#' @importFrom seqinr read.abif
+#'
+#' @examples
 read_fsa <- function(files){
   #make sure file extension is fsa
   unique_file_ext = unique(tools::file_ext(files))
@@ -27,10 +39,33 @@ read_fsa <- function(files){
 # ladder ------------------------------------------------------------------
 
 
+#' Find the ladder peaks in the fsa file and use that to call bp size
+#'
+#' @param fsa_list list from 'read_fsa' function
+#' @param ladder_channel string: which channel in the fsa file contains the
+#'        ladder signal
+#' @param signal_channel string: which channel in the fsa file contains the data
+#'        signal
+#' @param ladder_sizes numeric vector: bp sizes of ladder used in fragment analysis.
+#'        defaults to GeneScan™ 500 LIZ™
+#' @param hq_ladder logical: If TRUE, c(35, 250, 340) will be dropped from ladder
+#' @param spike_location numeric: indicate the scan number of the large spike peak
+#' @param smoothing_window numeric: scan window size for smoothing ladder signal
+#' @param max_combinations numeric: what is the maximum number of ladder
+#'        combinations that should be tested
+#' @param ladder_selection_window numeric: in the ladder assigning algorithm,
+#'        the we iterate through the scans in blocks and test their linear fit.
+#'        In fragment analysis, we can assume that the ladder is linear over a
+#'        short distance. This value defines how large that block of peaks should be.
+#'
+#' @return list of fragments_trace objects
+#' @export
+#'
+#' @examples
 find_ladders <- function(fsa_list,
                              ladder_channel = "DATA.105",
                              signal_channel = "DATA.1",
-                             sample_id_channel = 'SpNm.1',
+                             #sample_id_channel = 'SpNm.1',
                              ladder_sizes = NULL,
                              hq_ladder=TRUE,
                              spike_location = NULL,
@@ -106,6 +141,18 @@ find_ladders <- function(fsa_list,
 
 
 
+#' Title
+#'
+#' @param fragments_trace_list
+#' @param unique_ids
+#' @param size_threshold
+#' @param size_tolerance
+#' @param rsq_threshold
+#'
+#' @return
+#' @export
+#'
+#' @examples
 fix_ladders <- function(fragments_trace_list,
                         unique_ids,
                         size_threshold = 60,
@@ -132,6 +179,14 @@ fix_ladders <- function(fragments_trace_list,
 
 
 
+#' Title
+#'
+#' @param fragments_trace_list
+#'
+#' @return
+#' @export
+#'
+#' @examples
 extract_trace_table <- function(fragments_trace_list){
 
   #turn the output into a dataframe
@@ -407,12 +462,19 @@ add_metadata <- function(fragments_list,
 # find fragments ------------------------------------------------------------
 
 
-#' Find fragments in fragments_trace List
-#'
-#' This function identifies amplicon fragments within each continuous sample trace and turns them into a list of fragments classes.
-#'
 
-
+#' Title
+#'
+#' @param fragments_trace_list
+#' @param smoothing_window
+#' @param minumum_peak_signal
+#' @param min_bp_size
+#' @param max_bp_size
+#'
+#' @return
+#' @export
+#'
+#' @examples
 find_fragments <- function(fragments_trace_list,
                            smoothing_window = 5,
                            minumum_peak_signal = 20,
@@ -813,62 +875,30 @@ extract_alleles <- function(fragments_list) {
 extract_fragments <- function(fragments_list) {
 
   suppressWarnings(
-
-    if(grepl("bp", class(fragments_list[[1]])[1])){
-      extracted <- lapply(fragments_list, function(x){
-        if(is.null(x$peak_table_df) & is.null(x$repeat_table_df)){
-          return(NULL)
-        } else{
-          df_length <- nrow(x$peak_table_df)
-          data.frame(unique_id = rep(x$unique_id,df_length),
-                     main_peak_size = rep(x$allele_1_size,df_length),
-                     main_peak_height = rep(x$allele_1_height, df_length),
-                     height = x$peak_table_df$height,
-                     size = x$peak_table_df$size,
-                     peak_region = x$.__enclos_env__$private$peak_regions)
-        }
-      })
-    }else if(grepl("repeats", class(fragments_list[[1]])[1])){
-      extracted <- lapply(fragments_list, function(x){
-        if(is.null(x$repeat_table_df)){
-          return(NULL)
-        } else{
-
-          df_length <- nrow(x$repeat_table_df)
-          data.frame(unique_id = rep(x$unique_id,df_length),
-                     main_peak_repeat = rep(x$allele_1_repeat,df_length),
-                     main_peak_height = rep(x$allele_1_height, df_length),
-                     height = x$repeat_table_df$height,
-                     repeats = x$repeat_table_df$repeats,
-                     peak_region = x$.__enclos_env__$private$peak_regions)
-        }
-      })
-    }
-
+    extracted <- lapply(fragments_list, function(x){
+      if(is.null(x$peak_table_df) & is.null(x$repeat_table_df)){
+        return(NULL)
+      }
+      else if(!is.null(x$peak_table_df) & is.null(x$repeat_table_df)){
+        df_length <- nrow(x$peak_table_df)
+        data.frame(unique_id = rep(x$unique_id,df_length),
+                   main_peak_size = rep(x$allele_1_size,df_length),
+                   main_peak_height = rep(x$allele_1_height, df_length),
+                   height = x$peak_table_df$height,
+                   size = x$peak_table_df$size,
+                   peak_region = x$.__enclos_env__$private$peak_regions)
+      }
+      else if(!is.null(x$repeat_table_df)){
+        df_length <- nrow(x$repeat_table_df)
+        data.frame(unique_id = rep(x$unique_id,df_length),
+                   main_peak_repeat = rep(x$allele_1_repeat,df_length),
+                   main_peak_height = rep(x$allele_1_height, df_length),
+                   height = x$repeat_table_df$height,
+                   repeats = x$repeat_table_df$repeats,
+                   peak_region = x$.__enclos_env__$private$peak_regions)
+      }
+    })
   )
-
-  if(is.null(x$peak_table_df) & is.null(x$repeat_table_df)){
-    return(NULL)
-  }
-  else if(!is.null(x$peak_table_df) & is.null(x$repeat_table_df)){
-    df_length <- nrow(x$peak_table_df)
-    data.frame(unique_id = rep(x$unique_id,df_length),
-               main_peak_size = rep(x$allele_1_size,df_length),
-               main_peak_height = rep(x$allele_1_height, df_length),
-               height = x$peak_table_df$height,
-               size = x$peak_table_df$size,
-               peak_region = x$.__enclos_env__$private$peak_regions)
-  }
-  else if(!is.null(x$repeat_table_df)){
-    df_length <- nrow(x$repeat_table_df)
-    data.frame(unique_id = rep(x$unique_id,df_length),
-               main_peak_repeat = rep(x$allele_1_repeat,df_length),
-               main_peak_height = rep(x$allele_1_height, df_length),
-               height = x$repeat_table_df$height,
-               repeats = x$repeat_table_df$repeats,
-               peak_region = x$.__enclos_env__$private$peak_regions)
-  }
-
   extracted_df <- do.call(rbind, extracted)
 
 
@@ -919,7 +949,62 @@ remove_fragments <- function(fragments_list,
 }
 
 
+# plot ladder -------------------------------------------------------------
 
+#' Title
+#'
+#' @param fragments_trace_list
+#' @param n_facet_col
+#' @param xlim
+#' @param ylim
+#'
+#' @return
+#' @export
+#'
+#' @examples
+plot_ladders <- function(fragments_trace_list,
+                         n_facet_col = 2,
+                         xlim = NULL,
+                         ylim = NULL) {
+
+  par(mfrow=c(ceiling(length(fragments_trace_list)/n_facet_col), n_facet_col)) # Adjust layout as needed
+  for (i in seq_along(fragments_trace_list)) {
+    fragments_trace_list[[i]]$plot_ladder(
+      xlim = xlim,
+      ylim = ylim)
+  }
+  par(mfrow=c(1, 1)) # Reset the layout
+}
+
+# plot traces -------------------------------------------------------------
+
+#' Title
+#'
+#' @param fragments_list
+#' @param show_peaks
+#' @param n_facet_col
+#' @param xlim
+#' @param ylim
+#'
+#' @return
+#' @export
+#'
+#' @examples
+plot_traces <- function(fragments_list,
+                        show_peaks = TRUE,
+                         n_facet_col = 2,
+                         xlim = NULL,
+                         ylim = NULL) {
+
+  par(mfrow=c(ceiling(length(fragments_list)/n_facet_col), n_facet_col)) # Adjust layout as needed
+  for (i in seq_along(fragments_list)) {
+    fragments_list[[i]]$plot_trace(
+      show_peaks = show_peaks,
+      xlim = xlim,
+      ylim = ylim)
+  }
+  par(mfrow=c(1, 1)) # Reset the layout
+}
 
 # plot fragment data -------------------------------------------------------
 
@@ -937,7 +1022,7 @@ remove_fragments <- function(fragments_list,
 #' @param facet_ncol A numeric value indicating the number of columns for faceting in the plot (passed to 'ncol' in \code{facet_wrap()}).
 #' @param facet_scales A character string for setting the axis scales for faceting (passed to 'scales' in \code{facet_wrap()}).
 #'
-#' @return A ggplot object displaying the peak data.
+#' @return A base R plot object displaying the peak data.
 #' @export
 #'
 #' @examples
@@ -957,111 +1042,17 @@ remove_fragments <- function(fragments_list,
 #'   names(test_alleles)[1:9])
 
 plot_fragments <- function(fragments_list,
-                           sample_subset = NULL,
-                           zoom_in_on_peak = NA,
-                           zoom_range = NULL,
-                           show_peak_regions = FALSE,
-                           col_width = NULL,
-                           facet_nrow = NULL,
-                           facet_ncol = NULL,
-                           facet_scales = "fixed"
-){
-  suppressWarnings(
-    #figure out which column to use for plotting and use default settings for different class
-    if(grepl("bp", class(fragments_list[[1]])[1])){
-      x_axis_col <- "size"
-      defined_col_width <- ifelse(is.null(col_width), 1.5, col_width)
-      defined_zoom_range <- if(is.null(zoom_range)) c(-60, 60) else zoom_range
-    } else if(grepl("repeats", class(fragments_list[[1]])[1])){
-      x_axis_col <- "repeats"
-      defined_col_width <- ifelse(is.null(col_width), 0.6, col_width)
-      defined_zoom_range <- if(is.null(zoom_range)) c(-20, 20) else zoom_range
-    } else {
-      stop("Invalid input. The 'fragments_list' must contain a list of 'fragments' objects",
-           call. = FALSE)
-    }
-  )
+                           n_facet_col = 2,
+                           xlim = NULL,
+                           ylim = NULL) {
 
-  #subset data
-  if(!is.null(sample_subset)){
-    fragments_list <- fragments_list[which(names(fragments_list) %in% sample_subset)]
+  par(mfrow=c(ceiling(length(fragments_list)/n_facet_col), n_facet_col)) # Adjust layout as needed
+  for (i in seq_along(fragments_list)) {
+    fragments_list[[i]]$plot_fragments(
+      xlim = xlim,
+      ylim = ylim)
   }
-  modal_peaks <- extract_alleles(fragments_list)
-  all_peaks <- extract_fragments(fragments_list)
-  #zoom in on data if desired
-  if(zoom_in_on_peak %in% c(1,2)){
-    modal_peaks <- modal_peaks[which(modal_peaks$peak_allele == zoom_in_on_peak), ,drop = FALSE]
-    all_peaks_by <- lapply(split(all_peaks, all_peaks$unique_id),
-                           function(df){
-                             upper_lim <- abs(defined_zoom_range[2]) + modal_peaks[which(modal_peaks$unique_id == df$unique_id[[1]]), x_axis_col]
-                             lower_lim <- modal_peaks[which(modal_peaks$unique_id == df$unique_id[[1]]), x_axis_col] - abs(defined_zoom_range[1])
-                             df[which(df[[x_axis_col]] < upper_lim & df[[x_axis_col]] > lower_lim), ,drop = FALSE]
-                           })
-    all_peaks <- do.call(rbind, all_peaks_by)
-  }
-  else if(!is.na(zoom_in_on_peak)){
-    stop("zoom_in_on_peak must be either '1' or '2'",
-         call. = FALSE)
-  }
-
-  #extract peak region data if required
-  if(show_peak_regions == TRUE){
-    pr_df <- all_peaks[which(!is.na(all_peaks$peak_region)), ]
-    # make new column name to split by
-    max_heights <- aggregate(data = pr_df, height ~ unique_id, FUN = max)
-    pr_df$unique_id_peak_region <- paste(pr_df$unique_id, pr_df$peak_region, sep = "_")
-    pr_df_by <- lapply(split(pr_df, pr_df$unique_id_peak_region),
-                       function(df){
-                         data.frame(unique_id = df$unique_id[[1]],
-                                    peak_region = df$peak_region[[1]],
-                                    xmin = min(df[x_axis_col]),
-                                    xmax = max(df[x_axis_col]),
-                                    ymax = max_heights[which(max_heights$unique_id == unique(df$unique_id)), "height"])
-                       })
-    pr_summarised_df <- do.call(rbind, pr_df_by)
-  }
-
-  # compose plot
-  gg <- ggplot2::ggplot(all_peaks)
-
-  if(show_peak_regions == TRUE){
-    gg <- gg +
-      ggplot2::geom_rect(data = pr_summarised_df,
-                         ggplot2::aes(xmin = xmin,
-                    xmax = xmax,
-                    ymin = 0,
-                    ymax = ymax,
-                    fill = as.factor(peak_region)),
-                alpha = 0.5) +
-      ggplot2::scale_fill_viridis_d(begin = 0.3)
-  }
-
-  gg <- gg +
-    ggplot2::geom_col(
-      ggplot2::aes(
-        x = eval(parse(text = x_axis_col)),
-        y = height
-      ),
-      width = defined_col_width) +
-    ggplot2::geom_point(
-      data = modal_peaks,
-      ggplot2::aes(
-        x = eval(parse(text = x_axis_col)),
-        y = height,
-        colour = as.character(peak_allele)
-      ),
-      size = 1
-    ) +
-    ggplot2::facet_wrap(
-      ggplot2::vars(unique_id),
-      nrow = facet_nrow,
-      ncol = facet_ncol,
-      scales = facet_scales
-    ) +
-    ggplot2::labs(x = x_axis_col,
-                  fill = "Peak Region",
-                  colour = NULL)
-  return(gg)
+  par(mfrow=c(1, 1)) # Reset the layout
 }
 
 
@@ -1075,7 +1066,7 @@ plot_fragments <- function(fragments_list,
 #'
 #' @param fragments_list A list of fragments_repeats class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.
 #'
-#' @return A ggplot object displaying the repeat correction model results.
+#' @return A base R graphic object displaying the repeat correction model results.
 #' @export
 #'
 #' @examples
@@ -1109,36 +1100,39 @@ plot_fragments <- function(fragments_list,
 #' plot_repeat_correction_model(test_repeats_corrected)
 #'
 #'
-plot_repeat_correction_model <- function(
-    fragments_list
-){
-  ###may want to check to see if all models in this list are the same
+
+
+plot_repeat_correction_model <- function(fragments_list) {
+  # Check if all models in the list are the same
   first_model_df <- fragments_list[[1]]$.__enclos_env__$private$correction_mod$model
-  identical_model_test <- vector("logical", length(fragments_list))
+  identical_model_test <- logical(length(fragments_list))
+
   for (i in seq_along(fragments_list)) {
     identical_model_test[i] <- identical(first_model_df, fragments_list[[i]]$.__enclos_env__$private$correction_mod$model)
   }
-  if(!all(identical_model_test)){
-    stop("The supplied fragments list must come from the same 'call_repeats' function output",
-         call. = FALSE)
+
+  if (!all(identical_model_test)) {
+    stop("The supplied fragments list must come from the same 'call_repeats' function output", call. = FALSE)
   }
 
   controls_repeats_df <- fragments_list[[1]]$.__enclos_env__$private$controls_repeats_df
 
-  ggplot2::ggplot(controls_repeats_df) +
-    ggplot2::geom_point(ggplot2::aes(size, validated_repeats, colour = unique_id),
-               size = 2, shape = 21) +
-    ggplot2::geom_line(ggplot2::aes(size,predicted_repeat),
-              alpha = 0.5, colour = "blue") +
-    ggplot2::facet_wrap(ggplot2::vars(plate_id)) +
-    ggplot2::labs(y = "User supplied repeat length")
+  # Plotting
+  par(mfrow = c(1, length(unique(controls_repeats_df$plate_id))))
+  for (plate_id in unique(controls_repeats_df$plate_id)) {
+    plate_data <- subset(controls_repeats_df, plate_id == plate_id)
 
+    # Generating unique colors for each unique value in unique_id
+    unique_ids <- unique(plate_data$unique_id)
+    colors <- rainbow(length(unique_ids))
+    id_color_map <- setNames(colors, unique_ids)
 
+    plot(plate_data$size, plate_data$validated_repeats, pch = 21, col = id_color_map[plate_data$unique_id],
+         cex = 2, main = paste("Plate ID:", plate_id), xlab = "Size", ylab = "User supplied repeat length")
 
+    lm_model <- lm(validated_repeats ~ size, data = plate_data)
+    abline(lm_model, col = "blue")
+  }
 }
-
-
-
-
 
 

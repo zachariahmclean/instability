@@ -7,7 +7,7 @@
 extract_fragments(fragments_list)
 }
 \arguments{
-\item{fragments_list}{A list of "fragments" class objects (can be either "bp_fragments" or "fragments_repeats" class).}
+\item{fragments_list}{A list of "fragments" class objects (can be either "fragments_repeats" or "fragments_repeats" class).}
 }
 \value{
 A data.frame containing peak data for each sample.

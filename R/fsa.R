@@ -300,6 +300,18 @@ local_southern_predict <- function(local_southern_fit, scans) {
 # peak calling ------------------------------------------------------------
 
 
+#' Title
+#'
+#' @param fragments_trace
+#' @param smoothing_window
+#' @param minumum_peak_signal
+#' @param min_bp_size
+#' @param max_bp_size
+#'
+#' @return
+#' @importFrom pracma findpeaks
+#'
+#' @examples
 find_fragment_peaks <- function(fragments_trace,
                                 smoothing_window,
                                 minumum_peak_signal,

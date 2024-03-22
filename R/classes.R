@@ -40,7 +40,33 @@ fragments <- R6::R6Class("fragments", public = list(
     print_helper(self,
                  sample_attrs = c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_repeat_length")
     )
+  },
+  plot_trace = function(show_peaks = TRUE,
+                         ylim = NULL,
+                         xlim = NULL){
+    if(is.null(self$trace_bp_df)){
+      stop(call. = FALSE,
+           paste(self$unique_id, "doesn't have trace data, so cannot make plot"))
+    }
+
+    plot(self$trace_bp_df$size,
+         self$trace_bp_df$signal,
+         main = self$unique_id,
+         type = "l",
+         xlab = "Size",
+         ylab = "Signal",
+         ylim = ylim,
+         xlim = xlim)
+
+    if(!is.null(self$peak_table_df) && show_peaks){
+      # Adding peaks
+      points(self$peak_table_df$size,
+             self$peak_table_df$height,
+             col = "blue")
+    }
   }
+
+
 ),
 private = list(
   find_main_peaks_used = FALSE,
@@ -105,13 +131,14 @@ fragments_trace <- R6::R6Class(
       return(self2)
     },
 
-    plot_ladder = function(scan_limits = c(NA,NA)){
+    plot_ladder = function(xlim = NULL, ylim = NULL){
         # Scatter plot
         plot(self$trace_bp_df$scan, self$trace_bp_df$ladder_signal,
              xlab = "Scan", ylab = "Ladder Signal",
              main = self$unique_id,
              pch = 16,
-             xlim = scan_limits)
+             xlim = xlim,
+             ylim = ylim)
 
         # Adding text
         text(self$ladder_df$scan, rep(max(self$trace_bp_df$ladder_signal) / 3, nrow(self$ladder_df)),
@@ -223,6 +250,54 @@ fragments_repeats <- R6::R6Class(
         repeat_range = repeat_range)
 
       return(metrics)
+
+    },
+    plot_fragments = function(
+    #show_peak_regions = FALSE,
+                              ylim = NULL,
+                              xlim = NULL){
+
+      if(is.null(self$repeat_table_df)){
+        data <- self$peak_table_df
+        data$x <- data$size
+      }
+      else{
+        data <- self$repeat_table_df
+        data$x <- data$repeats
+      }
+
+      if(nrow(data) == 0){
+        plot.new()
+        title(main = self$unique_id)
+        return()
+      }
+
+
+      allele_1_mode <- ifelse(is.null(self$repeat_table_df), self$allele_1_size, self$allele_1_repeat)
+      allele_2_mode <- ifelse(is.null(self$repeat_table_df), self$allele_2_size, self$allele_2_repeat)
+
+      barplot(names.arg = round(data$x),
+              height = data$height,
+           main = self$unique_id,
+           xlab = ifelse(is.null(self$repeat_table_df), "Size", "Repeat"),
+           ylab = "Signal",
+           ylim = ylim,
+           xlim = xlim,
+           beside = TRUE,
+           col = sapply(data$x, function(x) if(!is.na(allele_1_mode) && x == allele_1_mode) "red" else if(!is.na(allele_2_mode) && x == allele_2_mode) "blue" else "gray")
+      )
+
+      #why doesn't the following code work? can't even get rectangle to show up on its own
+      # if(show_peak_regions == TRUE && !is.na(allele_1_mode)) {
+      #   data$peak_region <- private$peak_regions
+      #   unique_peak_regions <- unique(na.omit(private$peak_regions))
+      #   for (i in seq_along(unique_peak_regions)) {
+      #     tmp_df <- data[which(data$peak_region == unique_peak_regions[i]), ]
+      #     rect(min(tmp_df$x), 0, max(tmp_df$x), max(tmp_df$height), col = palette.colors(palette  = "ggplot2")[2:8][i])
+      #   }
+      #
+      # }
+
 
     }
   )

@@ -4,20 +4,10 @@
 \alias{plot_fragments}
 \title{Plot Peak Data}
 \usage{
-plot_fragments(
-  fragments_list,
-  sample_subset = NULL,
-  zoom_in_on_peak = NA,
-  zoom_range = NULL,
-  show_peak_regions = FALSE,
-  col_width = NULL,
-  facet_nrow = NULL,
-  facet_ncol = NULL,
-  facet_scales = "fixed"
-)
+plot_fragments(fragments_list, n_facet_col = 2, xlim = NULL, ylim = NULL)
 }
 \arguments{
-\item{fragments_list}{A list of "fragments" class objects (can be either "bp_fragments" or "fragments_repeats" class).}
+\item{fragments_list}{A list of "fragments" class objects (can be either "fragments_repeats" or "fragments_repeats" class).}
 
 \item{sample_subset}{A character vector of unique sample IDs of samples to pick out and plot.}
 
@@ -36,7 +26,7 @@ plot_fragments(
 \item{facet_scales}{A character string for setting the axis scales for faceting (passed to 'scales' in \code{facet_wrap()}).}
 }
 \value{
-A ggplot object displaying the peak data.
+A base R plot object displaying the peak data.
 }
 \description{
 Plots peak data from a list of fragments.

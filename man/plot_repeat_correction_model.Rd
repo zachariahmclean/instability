@@ -10,7 +10,7 @@ plot_repeat_correction_model(fragments_list)
 \item{fragments_list}{A list of fragments_repeats class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.}
 }
 \value{
-A ggplot object displaying the repeat correction model results.
+A base R graphic object displaying the repeat correction model results.
 }
 \description{
 Plots the results of the repeat correction model for a list of fragments.

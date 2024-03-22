@@ -13,7 +13,7 @@ call_repeats(
 )
 }
 \arguments{
-\item{fragments_list}{A list of bp_fragments objects containing fragment data.}
+\item{fragments_list}{A list of fragments_repeats objects containing fragment data.}
 
 \item{repeat_algorithm}{A character specifying the repeat calling algorithm. Options: \code{"simple"} or \code{"nearest_peak"}.}
 
@@ -27,7 +27,7 @@ call_repeats(
 A list of \code{\link{fragments_repeats}} objects with repeat data added.
 
 #' @details
-The calculated repeat lengths are assigned to the corresponding peaks in the provided \code{bp_fragments} object. The repeat lengths can be used for downstream instability analysis.
+The calculated repeat lengths are assigned to the corresponding peaks in the provided \code{fragments_repeats} object. The repeat lengths can be used for downstream instability analysis.
 
 The \code{simple} algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
 
