@@ -2,13 +2,38 @@
 % Please edit documentation in R/accessors.R
 \name{plot_ladders}
 \alias{plot_ladders}
-\title{Title}
+\title{Plot ladder}
 \usage{
 plot_ladders(fragments_trace_list, n_facet_col = 2, xlim = NULL, ylim = NULL)
 }
 \arguments{
-\item{ylim}{}
+\item{fragments_trace_list}{A list of fragments_trace objects containing fragment data.}
+
+\item{n_facet_col}{A numeric value indicating the number of columns for faceting in the plot.}
+
+\item{xlim}{the x limits of the plot. A numeric vector of length two.}
+
+\item{ylim}{the y limits of the plot. A numeric vector of length two.}
+}
+\value{
+a plot of ladders
 }
 \description{
-Title
+Plot the ladder signal
+}
+\examples{
+
+ file_list <- instability::cell_line_fsa_list
+
+  test_ladders <- find_ladders(file_list,
+                               ladder_channel = "DATA.105",
+                               signal_channel = "DATA.1",
+                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                               hq_ladder = FALSE,
+                               max_combinations = 2500000,
+                               ladder_selection_window = 8)
+
+ # Manually inspect the ladders
+ plot_ladders(test_ladders[1], n_facet_col = 1)
+
 }

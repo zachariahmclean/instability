@@ -52,7 +52,7 @@ process_ladder_signal = function(ladder,
 find_ladder_peaks = function(ladder_df,
                              n_reference_sizes){
   median_signal <- median(ladder_df$smoothed_signal, na.rm = TRUE)
-  sd_signal <- sd(ladder_df$smoothed_signal, na.rm = TRUE)
+  sd_signal <- stats::sd(ladder_df$smoothed_signal, na.rm = TRUE)
 
   ladder_peaks = vector("numeric")
   ladder_peak_threshold = 1
@@ -78,7 +78,7 @@ ladder_iteration = function(reference_sizes,
                                     reference_sizes){
     rsq_vector <- vector("numeric", ncol(recombinations))
     for (i in 1:ncol(recombinations)) {
-      rsq_vector[[i]] <-  cor(reference_sizes, recombinations[,i]) ^ 2
+      rsq_vector[[i]] <-  stats::cor(reference_sizes, recombinations[,i]) ^ 2
     }
     #select the values from the original recombinations matrix not the one with the already selected values added for the regression
     selected_recombinations <- recombinations[, which.max(rsq_vector)]
@@ -109,7 +109,7 @@ ladder_iteration = function(reference_sizes,
              paste0("Too many combinations to test (", n_recombinations,")"))
       }
 
-      recombinations = combn(observed_sizes[1:start_window] , choose)
+      recombinations = utils::combn(observed_sizes[1:start_window] , choose)
       # print(paste0(length(observed_sizes[1:start_window]), " pick ", choose))
       # print(paste0(ncol(recombinations), " combinations"))
 
@@ -167,13 +167,13 @@ ladder_iteration = function(reference_sizes,
 
 
 fit_ladder <- function(ladder,
-                       scans = NULL,
-                       ladder_sizes = NULL,
-                       hq_ladder=TRUE,
-                       spike_location = NULL,
-                       smoothing_window = 5,
-                       max_combinations = 2500000,
-                       ladder_selection_window = 5){
+                       scans,
+                       ladder_sizes,
+                       hq_ladder,
+                       spike_location,
+                       smoothing_window,
+                       max_combinations,
+                       ladder_selection_window){
 
 
 
@@ -224,6 +224,26 @@ fit_ladder <- function(ladder,
 
   return(combined_ladder_peaks)
 
+}
+
+
+ladder_rsq_warning_helper <- function(framents_trace,
+                                      rsq_threshold){
+
+
+  rsq <- sapply(framents_trace$mod_parameters, function(x) suppressWarnings(summary(x$mod)$r.squared))
+  if(any(rsq < rsq_threshold)){
+    size_ranges <- sapply(framents_trace$mod_parameters, function(x) x$mod$model$yi)
+    size_ranges <- size_ranges[ , which(rsq < rsq_threshold), drop = FALSE]
+    size_ranges_vector <- vector('numeric', ncol(size_ranges))
+    for (j in seq_along(size_ranges_vector)) {
+      size_ranges_vector[j] <- paste0(size_ranges[1,j],"-",size_ranges[3,j])
+
+    }
+    warning(call. = FALSE,
+            paste("sample", framents_trace$unique_id, "has badly fitting ladder for bp sizes:",
+                  paste0(size_ranges_vector, collapse = ", ")))
+  }
 }
 
 
@@ -282,11 +302,11 @@ local_southern_predict <- function(local_southern_fit, scans) {
   for(i in seq_along(scan_split)){
 
     if(i == 1 | i == length(scan_split)){
-      size_split[[i]] = predict(local_southern_fit[[i]]$mod, data.frame(xi = scan_split[[i]]))
+      size_split[[i]] = stats::predict(local_southern_fit[[i]]$mod, data.frame(xi = scan_split[[i]]))
     }
     else{
-      lower_prediction <- predict(local_southern_fit[[i-1]]$mod, data.frame(xi = scan_split[[i]]))
-      upper_prediction <- predict(local_southern_fit[[i]]$mod, data.frame(xi = scan_split[[i]]))
+      lower_prediction <- stats::predict(local_southern_fit[[i-1]]$mod, data.frame(xi = scan_split[[i]]))
+      upper_prediction <- stats::predict(local_southern_fit[[i]]$mod, data.frame(xi = scan_split[[i]]))
       size_split[[i]] <- (lower_prediction + upper_prediction) / 2
     }
   }
@@ -300,39 +320,43 @@ local_southern_predict <- function(local_southern_fit, scans) {
 # peak calling ------------------------------------------------------------
 
 
-#' Title
-#'
-#' @param fragments_trace
-#' @param smoothing_window
-#' @param minumum_peak_signal
-#' @param min_bp_size
-#' @param max_bp_size
-#'
-#' @return
-#' @importFrom pracma findpeaks
-#'
-#' @examples
-find_fragment_peaks <- function(fragments_trace,
+find_fragment_peaks <- function(trace_bp_df,
                                 smoothing_window,
-                                minumum_peak_signal,
-                                min_bp_size,
-                                max_bp_size){
+                                minimum_peak_signal,
+                                ...){
 
-  smoothed_signal <- moving_average(fragments_trace$trace_bp_df$signal,
+  smoothed_signal <- moving_average(trace_bp_df$signal,
                                     n = smoothing_window)
 
-  peaks <- pracma::findpeaks(smoothed_signal,
-                             peakpat = "[+]{3,}[0]*[-]{3,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
-                             minpeakheight = minumum_peak_signal)
-  n_scans <- length(fragments_trace$trace_bp_df$signal)
+  #deals with cases of user overriding values
+  if("peakpat" %in% ...names()){
+    peaks <- pracma::findpeaks(smoothed_signal,
+                               minpeakheight = minimum_peak_signal,
+                               ...)
+  }
+  else if("minpeakheight" %in% ...names()) {
+    peaks <- pracma::findpeaks(smoothed_signal,
+                               peakpat = "[+]{1,}[0]*[-]{1,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
+                               ...)
+  }
+  else{
+    peaks <- pracma::findpeaks(smoothed_signal,
+                               peakpat = "[+]{1,}[0]*[-]{1,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
+                               minpeakheight = minimum_peak_signal,
+                               ...)
+  }
+
+  n_scans <- length(trace_bp_df$signal)
   window_width <- 3
 
+  #go through raw signal and make sure that the identified scan in the smoothed signal is still the highest
+  #it will also deal with cases where the scans have the same height (which.max will chose first)
   peak_position <- numeric(nrow(peaks))
   for (i in seq_along(peak_position)) {
 
 
-    if(peaks[i,2] + window_width > 1 & peaks[i,2] + window_width < n_scans ){
-      max_peak <- which.max(fragments_trace$trace_bp_df$signal[(peaks[i,2] - window_width):(peaks[i,2] + window_width)])
+    if(peaks[i,2] + window_width > 1 & peaks[i,2] + window_width < n_scans ){ # make sure that the subsetting would be in bounds when taking window into account
+      max_peak <- which.max(trace_bp_df$signal[(peaks[i,2] - window_width):(peaks[i,2] + window_width)])
 
       peak_position[i] <- peaks[i,2] - window_width -1 + max_peak
     }
@@ -341,11 +365,8 @@ find_fragment_peaks <- function(fragments_trace,
     }
   }
 
-
-  df <- fragments_trace$trace_bp_df[peak_position, c("scan", "size", "signal")]
+  df <- trace_bp_df[peak_position, c("scan", "size", "signal")]
   colnames(df) <- c("scan", "size", "height")
-  df$unique_id <- rep(fragments_trace$unique_id, nrow(df))
-  df <- df[which(df$size > min_bp_size & df$size < max_bp_size), ]
 
   return(df)
 }
@@ -355,6 +376,29 @@ find_fragment_peaks <- function(fragments_trace,
 # ladder fixing -----------------------------------------------------------
 
 
+ladder_fix_helper <- function(fragments_trace,
+                              replacement_ladder_df){
+  fragments_trace_copy <- fragments_trace$clone()
+
+  fragments_trace_copy$ladder_df <- replacement_ladder_df
+  fragments_trace_copy$generate_mod_parameters()
+  data_bp <- fragments_trace_copy$predict_size()
+
+  fragments_trace_copy$trace_bp_df <- data.frame(
+    unique_id = rep(fragments_trace_copy$unique_id, length(fragments_trace_copy$scan)),
+    scan = fragments_trace_copy$scan,
+    size = fragments_trace_copy$predict_size(),
+    signal = fragments_trace_copy$raw_data,
+    ladder_signal = fragments_trace_copy$raw_ladder
+  )
+
+  #make a warning if one of the ladder modes is bad
+  ladder_rsq_warning_helper(fragments_trace_copy,
+                            rsq_threshold = 0.998)
+
+  return(fragments_trace_copy)
+
+}
 
 
 ladder_self_mod_predict <- function(fragments_trace,
@@ -369,7 +413,7 @@ ladder_self_mod_predict <- function(fragments_trace,
   mod_validations <- vector("list", length(fragments_trace_copy$mod_parameters))
   for (i in seq_along(fragments_trace_copy$mod_parameters)) {
 
-    predictions <- predict(fragments_trace_copy$mod_parameters[[i]]$mod, newdata = data.frame(xi = ladder_peaks))
+    predictions <- stats::predict(fragments_trace_copy$mod_parameters[[i]]$mod, newdata = data.frame(xi = ladder_peaks))
     low_size_threshold <- fragments_trace_copy$mod_parameters[[i]]$mod$model$yi[1] - size_threshold
     high_size_threshold <- fragments_trace_copy$mod_parameters[[i]]$mod$model$yi[3] + size_threshold
 
@@ -444,15 +488,20 @@ ladder_self_mod_predict <- function(fragments_trace,
     size = assigned_size[which(assigned_size %in% unconfirmed_sizes)]
   )
 
+  #bind rows back with the sizes that were infered to be correct
+
   ladder_df <- rbind(assigned_df,
         fragments_trace_copy$ladder_df[which(fragments_trace_copy$ladder_df$size %in% confirmed_sizes),] )
 
-  fragments_trace_copy$ladder_df <- ladder_df
+  # now just rerun the bp sizing
+  fixed_fragment_trace <- ladder_fix_helper(
+    fragments_trace_copy,
+    ladder_df
+  )
 
-  return(fragments_trace_copy)
+  return(fixed_fragment_trace)
 
 }
-
 
 
 

@@ -30,13 +30,18 @@ test_alleles <- find_alleles(
   peak_region_size_gap_threshold = 6,
   peak_region_height_threshold_multiplier = 1)
 
-test_alleles_metadata <- add_metadata(
-  test_alleles, metadata,
+test_metadata <- add_metadata(
+  fragments_list = test_alleles,
+  metadata_data.frame = metadata,
+  unique_id = "unique_id",
+  plate_id = "plate_id",
   group_id = "cell_line",
-  unique_id = "unique_id")
+  metrics_baseline_control = "metrics_baseline_control_TF",
+  size_standard = "repeat_positive_control_TF",
+  size_standard_repeat_length = "repeat_positive_control_length")
 
 test_repeats_corrected <- call_repeats(
-  fragments_list = test_alleles_metadata,
+  fragments_list = test_metadata,
   repeat_algorithm = "simple",
   assay_size_without_repeat = 87,
   repeat_size = 3,

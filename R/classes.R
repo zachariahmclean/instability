@@ -28,11 +28,15 @@ fragments <- R6::R6Class("fragments", public = list(
     sample_metadata <- metadata_data.frame[which(metadata_data.frame[unique_id] == self2$unique_id), ,drop = FALSE]
 
     # add metadata to slots
-    self2$plate_id <- as.character(sample_metadata[plate_id])
-    self2$group_id <- as.character(sample_metadata[group_id])
-    self2$size_standard <- as.logical(sample_metadata[size_standard]) #give a better error if this coercion isn't possible
-    self2$size_standard_repeat_length <- as.double(sample_metadata[size_standard_repeat_length])
-    self2$metrics_baseline_control <- as.character(sample_metadata[metrics_baseline_control])
+    self2$plate_id <- ifelse(!is.na(plate_id), as.character(sample_metadata[plate_id]), NA_character_)
+    self2$group_id <- ifelse(!is.na(group_id), as.character(sample_metadata[group_id]), NA_character_)
+    self2$size_standard <- ifelse(!is.na(size_standard),
+                                  ifelse(is.na(sample_metadata[size_standard]) || !as.logical(sample_metadata[size_standard]), FALSE, TRUE),
+                                  FALSE)
+    self2$size_standard_repeat_length <- ifelse(!is.na(size_standard_repeat_length), as.double(sample_metadata[size_standard_repeat_length]), NA_real_)
+    self2$metrics_baseline_control <- ifelse(!is.na(metrics_baseline_control),
+                                             ifelse(is.na(sample_metadata[metrics_baseline_control]) || !as.logical(sample_metadata[metrics_baseline_control]), FALSE, TRUE),
+                                             FALSE)
 
     return(self2)
   },
@@ -46,7 +50,7 @@ fragments <- R6::R6Class("fragments", public = list(
                          xlim = NULL){
     if(is.null(self$trace_bp_df)){
       stop(call. = FALSE,
-           paste(self$unique_id, "doesn't have trace data, so cannot make plot"))
+           paste(self$unique_id, "This sample does not have trace data, so cannot make plot"))
     }
 
     plot(self$trace_bp_df$size,
@@ -109,15 +113,19 @@ fragments_trace <- R6::R6Class(
 
       return(predicted_sizes)
     },
-    call_peaks = function(smoothing_window = 5,
-                          minumum_peak_signal = 20,
+    call_peaks = function(smoothing_window = 4,
+                          minimum_peak_signal = 20,
                           min_bp_size = 100,
-                          max_bp_size = 1000){
-      self$peak_table_df <- find_fragment_peaks(self,
-                                     smoothing_window = smoothing_window,
-                                     minumum_peak_signal = minumum_peak_signal,
-                                     min_bp_size = min_bp_size,
-                                     max_bp_size = max_bp_size)
+                          max_bp_size = 1000,
+                          ...){
+      df <- find_fragment_peaks(self$trace_bp_df,
+                                smoothing_window = smoothing_window,
+                                minimum_peak_signal = minimum_peak_signal,
+                                ...)
+
+      df$unique_id <- rep(self$unique_id, nrow(df))
+      self$peak_table_df <- df[which(df$size > min_bp_size & df$size < max_bp_size), ]
+
       invisible(self)
     },
     ladder_correction_auto = function(size_threshold = 60,
@@ -128,9 +136,18 @@ fragments_trace <- R6::R6Class(
                               size_threshold = size_threshold,
                               size_tolerance = size_tolerance,
                               rsq_threshold = rsq_threshold)
+
+
       return(self2)
     },
+    ladder_correction_manual = function(replacement_ladder_df){
+      fixed_fragments_trace <- ladder_fix_helper(
+        self,
+        replacement_ladder_df = replacement_ladder_df
+      )
 
+      return(fixed_fragments_trace)
+    },
     plot_ladder = function(xlim = NULL, ylim = NULL){
         # Scatter plot
         plot(self$trace_bp_df$scan, self$trace_bp_df$ladder_signal,
@@ -273,18 +290,28 @@ fragments_repeats <- R6::R6Class(
       }
 
 
-      allele_1_mode <- ifelse(is.null(self$repeat_table_df), self$allele_1_size, self$allele_1_repeat)
-      allele_2_mode <- ifelse(is.null(self$repeat_table_df), self$allele_2_size, self$allele_2_repeat)
+      allele_1_mode <- ifelse(is.null(self$repeat_table_df), round(self$allele_1_size), round(self$allele_1_repeat))
+      allele_2_mode <- ifelse(is.null(self$repeat_table_df), round(self$allele_2_size), round(self$allele_2_repeat))
 
-      barplot(names.arg = round(data$x),
-              height = data$height,
+      # Fill missing y values with zeros
+      rounded_x <- round(data$x)
+      all_x_values <- seq(min(rounded_x), max(rounded_x))
+      y_values <- rep(0, length(all_x_values))
+      for (i in seq_along(rounded_x)) {
+        y_values[which(all_x_values == rounded_x[i])] <- data[which(data$x == data$x[i]), "height"]
+      }
+
+
+
+      barplot(names.arg = all_x_values,
+              height = y_values,
            main = self$unique_id,
            xlab = ifelse(is.null(self$repeat_table_df), "Size", "Repeat"),
            ylab = "Signal",
            ylim = ylim,
            xlim = xlim,
            beside = TRUE,
-           col = sapply(data$x, function(x) if(!is.na(allele_1_mode) && x == allele_1_mode) "red" else if(!is.na(allele_2_mode) && x == allele_2_mode) "blue" else "gray")
+           col = sapply(all_x_values, function(x) if(!is.na(allele_1_mode) && x == allele_1_mode) "red" else if(!is.na(allele_2_mode) && x == allele_2_mode) "blue" else "gray")
       )
 
       #why doesn't the following code work? can't even get rectangle to show up on its own

@@ -2,19 +2,61 @@
 % Please edit documentation in R/accessors.R
 \name{find_fragments}
 \alias{find_fragments}
-\title{Title}
+\title{Find fragment peaks}
 \usage{
 find_fragments(
   fragments_trace_list,
-  smoothing_window = 5,
-  minumum_peak_signal = 20,
+  smoothing_window = 4,
+  minimum_peak_signal = 20,
   min_bp_size = 100,
-  max_bp_size = 1000
+  max_bp_size = 1000,
+  ...
 )
 }
 \arguments{
-\item{max_bp_size}{}
+\item{fragments_trace_list}{A list of fragments_trace objects containing fragment data.}
+
+\item{smoothing_window}{numeric: signal smoothing window size}
+
+\item{minimum_peak_signal}{numeric: minimum height of peak from smoothed trace}
+
+\item{min_bp_size}{numeric: minimum bp size of peaks to consider}
+
+\item{max_bp_size}{numeric: maximum bp size of peaks to consider}
+
+\item{...}{pass additional arguments to findpeaks, or change the default arguments
+we set. minimum_peak_signal above is passed to findpeaks as minpeakheight, and
+peakpat has been set to "[+]{1,}\link{0}*[-]{1,}" so that peaks with flat tops are
+still called, #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks}
+}
+\value{
+a list of fragments_repeats objects, equal length and names to the list input
 }
 \description{
-Title
+Find fragment peaks in continuous trace data and convert to fragments_repeats
+class.
+}
+\details{
+This function is basically a wrapper around pracma::findpeaks. As mentioned above,
+the default arguments arguments of pracma::findpeaks can be changed by passing them
+to find_fragments.
+}
+\examples{
+ file_list <- instability::cell_line_fsa_list
+
+ test_ladders <- find_ladders(file_list[1],
+                              ladder_channel = "DATA.105",
+                              signal_channel = "DATA.1",
+                              ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                              hq_ladder = FALSE,
+                              max_combinations = 2500000,
+                              ladder_selection_window = 8)
+
+ fragments_list <- find_fragments(test_ladders,
+                                  min_bp_size = 300)
+
+
+ # Manually inspect the ladders
+ plot_traces(fragments_list, show_peaks = TRUE, n_facet_col = 1,
+ xlim = c(400, 550), ylim = c(0,1200))
 }

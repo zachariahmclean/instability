@@ -2,7 +2,7 @@
 % Please edit documentation in R/accessors.R
 \name{find_ladders}
 \alias{find_ladders}
-\title{Find the ladder peaks in the fsa file and use that to call bp size}
+\title{Ladder and bp sizing}
 \usage{
 find_ladders(
   fsa_list,
@@ -47,4 +47,36 @@ list of fragments_trace objects
 }
 \description{
 Find the ladder peaks in the fsa file and use that to call bp size
+}
+\details{
+This function takes a list of fsa files (the output from read_fsa) and identifies
+the ladders in the ladder channel which is used to call the bp size. The output
+is a list of fragments_traces. bp sizes are assigned using the local Southern
+method. Basically, for each data point, linear models are made for the lower
+and upper 3 size standard and the predicted sizes are averaged.
+
+Each ladder should be manually inspected to make sure that is has been correctly
+assigned.
+}
+\examples{
+
+file_list <- instability::cell_line_fsa_list
+
+  test_ladders <- find_ladders(file_list,
+                               ladder_channel = "DATA.105",
+                               signal_channel = "DATA.1",
+                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                               hq_ladder = FALSE,
+                               max_combinations = 2500000,
+                               ladder_selection_window = 8)
+
+ # Manually inspect the ladders
+ plot_ladders(test_ladders[1], n_facet_col = 1)
+
+
+}
+\seealso{
+\code{\link[=fix_ladders_auto]{fix_ladders_auto()}} and \code{\link[=fix_ladders_manual]{fix_ladders_manual()}} to fix ladders with
+incorrectly assigned peaks. \code{\link[=plot_ladders]{plot_ladders()}} to plot the assigned ladder
+peaks onto the raw ladder signal.
 }

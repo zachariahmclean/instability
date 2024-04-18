@@ -74,10 +74,15 @@ test_repeats_np <- call_repeats(
 
 # correct repeat length from metadata
 
-test_alleles_metadata <- add_metadata(
-  test_alleles, metadata,
+ test_alleles_metadata <- add_metadata(
+  fragments_list = test_alleles,
+  metadata_data.frame = metadata,
+  unique_id = "unique_id",
+  plate_id = "plate_id",
   group_id = "cell_line",
-  unique_id = "unique_id")
+  metrics_baseline_control = "metrics_baseline_control_TF",
+  size_standard = "repeat_positive_control_TF",
+  size_standard_repeat_length = "repeat_positive_control_length")
 
 test_repeats_corrected <- call_repeats(
   fragments_list = test_alleles_metadata,

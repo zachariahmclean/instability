@@ -4,12 +4,12 @@
 \name{instability-package}
 \alias{instability}
 \alias{instability-package}
-\title{instability: What the Package Does (One Line, Title Case)}
+\title{instability: Short tandem repeats somatic instability from fragment analysis data}
 \description{
-What the package does (one paragraph).
+The goal of package is to provide a pipeline for short tandem repeat instability analysis from fragment analysis data. This package takes inputs of fsa files or peak tables (eg Genemapper5 software output), and a user supplied metadata data-frame. The package identifies ladders, calls peaks, identifies the modal peaks, calls repeats, then calculates repeat instability metrics (ie expansion index or average repeat gain).
 }
 \author{
-\strong{Maintainer}: First Last \email{first.last@example.com} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
+\strong{Maintainer}: Zachariah McLean \email{zachariah.louis.mclean@gmail.com} (\href{https://orcid.org/0000-0002-0968-0538}{ORCID})
 
 }
 \keyword{internal}

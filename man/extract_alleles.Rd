@@ -7,7 +7,7 @@
 extract_alleles(fragments_list)
 }
 \arguments{
-\item{fragments_list}{A list of "fragments" class objects (can be either "fragments_repeats" or "fragments_repeats" class).}
+\item{fragments_list}{A list of fragments_repeats objects containing fragment data.}
 }
 \value{
 A data.frame containing modal peak information for each sample.

@@ -221,7 +221,6 @@ add_repeats_helper <- function(fragments_repeats,
 
   }
   else{
-    #need to save info that isn't cloned over
     repeat_table_df <-  data.frame(unique_id = fragments_repeats$peak_table_df$unique_id,
                                size = fragments_repeats$peak_table_df$size,
                                height = fragments_repeats$peak_table_df$height,

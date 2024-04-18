@@ -7,7 +7,7 @@
 extract_fragments(fragments_list)
 }
 \arguments{
-\item{fragments_list}{A list of "fragments" class objects (can be either "fragments_repeats" or "fragments_repeats" class).}
+\item{fragments_list}{A list of fragments_repeats objects containing fragment data.}
 }
 \value{
 A data.frame containing peak data for each sample.
@@ -25,14 +25,14 @@ Extracts peak data from each sample in a list of fragments.
    min_size_bp = 400)
 
  test_metadata <- add_metadata(
-   fragments_list = test_fragments,
-   metadata_data.frame = metadata,
-   unique_id = "unique_id",
-   plate_id = "plate_id",
-   group_id = "cell_line",
-   metrics_baseline_control = "metrics_baseline_control_TF",
-   size_standard = "size_standard",
-   size_standard_repeat_length = "size_standard_repeat_length")
+  fragments_list = test_fragments,
+  metadata_data.frame = metadata,
+  unique_id = "unique_id",
+  plate_id = "plate_id",
+  group_id = "cell_line",
+  metrics_baseline_control = "metrics_baseline_control_TF",
+  size_standard = "repeat_positive_control_TF",
+  size_standard_repeat_length = "repeat_positive_control_length")
 
  test_alleles <- find_alleles(
    fragments_list = test_metadata,

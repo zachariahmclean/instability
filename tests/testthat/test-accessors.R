@@ -120,7 +120,7 @@ testthat::test_that("add_metadata", {
   testthat::expect_true(all(!is.na(test_fragments_group_id)))
 
   #index samples assigned
-  test_fragments_index <- vector("character", length(test_metadata))
+  test_fragments_index <- vector("logical", length(test_metadata))
   for (i in seq_along(test_metadata)) {
     test_fragments_index[i] <- test_metadata[[i]]$metrics_baseline_control
   }
@@ -128,18 +128,18 @@ testthat::test_that("add_metadata", {
   index_samples <- which(metadata$metrics_baseline_control_TF == TRUE)
 
   testthat::expect_true(all(as.logical(test_fragments_index[index_samples])))
-  testthat::expect_true(unique(test_fragments_index[which(!seq_along(test_fragments_index) %in% index_samples)]) == "NA")
+  testthat::expect_true(unique(test_fragments_index[which(!seq_along(test_fragments_index) %in% index_samples)]) == FALSE)
 
   #  sizing controls assigned
-  test_fragments_repeat_sizing <- vector("character", length(test_metadata))
+  test_fragments_repeat_sizing <- vector("logical", length(test_metadata))
   for (i in seq_along(test_metadata)) {
     test_fragments_repeat_sizing[i] <- test_metadata[[i]]$size_standard
   }
 
-  repeat_sizing_samples <- which(metadata$size_standard == TRUE)
+  repeat_sizing_samples <- which(metadata$repeat_positive_control_TF == TRUE)
 
   testthat::expect_true(all(as.logical(test_fragments_repeat_sizing[repeat_sizing_samples])))
-  testthat::expect_true(all(is.na(test_fragments_repeat_sizing[which(!seq_along(test_fragments_repeat_sizing) %in% repeat_sizing_samples)])))
+  testthat::expect_false(unique(test_fragments_repeat_sizing[which(!seq_along(test_fragments_repeat_sizing) %in% repeat_sizing_samples)]))
 
   # size values assigned
   test_fragments_repeat_sizing_value <- vector("character", length(test_metadata))
@@ -150,6 +150,83 @@ testthat::test_that("add_metadata", {
   testthat::expect_true(test_fragments_repeat_sizing_value[repeat_sizing_samples[1]] == 113 & test_fragments_repeat_sizing_value[repeat_sizing_samples[2]] == 115 )
   testthat::expect_true(all(is.na(test_fragments_repeat_sizing_value[which(!seq_along(test_fragments_repeat_sizing_value) %in% repeat_sizing_samples)])))
 
+
+})
+
+
+
+testthat::test_that("add_metadata missing", {
+
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
+  # Save raw data as a fragment class
+
+  test_fragments <- peak_table_to_fragments(gm_raw,
+                                            data_format = "genemapper5",
+                                            # peak_size_col = "size",
+                                            # peak_height_col = "signal",
+                                            dye_channel = "B")
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = NA,
+    group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length")
+
+  testthat::expect_true(is.na(test_metadata[[1]]$plate_id))
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = NA,
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length")
+
+  testthat::expect_true(is.na(test_metadata[[1]]$group_id))
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = "cell_line",
+    metrics_baseline_control = NA,
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length")
+
+  testthat::expect_false(test_metadata[[1]]$metrics_baseline_control)
+
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = NA,
+    size_standard_repeat_length = "repeat_positive_control_length")
+
+  testthat::expect_false(test_metadata[[1]]$size_standard)
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = NA)
+
+  testthat::expect_true(is.na(test_metadata[[1]]$size_standard_repeat_length))
 
 })
 
@@ -249,7 +326,9 @@ testthat::test_that("call_repeats", {
 
   test_alleles_metadata <- add_metadata(test_alleles, metadata,
                                         group_id = "cell_line",
-                                        unique_id = "unique_id")
+                                        unique_id = "unique_id",
+                                        size_standard = "repeat_positive_control_TF",
+                                        size_standard_repeat_length = "repeat_positive_control_length")
 
   test_repeats_corrected <- call_repeats(
     fragments_list = test_alleles_metadata,

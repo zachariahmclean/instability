@@ -58,6 +58,6 @@ test_metadata <- add_metadata(
   plate_id = "plate_id",
   group_id = "cell_line",
   metrics_baseline_control = "metrics_baseline_control_TF",
-  size_standard = "size_standard",
-  size_standard_repeat_length = "size_standard_repeat_length")
+  size_standard = "repeat_positive_control_TF",
+  size_standard_repeat_length = "repeat_positive_control_length")
 }

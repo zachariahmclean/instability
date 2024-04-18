@@ -2,13 +2,29 @@
 % Please edit documentation in R/accessors.R
 \name{extract_trace_table}
 \alias{extract_trace_table}
-\title{Title}
+\title{Extract traces}
 \usage{
 extract_trace_table(fragments_trace_list)
 }
 \arguments{
-\item{fragments_trace_list}{}
+\item{fragments_trace_list}{a list of fragments objects}
+}
+\value{
+returns a dataframe of the raw trace data. Each row representing a single scan.
 }
 \description{
-Title
+Extract the raw trace from a list of fragments objects
+}
+\examples{
+
+test_ladders <- find_ladders(instability::cell_line_fsa_list[1],
+  ladder_channel = "DATA.105",
+  signal_channel = "DATA.1",
+  ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+  hq_ladder = FALSE,
+  max_combinations = 2500000,
+  ladder_selection_window = 8)
+
+extracted_traces <- extract_trace_table(test_ladders)
+
 }
