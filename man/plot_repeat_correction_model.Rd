@@ -7,10 +7,10 @@
 plot_repeat_correction_model(fragments_list)
 }
 \arguments{
-\item{fragments_list}{A list of repeats_fragments class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.}
+\item{fragments_list}{A list of fragments_repeats class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.}
 }
 \value{
-A ggplot object displaying the repeat correction model results.
+A base R graphic object displaying the repeat correction model results.
 }
 \description{
 Plots the results of the repeat correction model for a list of fragments.
@@ -30,13 +30,18 @@ test_alleles <- find_alleles(
   peak_region_size_gap_threshold = 6,
   peak_region_height_threshold_multiplier = 1)
 
-test_alleles_metadata <- add_metadata(
-  test_alleles, metadata,
-  sample_group_id = "cell_line",
-  unique_id = "unique_id")
+test_metadata <- add_metadata(
+  fragments_list = test_alleles,
+  metadata_data.frame = metadata,
+  unique_id = "unique_id",
+  plate_id = "plate_id",
+  group_id = "cell_line",
+  metrics_baseline_control = "metrics_baseline_control_TF",
+  size_standard = "repeat_positive_control_TF",
+  size_standard_repeat_length = "repeat_positive_control_length")
 
 test_repeats_corrected <- call_repeats(
-  fragments_list = test_alleles_metadata,
+  fragments_list = test_metadata,
   repeat_algorithm = "simple",
   assay_size_without_repeat = 87,
   repeat_size = 3,

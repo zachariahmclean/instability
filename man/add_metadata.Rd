@@ -9,10 +9,10 @@ add_metadata(
   metadata_data.frame,
   unique_id = "sample_file_name",
   plate_id = "plate_id",
-  sample_group_id = "sample_group_id",
+  group_id = "group_id",
   metrics_baseline_control = "metrics_baseline_control_TF",
-  repeat_positive_control_TF = "repeat_positive_control_TF",
-  repeat_positive_control_length = "repeat_positive_control_length"
+  size_standard = "size_standard",
+  size_standard_repeat_length = "size_standard_repeat_length"
 )
 }
 \arguments{
@@ -24,13 +24,13 @@ add_metadata(
 
 \item{plate_id}{A character string indicating the column name for plate identifiers in the metadata.}
 
-\item{sample_group_id}{A character string indicating the column name for sample group identifiers in the metadata.}
+\item{group_id}{A character string indicating the column name for sample group identifiers in the metadata.}
 
 \item{metrics_baseline_control}{A character string indicating the column name for baseline control indicators in the metadata.}
 
-\item{repeat_positive_control_TF}{A character string indicating the column name for repeat positive control indicators in the metadata.}
+\item{size_standard}{A character string indicating the column name for repeat positive control indicators in the metadata.}
 
-\item{repeat_positive_control_length}{A character string indicating the column name for repeat positive control lengths in the metadata.}
+\item{size_standard_repeat_length}{A character string indicating the column name for repeat positive control lengths in the metadata.}
 }
 \value{
 A modified list of fragment objects with added metadata.
@@ -56,8 +56,8 @@ test_metadata <- add_metadata(
   metadata_data.frame = metadata,
   unique_id = "unique_id",
   plate_id = "plate_id",
-  sample_group_id = "cell_line",
+  group_id = "cell_line",
   metrics_baseline_control = "metrics_baseline_control_TF",
-  repeat_positive_control_TF = "repeat_positive_control_TF",
-  repeat_positive_control_length = "repeat_positive_control_length")
+  size_standard = "repeat_positive_control_TF",
+  size_standard_repeat_length = "repeat_positive_control_length")
 }

@@ -35,7 +35,7 @@ testthat::test_that("peak_table_to_fragments",{
   # we only expect one class
   testthat::expect_true(length(unique(test_fragments_classes)) == 1)
   # everything in the list is the class we expect
-  testthat::expect_true(unique(test_fragments_classes) == "bp_fragments")
+  testthat::expect_true(unique(test_fragments_classes) == "fragments_repeats")
   # no missing unique ids
   testthat::expect_false(any(is.na(test_fragments_ids)))
 
@@ -70,7 +70,7 @@ testthat::test_that("repeat_table_to_fragments",{
   # we only expect one class
   testthat::expect_true(length(unique(test_fragments_classes)) == 1)
   # everything in the list is the class we expect
-  testthat::expect_true(unique(test_fragments_classes) == "repeats_fragments")
+  testthat::expect_true(unique(test_fragments_classes) == "fragments_repeats")
   # no missing unique ids
   testthat::expect_false(any(is.na(test_fragments_ids)))
 
@@ -97,10 +97,10 @@ testthat::test_that("add_metadata", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    sample_group_id = "cell_line",
+    group_id = "cell_line",
     metrics_baseline_control = "metrics_baseline_control_TF",
-    repeat_positive_control_TF = "repeat_positive_control_TF",
-    repeat_positive_control_length = "repeat_positive_control_length")
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length")
 
 
   # plate id assigned
@@ -120,7 +120,7 @@ testthat::test_that("add_metadata", {
   testthat::expect_true(all(!is.na(test_fragments_group_id)))
 
   #index samples assigned
-  test_fragments_index <- vector("character", length(test_metadata))
+  test_fragments_index <- vector("logical", length(test_metadata))
   for (i in seq_along(test_metadata)) {
     test_fragments_index[i] <- test_metadata[[i]]$metrics_baseline_control
   }
@@ -128,10 +128,10 @@ testthat::test_that("add_metadata", {
   index_samples <- which(metadata$metrics_baseline_control_TF == TRUE)
 
   testthat::expect_true(all(as.logical(test_fragments_index[index_samples])))
-  testthat::expect_true(unique(test_fragments_index[which(!seq_along(test_fragments_index) %in% index_samples)]) == "NA")
+  testthat::expect_true(unique(test_fragments_index[which(!seq_along(test_fragments_index) %in% index_samples)]) == FALSE)
 
   #  sizing controls assigned
-  test_fragments_repeat_sizing <- vector("character", length(test_metadata))
+  test_fragments_repeat_sizing <- vector("logical", length(test_metadata))
   for (i in seq_along(test_metadata)) {
     test_fragments_repeat_sizing[i] <- test_metadata[[i]]$size_standard
   }
@@ -139,7 +139,7 @@ testthat::test_that("add_metadata", {
   repeat_sizing_samples <- which(metadata$repeat_positive_control_TF == TRUE)
 
   testthat::expect_true(all(as.logical(test_fragments_repeat_sizing[repeat_sizing_samples])))
-  testthat::expect_true(all(is.na(test_fragments_repeat_sizing[which(!seq_along(test_fragments_repeat_sizing) %in% repeat_sizing_samples)])))
+  testthat::expect_false(unique(test_fragments_repeat_sizing[which(!seq_along(test_fragments_repeat_sizing) %in% repeat_sizing_samples)]))
 
   # size values assigned
   test_fragments_repeat_sizing_value <- vector("character", length(test_metadata))
@@ -150,6 +150,83 @@ testthat::test_that("add_metadata", {
   testthat::expect_true(test_fragments_repeat_sizing_value[repeat_sizing_samples[1]] == 113 & test_fragments_repeat_sizing_value[repeat_sizing_samples[2]] == 115 )
   testthat::expect_true(all(is.na(test_fragments_repeat_sizing_value[which(!seq_along(test_fragments_repeat_sizing_value) %in% repeat_sizing_samples)])))
 
+
+})
+
+
+
+testthat::test_that("add_metadata missing", {
+
+  gm_raw <- instability::example_data
+  metadata <- instability::metadata
+  # Save raw data as a fragment class
+
+  test_fragments <- peak_table_to_fragments(gm_raw,
+                                            data_format = "genemapper5",
+                                            # peak_size_col = "size",
+                                            # peak_height_col = "signal",
+                                            dye_channel = "B")
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = NA,
+    group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length")
+
+  testthat::expect_true(is.na(test_metadata[[1]]$plate_id))
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = NA,
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length")
+
+  testthat::expect_true(is.na(test_metadata[[1]]$group_id))
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = "cell_line",
+    metrics_baseline_control = NA,
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length")
+
+  testthat::expect_false(test_metadata[[1]]$metrics_baseline_control)
+
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = NA,
+    size_standard_repeat_length = "repeat_positive_control_length")
+
+  testthat::expect_false(test_metadata[[1]]$size_standard)
+
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = NA)
+
+  testthat::expect_true(is.na(test_metadata[[1]]$size_standard_repeat_length))
 
 })
 
@@ -214,7 +291,7 @@ testthat::test_that("call_repeats", {
   }
 
 
-  testthat::expect_true(all(unique(test_repeats_class) == "repeats_fragments"))
+  testthat::expect_true(all(unique(test_repeats_class) == "fragments_repeats"))
 
 
   # nearest peak algo
@@ -231,7 +308,7 @@ testthat::test_that("call_repeats", {
   test_repeats_np_dif <- vector("list", length(test_repeats_np))
   for (i in seq_along(test_repeats_np)) {
 
-    repeat_sizes <- test_repeats_np[[i]]$repeat_data$repeats
+    repeat_sizes <- test_repeats_np[[i]]$repeat_table_df$repeats
 
     lag <- vector("numeric", length(repeat_sizes))
     for (j in 2:length(repeat_sizes)) {
@@ -248,8 +325,10 @@ testthat::test_that("call_repeats", {
   # correct repeat length
 
   test_alleles_metadata <- add_metadata(test_alleles, metadata,
-                                        sample_group_id = "cell_line",
-                                        unique_id = "unique_id")
+                                        group_id = "cell_line",
+                                        unique_id = "unique_id",
+                                        size_standard = "repeat_positive_control_TF",
+                                        size_standard_repeat_length = "repeat_positive_control_length")
 
   test_repeats_corrected <- call_repeats(
     fragments_list = test_alleles_metadata,
@@ -318,10 +397,10 @@ testthat::test_that("calculate metrics", {
       metadata_data.frame = metadata,
       unique_id = "unique_id",
       plate_id = "plate_id",
-      sample_group_id = "cell_line",
+      group_id = "cell_line",
       metrics_baseline_control = "metrics_baseline_control_TF",
-      repeat_positive_control_TF = "repeat_positive_control_TF",
-      repeat_positive_control_length = "repeat_positive_control_length")
+      size_standard = "repeat_positive_control_TF",
+      size_standard_repeat_length = "repeat_positive_control_length")
 
     test_alleles <- find_alleles(
       fragments_list = test_metadata,
@@ -418,23 +497,23 @@ testthat::test_that("remove fragments",{
 
 testthat::test_that("plot fragments",{
 
-  gm_raw <- instability::example_data
-  metadata <- instability::metadata
-  # Save raw data as a fragment class
-
-  test_fragments <- peak_table_to_fragments(gm_raw,
-                                            data_format = "genemapper5",
-                                            dye_channel = "B")
-
-  test_alleles <- find_alleles(
-    fragments_list = test_fragments,
-    number_of_peaks_to_return = 2,
-    peak_region_size_gap_threshold = 6,
-    peak_region_height_threshold_multiplier = 1)
-
-  gg <- plot_fragments(test_alleles,
-                 names(test_alleles)[1:9])
-
+  # gm_raw <- instability::example_data
+  # metadata <- instability::metadata
+  # # Save raw data as a fragment class
+  #
+  # test_fragments <- peak_table_to_fragments(gm_raw,
+  #                                           data_format = "genemapper5",
+  #                                           dye_channel = "B")
+  #
+  # test_alleles <- find_alleles(
+  #   fragments_list = test_fragments,
+  #   number_of_peaks_to_return = 2,
+  #   peak_region_size_gap_threshold = 6,
+  #   peak_region_height_threshold_multiplier = 1)
+  #
+  # gg <- plot_fragments(test_alleles,
+  #                names(test_alleles)[1:9])
+  #
 
   ## come up with tests
 

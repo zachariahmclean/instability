@@ -34,9 +34,9 @@ testthat::test_that("add_metadata function", {
     metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    sample_group_id = "cell_line",
-    repeat_positive_control_TF = "repeat_positive_control_TF",
-    repeat_positive_control_length = "repeat_positive_control_length",
+    group_id = "cell_line",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length",
     metrics_baseline_control = "metrics_baseline_control_TF"
   )
 
@@ -102,21 +102,21 @@ testthat::test_that("add_repeats",{
     peak_region_height_threshold_multiplier = 1
   )
 
-  test_repeats_fragments_simple <- test_main_peaks$add_repeats(
+  test_fragments_repeats_simple <- test_main_peaks$add_repeats(
     repeat_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE)
 
 
-  test_repeats_fragments_np <- test_main_peaks$add_repeats(
+  test_fragments_repeats_np <- test_main_peaks$add_repeats(
     repeat_algorithm = "nearest_peak",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE)
 
-  testthat::expect_true(nrow(test_repeats_fragments_simple$repeat_data) == 40)
-  testthat::expect_true(round(test_repeats_fragments_simple$repeat_data[40,4],2) == 142.43)
+  testthat::expect_true(nrow(test_fragments_repeats_simple$repeat_table_df) == 40)
+  testthat::expect_true(round(test_fragments_repeats_simple$repeat_table_df[40,4],2) == 142.43)
 })
 
 # find_main_peaks for repeats class ------------------------------------------
@@ -144,13 +144,13 @@ testthat::test_that("add_repeats",{
     peak_region_height_threshold_multiplier = 1
   )
 
-  test_repeats_fragments_simple <- test_main_peaks$add_repeats(
+  test_fragments_repeats_simple <- test_main_peaks$add_repeats(
     repeat_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE)
 
-  test_repeats_main_peaks <- test_repeats_fragments_simple$find_main_peaks(
+  test_repeats_main_peaks <- test_fragments_repeats_simple$find_main_peaks(
     number_of_peaks_to_return = 2,
     peak_region_size_gap_threshold = 2, #this is the only thing different with the find main peaks above
     peak_region_height_threshold_multiplier = 1
@@ -188,13 +188,13 @@ testthat::test_that("instability metrics",{
     peak_region_height_threshold_multiplier = 1
   )
 
-  test_repeats_fragments_simple <- test_main_peaks$add_repeats(
+  test_fragments_repeats_simple <- test_main_peaks$add_repeats(
     repeat_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE)
 
-  test_metrics <- test_repeats_fragments_simple$instability_metrics(
+  test_metrics <- test_fragments_repeats_simple$instability_metrics(
     peak_threshold = 0.05,
     window_around_main_peak = c(-40, 40), # note the lower lim should be a negative value
     percentile_range = c(

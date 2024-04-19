@@ -1,5 +1,7 @@
+
 print_helper <- function(fragment,
-                         exclude = NULL) {
+                         exclude = NULL,
+                         sample_attrs) {
 
   class_name <- class(fragment)[1]
   unique_id <- fragment$unique_id
@@ -8,7 +10,6 @@ print_helper <- function(fragment,
   cat("\033[1;36m-----------------------------\033[0m\n")
 
   # Section: Sample Attributes
-  sample_attrs <- c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_repeat_length")
   for (attr in sample_attrs) {
     if (attr %in% names(fragment)) {
       value <- fragment[[attr]]
@@ -19,9 +20,19 @@ print_helper <- function(fragment,
       } else if (is.logical(value)) {
         cat(ifelse(value, "\033[1;32mTRUE\033[0m", "\033[1;31mFALSE\033[0m"), "\n")
       } else if (is.numeric(value)) {
-        cat(format(value), "\n")
+          if(length(value) == 1){
+            cat(format(value), "\n")
+          }
+          else{
+            cat(format(paste("numeric vector length", length(value))), "\n")
+          }
       } else if (is.character(value)) {
-        cat(value, "\n")
+        if(length(value) == 1){
+          cat(format(value), "\n")
+        }
+        else{
+          cat(format(paste("character vector length", length(value))), "\n")
+        }
       } else {
         cat(class(value), "\n")
       }
@@ -51,9 +62,19 @@ print_helper <- function(fragment,
     } else if (is.logical(value)) {
       cat(ifelse(value, "\033[1;32mTRUE\033[0m", "\033[1;31mFALSE\033[0m"), "\n")
     } else if (is.numeric(value)) {
-      cat(format(value), "\n")
+      if(length(value) == 1){
+        cat(format(value), "\n")
+      }
+      else{
+        cat(format(paste("numeric vector length", length(value))), "\n")
+      }
     } else if (is.character(value)) {
-      cat(value, "\n")
+      if(length(value) == 1){
+        cat(format(value), "\n")
+      }
+      else{
+        cat(format(paste("character vector length", length(value))), "\n")
+      }
     } else if (is.data.frame(value)) {
       cat(sprintf("data.frame: %d rows × %d cols\n", nrow(value), ncol(value)))
     } else {
@@ -72,9 +93,9 @@ add_metadata_helper <- function(
   metadata_data.frame,
   unique_id,
   plate_id,
-  sample_group_id,
-  repeat_positive_control_TF,
-  repeat_positive_control_length,
+  group_id,
+  size_standard,
+  size_standard_repeat_length,
   metrics_baseline_control
 ) {
 
@@ -85,12 +106,38 @@ add_metadata_helper <- function(
 
   # add metadata to slots
   fragment$plate_id <- as.character(sample_metadata[plate_id])
-  fragment$group_id <- as.character(sample_metadata[sample_group_id])
-  fragment$size_standard <- as.logical(sample_metadata[repeat_positive_control_TF]) #give a better error if this coercion isn't possible
-  fragment$size_standard_repeat_length <- as.double(sample_metadata[repeat_positive_control_length])
+  fragment$group_id <- as.character(sample_metadata[group_id])
+  fragment$size_standard <- as.logical(sample_metadata[size_standard]) #give a better error if this coercion isn't possible
+  fragment$size_standard_repeat_length <- as.double(sample_metadata[size_standard_repeat_length])
   fragment$metrics_baseline_control <- as.logical(sample_metadata[metrics_baseline_control])
 
 
 
+}
+
+transfer_metadata_helper <- function(old_fragment,
+                                     new_fragment){
+
+ metadata_names <- c(
+   "unique_id",
+   "plate_id",
+   "group_id",
+   "size_standard",
+   "size_standard_repeat_length",
+   "metrics_baseline_control")
+
+
+ for (name in metadata_names){
+   eval(parse(
+     text = paste0(
+       "new_fragment$",
+       name,
+       "<- old_fragment$",
+       name
+     )
+   ))
+ }
+
+ return(new_fragment)
 }
 

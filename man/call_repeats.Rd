@@ -13,7 +13,7 @@ call_repeats(
 )
 }
 \arguments{
-\item{fragments_list}{A list of bp_fragments objects containing fragment data.}
+\item{fragments_list}{A list of fragments_repeats objects containing fragment data.}
 
 \item{repeat_algorithm}{A character specifying the repeat calling algorithm. Options: \code{"simple"} or \code{"nearest_peak"}.}
 
@@ -24,10 +24,10 @@ call_repeats(
 \item{repeat_length_correction}{A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.}
 }
 \value{
-A list of \code{\link{repeats_fragments}} objects with repeat data added.
+A list of \code{\link{fragments_repeats}} objects with repeat data added.
 
 #' @details
-The calculated repeat lengths are assigned to the corresponding peaks in the provided \code{bp_fragments} object. The repeat lengths can be used for downstream instability analysis.
+The calculated repeat lengths are assigned to the corresponding peaks in the provided \code{fragments_repeats} object. The repeat lengths can be used for downstream instability analysis.
 
 The \code{simple} algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
 
@@ -74,10 +74,15 @@ test_repeats_np <- call_repeats(
 
 # correct repeat length from metadata
 
-test_alleles_metadata <- add_metadata(
-  test_alleles, metadata,
-  sample_group_id = "cell_line",
-  unique_id = "unique_id")
+ test_alleles_metadata <- add_metadata(
+  fragments_list = test_alleles,
+  metadata_data.frame = metadata,
+  unique_id = "unique_id",
+  plate_id = "plate_id",
+  group_id = "cell_line",
+  metrics_baseline_control = "metrics_baseline_control_TF",
+  size_standard = "repeat_positive_control_TF",
+  size_standard_repeat_length = "repeat_positive_control_length")
 
 test_repeats_corrected <- call_repeats(
   fragments_list = test_alleles_metadata,

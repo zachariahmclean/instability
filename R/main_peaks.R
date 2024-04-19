@@ -175,10 +175,7 @@ find_candidate_peaks = function(heights,
 
 ################### R6 Class Method Helpers #################################
 
-find_main_peaks_helper <- function(fragments_class,
-                                   fragment_sizes,
-                                   fragment_heights,
-                                   data_type,
+find_main_peaks_helper <- function(fragments_repeats_class,
                                    number_of_peaks_to_return,
                                    peak_region_size_gap_threshold,
                                    peak_region_height_threshold_multiplier) {
@@ -191,6 +188,9 @@ find_main_peaks_helper <- function(fragments_class,
   #this abstraction doesn't work because the peak data is hard coded below
   #change it so the peak data is passed as an argument
 
+  fragment_heights  <- if(is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$height else fragments_repeats_class$repeat_table_df$height
+  fragment_sizes  <- if(is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$size else fragments_repeats_class$repeat_table_df$repeats
+
   top_peaks <- find_candidate_peaks(
     fragment_heights,
     fragment_sizes,
@@ -200,56 +200,50 @@ find_main_peaks_helper <- function(fragments_class,
   )
 
   if (length(top_peaks$top_peaks) == 0) {
-    warning(paste0(fragments_class$unique_id, ": No main alleles identified"))
+    warning(paste0(fragments_repeats_class$unique_id, ": No main alleles identified"))
   }
 
-  # data type
-  # need to do this eval/parse below so that this helper function can be used in either bp_fragments or repeats_fragments
-  type <- ifelse(data_type == "bp_size", "size", "repeat")
+  #change this so that it populates either repeat, size
 
   if (number_of_peaks_to_return == 2) {
     #shorter repeat allele
-    eval(parse(
-      text = paste0(
-        "fragments_class$allele_2_",
-        type,
-        " <- fragment_sizes[top_peaks$top_peaks[1]]"
-      )
-    ))
-    fragments_class$allele_2_height <-
-      fragment_heights[top_peaks$top_peaks[1]]
+    if(is.null(fragments_repeats_class$repeat_table_df)){
+      fragments_repeats_class$allele_2_size <- fragment_sizes[top_peaks$top_peaks[1]]
+    }
+    else{
+      fragments_repeats_class$allele_2_repeat <- fragment_sizes[top_peaks$top_peaks[1]]
+    }
+    fragments_repeats_class$allele_2_height <- fragment_heights[top_peaks$top_peaks[1]]
+
     #longer repeat allele
-    eval(parse(
-      text = paste0(
-        "fragments_class$allele_1_",
-        type,
-        "  <- fragment_sizes[top_peaks$top_peaks[2]]"
-      )
-    ))
-    fragments_class$allele_1_height <-
-      fragment_heights[top_peaks$top_peaks[2]]
+    if(is.null(fragments_repeats_class$repeat_table_df)){
+      fragments_repeats_class$allele_1_size <- fragment_sizes[top_peaks$top_peaks[2]]
+    }
+    else{
+      fragments_repeats_class$allele_1_repeat <- fragment_sizes[top_peaks$top_peaks[2]]
+    }
+    fragments_repeats_class$allele_1_height <- fragment_heights[top_peaks$top_peaks[2]]
 
   } else if (number_of_peaks_to_return == 1) {
     #shorter repeat allele doesn't exist
-    eval(parse(text = paste0(
-      "fragments_class$allele_2_", type, " <- NA_real_"
-    )))
-    fragments_class$allele_2_height <- NA_real_
+    fragments_repeats_class$allele_2_size <- NA_real_
+    fragments_repeats_class$allele_2_repeat <- NA_real_
+    fragments_repeats_class$allele_2_height <- NA_real_
+
     #longer repeat allele
-    eval(parse(
-      text = paste0(
-        "fragments_class$allele_1_",
-        type,
-        "  <- fragment_sizes[top_peaks$top_peaks[1]]"
-      )
-    ))
-    fragments_class$allele_1_height <-
-      fragment_heights[top_peaks$top_peaks[1]]
+    if(is.null(fragments_repeats_class$repeat_table_df)){
+      fragments_repeats_class$allele_1_size <- fragment_sizes[top_peaks$top_peaks[1]]
+    }
+    else{
+      fragments_repeats_class$allele_1_repeat <- fragment_sizes[top_peaks$top_peaks[1]]
+    }
+    fragments_repeats_class$allele_1_height <- fragment_heights[top_peaks$top_peaks[1]]
+
   }
 
   #peak_regions
-  fragments_class$.__enclos_env__$private$peak_regions <-
+  fragments_repeats_class$.__enclos_env__$private$peak_regions <-
     top_peaks$peak_regions
 
-  return(fragments_class)
+  return(fragments_repeats_class)
 }
