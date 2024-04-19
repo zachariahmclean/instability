@@ -14,7 +14,7 @@ find_alleles(
 \arguments{
 \item{fragments_list}{A list of fragment objects containing peak data.}
 
-\item{number_of_peaks_to_return}{Number of main peaks to be returned for each fragment. Default is 1.}
+\item{number_of_peaks_to_return}{Number of main peaks to be returned for each fragment. Must either be 1 or 2 if a normal sized allele is also to be found.}
 
 \item{peak_region_size_gap_threshold}{Gap threshold for identifying peak regions. The peak_region_size_gap_threshold is a parameter used to determine the maximum allowed gap between peak sizes within a peak region. Adjusting this parameter affects the size range of peaks that can be grouped together in a region. A smaller value makes it more stringent, while a larger value groups peaks with greater size differences, leading to broader peak regions that may encompass wider size ranges.}
 
