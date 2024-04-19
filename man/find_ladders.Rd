@@ -9,7 +9,7 @@ find_ladders(
   ladder_channel = "DATA.105",
   signal_channel = "DATA.1",
   ladder_sizes = NULL,
-  hq_ladder = TRUE,
+  hq_ladder = FALSE,
   spike_location = NULL,
   smoothing_window = 5,
   max_combinations = 2500000,

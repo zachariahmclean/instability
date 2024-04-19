@@ -46,7 +46,7 @@ library(ggplot2)
 
 ## Import data
 
-Read in the raw data and the metadata. In this case we will used example data within this package, but usually this would be either be fsa files that are read in using instability::read_fsa(), raw genemapper output or a peak table from another source (e.g. the Fragman R package)
+First, we read in the raw data. In this case we will used example data within this package, but usually this would be either be fsa files that are read in using instability::read_fsa(), raw genemapper output or a peak table from another source (e.g. the Fragman R package)
 
 ```{r}
 fsa_raw <- instability::cell_line_fsa_list
@@ -58,15 +58,15 @@ The raw data are coerced into a list of 'fragments' class objects, which is a fu
 
 First we find the ladders and call bp size in the fsa file. The bp is assigned using the local Southern method. Basically, for each data point, linear models are made for the lower and upper 3 size standard and the predicted sizes are averaged.
 
-```{r,warning=FALSE}
+```{r,warning=FALSE, message=FALSE}
 
-liz600_ladder <- c(35, 50, 75, 100, 139, 150, 160, 200, 250, 
+liz500_ladder <- c(35, 50, 75, 100, 139, 150, 160, 200, 250, 
                    300, 340, 350, 400, 450, 490, 500)
 
 ladder_list <- find_ladders(cell_line_fsa_list,
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
-                               ladder_sizes = liz600_ladder)
+                               ladder_sizes = liz500_ladder)
 
 
 ```
@@ -75,7 +75,7 @@ visually inspect each ladder to make sure that the ladders were correctly assign
 
 ```{r}
 
-plot_ladders(ladder_list[1:4], n_facet_col = 2,
+plot_ladders(ladder_list[1], n_facet_col = 1,
              xlim = c(1000, 4800),
              ylim = c(0, 15000))
 
@@ -94,8 +94,6 @@ The fragment peaks are identified in the raw continuous trace data.
 
 ```{r,warning=FALSE}
 peak_list <- find_fragments(ladders_fixed_list,
-                              smoothing_window = 5,
-                              minimum_peak_signal = 20,
                               min_bp_size = 300)
 ```
 
@@ -123,7 +121,7 @@ peak_list_genemapper <- peak_table_to_fragments(instability::example_data,
 Metadata can be incorporated to enhance the fragments class and allow additional functionality in the `call_repeats()` (correcting repeat length across fragment analysis runs) and `calculate_instability_metrics()` (calculating expansion index or average repeat gain) functions. Some of the metadata fields are optional but highly recommended. Prepare a file (eg spreadsheet saved as .csv) with the following columns. If you use the specified column names, it will be automatically parsed by `add_metadata()`, otherwise you will need to match up which column name belongs to which metadata category (as done below in `add_metadata()`):
 
 | Metadata table column       | Description                                                                                                                                                                                                                                                                                                    |
-|-------------|-----------------------------------------------------------|
+|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | unique_id                   | The unique identifier for the fsa file. Usually the sample file name. This must be unique, including across runs.                                                                                                                                                                                              |
 | group_id                    | This groups the samples for instability metric calclations. Provide a group id value for each sample. For example, in a mouse experiment and using the expansion index, you need to group the samples since they have the same metrics baseline control (eg inherited repeat length), so provide the mouse id. |
 | metrics_baseline_control    | This is related to group_id. Indicate with 'TRUE' to specify which sample is the baseline control (eg mouse tail for inherited repeat length, or day-zero sample in cell line experiments)                                                                                                                     |
@@ -184,7 +182,7 @@ In this case the dots are basically overlapping and in the middle of the linear 
 
 ## Calculate instability metrics
 
-Finally, the repeat instability metrics can be calculated. In the metadata, a subset of the samples are set as 'metrics_baseline_control', meaning they are the samples taken at day 0 in this experiment and are the control samples are compared to. This allows us to set `grouped = TRUE` and set the index peak (the repeat size at the start of the experiment, or inherited repeat length in the case of mice) for the expansion index and other metrics.
+Finally, the repeat instability metrics can be calculated. In the metadata, a subset of the samples are set as 'metrics_baseline_control', meaning they are the samples taken at day 0 in this experiment. This allows us to set `grouped = TRUE` and set the index peak (the modal repeat size at the start of the experiment, or inherited repeat length in the case of mice) for the expansion index and other metrics.
 
 ```{r, warning=FALSE, message=FALSE}
 metrics_grouped_df <- calculate_instability_metrics(
