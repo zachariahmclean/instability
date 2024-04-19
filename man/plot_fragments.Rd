@@ -4,39 +4,19 @@
 \alias{plot_fragments}
 \title{Plot Peak Data}
 \usage{
-plot_fragments(
-  fragments_list,
-  sample_subset = NULL,
-  zoom_in_on_peak = NA,
-  zoom_range = NULL,
-  show_peak_regions = FALSE,
-  col_width = NULL,
-  facet_nrow = NULL,
-  facet_ncol = NULL,
-  facet_scales = "fixed"
-)
+plot_fragments(fragments_list, n_facet_col = 2, xlim = NULL, ylim = NULL)
 }
 \arguments{
-\item{fragments_list}{A list of "fragments" class objects (can be either "bp_fragments" or "repeats_fragments" class).}
+\item{fragments_list}{A list of fragments_repeats objects containing fragment data.}
 
-\item{sample_subset}{A character vector of unique sample IDs of samples to pick out and plot.}
+\item{n_facet_col}{A numeric value indicating the number of columns for faceting in the plot.}
 
-\item{zoom_in_on_peak}{A numeric value (1 or 2) for which allele's peak should be zoomed in on. Use NA to show the whole trace.}
+\item{xlim}{the x limits of the plot. A numeric vector of length two.}
 
-\item{zoom_range}{A numeric vector with a length of 2 to indicate the size range around the zoomed-in peak. For example, c(-20, 20).}
-
-\item{show_peak_regions}{A logical value indicating whether peak regions should be included in the plot.}
-
-\item{col_width}{A numeric value for the column widths of the plotted bars.}
-
-\item{facet_nrow}{A numeric value indicating the number of rows for faceting in the plot (passed to 'nrow' in \code{facet_wrap()}).}
-
-\item{facet_ncol}{A numeric value indicating the number of columns for faceting in the plot (passed to 'ncol' in \code{facet_wrap()}).}
-
-\item{facet_scales}{A character string for setting the axis scales for faceting (passed to 'scales' in \code{facet_wrap()}).}
+\item{ylim}{the y limits of the plot. A numeric vector of length two.}
 }
 \value{
-A ggplot object displaying the peak data.
+A base R plot object displaying the peak data.
 }
 \description{
 Plots peak data from a list of fragments.
@@ -54,6 +34,5 @@ test_alleles <- find_alleles(
   peak_region_size_gap_threshold = 6,
   peak_region_height_threshold_multiplier = 1)
 
-plot_fragments(test_alleles,
-  names(test_alleles)[1:9])
+plot_fragments(test_alleles[1:2])
 }

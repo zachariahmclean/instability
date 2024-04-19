@@ -2,7 +2,7 @@
 % Please edit documentation in R/accessors.R
 \name{peak_table_to_fragments}
 \alias{peak_table_to_fragments}
-\title{Convert Peak Table to Fragments}
+\title{Convert Peak Table to Fragments_repeats class}
 \usage{
 peak_table_to_fragments(
   df,
@@ -39,10 +39,10 @@ peak_table_to_fragments(
 \item{max_size_bp}{Numeric value indicating the maximum size of the peak table to import.}
 }
 \value{
-A list of bp_fragments objects.
+A list of fragments_repeats. objects.
 }
 \description{
-This function converts a peak table data frame into a list of fragment objects of the specified class.
+This function converts a peak table data frame into a list of fragments_repeats objects.
 }
 \details{
 This function takes a peak table data frame (eg. Genemapper output) and converts it into a list of fragment objects.
