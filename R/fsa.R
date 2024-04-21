@@ -325,8 +325,11 @@ find_fragment_peaks <- function(trace_bp_df,
                                 minimum_peak_signal,
                                 ...){
 
-  smoothed_signal <- moving_average(trace_bp_df$signal,
-                                    n = smoothing_window)
+  # smoothed_signal <- moving_average(trace_bp_df$signal,
+  #                                   n = smoothing_window)
+  #
+  smoothed_signal <- pracma::savgol(trace_bp_df$signal,
+                                    smoothing_window)
 
   #deals with cases of user overriding values
   if("peakpat" %in% ...names()){
@@ -336,12 +339,12 @@ find_fragment_peaks <- function(trace_bp_df,
   }
   else if("minpeakheight" %in% ...names()) {
     peaks <- pracma::findpeaks(smoothed_signal,
-                               peakpat = "[+]{1,}[0]*[-]{1,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
+                               peakpat = "[+]{6,}[0]*[-]{6,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
                                ...)
   }
   else{
     peaks <- pracma::findpeaks(smoothed_signal,
-                               peakpat = "[+]{1,}[0]*[-]{1,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
+                               peakpat = "[+]{6,}[0]*[-]{6,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
                                minpeakheight = minimum_peak_signal,
                                ...)
   }

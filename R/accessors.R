@@ -375,13 +375,13 @@ extract_trace_table <- function(fragments_trace_list){
 #' class.
 #'
 #' @param fragments_trace_list A list of fragments_trace objects containing fragment data.
-#' @param smoothing_window numeric: signal smoothing window size
+#' @param smoothing_window numeric: signal smoothing window size passed to pracma::savgol()
 #' @param minimum_peak_signal numeric: minimum height of peak from smoothed trace
 #' @param min_bp_size numeric: minimum bp size of peaks to consider
 #' @param max_bp_size numeric: maximum bp size of peaks to consider
 #' @param ... pass additional arguments to findpeaks, or change the default arguments
 #' we set. minimum_peak_signal above is passed to findpeaks as minpeakheight, and
-#' peakpat has been set to "[+]{1,}[0]*[-]{1,}" so that peaks with flat tops are
+#' peakpat has been set to "[+]{6,}[0]*[-]{6,}" so that peaks with flat tops are
 #' still called, #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
 #'
 #'
@@ -389,6 +389,7 @@ extract_trace_table <- function(fragments_trace_list){
 #' @export
 #'
 #' @importFrom pracma findpeaks
+#' @importFrom pracma savgol
 #'
 #' @details
 #' This function is basically a wrapper around pracma::findpeaks. As mentioned above,
@@ -415,7 +416,7 @@ extract_trace_table <- function(fragments_trace_list){
 #'  plot_traces(fragments_list, show_peaks = TRUE, n_facet_col = 1,
 #'  xlim = c(400, 550), ylim = c(0,1200))
 find_fragments <- function(fragments_trace_list,
-                           smoothing_window = 4,
+                           smoothing_window = 21,
                            minimum_peak_signal = 20,
                            min_bp_size = 100,
                            max_bp_size = 1000,

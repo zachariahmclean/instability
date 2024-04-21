@@ -256,9 +256,9 @@ testthat::test_that("fix_ladders_auto", {
 
 
   peaks_df <- find_fragment_peaks(test_df,
-                      smoothing_window = 5,
                       minimum_peak_signal = 20,
-                      minpeakdistance = 20)
+                      minpeakdistance = 20,
+                      smoothing_window = 21)
 
   # ggplot2::ggplot(test_df,
   #                 aes(size, signal)) +
@@ -272,7 +272,6 @@ testthat::test_that("fix_ladders_auto", {
 
   suppressWarnings(
     peak_list <- find_fragments(fixed_ladder,
-                                smoothing_window = 4,
                                 minimum_peak_signal = 20,
                                 min_bp_size = 100)
   )
@@ -316,7 +315,6 @@ fixed_ladder <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
 
 suppressWarnings(
 peak_list <- find_fragments(fixed_ladder,
-                            smoothing_window = 5,
                             minimum_peak_signal = 20,
                             min_bp_size = 100)
 )
@@ -370,7 +368,6 @@ testthat::test_that("metadata transfer", {
   )
 
   peak_list <- find_fragments(metadata_added,
-                              smoothing_window = 5,
                               minimum_peak_signal = 20,
                               min_bp_size = 300)
 
@@ -424,7 +421,6 @@ testthat::test_that("full pipline", {
 
 
   peak_list <- find_fragments(test_ladders_fixed,
-                              smoothing_window = 5,
                               minimum_peak_signal = 20,
                               min_bp_size = 300)
 
@@ -505,7 +501,7 @@ testthat::test_that("full pipline", {
   medians <- aggregate(rel_gain~treatment + genotype, plot_data, median, na.rm = TRUE)
 
   round(medians$rel_gain, 5)
-  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85527, 0.70219, 0.56016, 1.00000, 1.17530, 1.11743, 1.00459)))
+  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85527, 0.70219, 0.56016, 1.00000, 1.17530, 1.10860, 1.00459)))
 
 
 })
