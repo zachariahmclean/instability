@@ -56,7 +56,7 @@ read_fsa <- function(files){
 #'        defaults to GeneScan™ 500 LIZ™
 #' @param hq_ladder logical: If TRUE, c(35, 250, 340) will be dropped from ladder
 #' @param spike_location numeric: indicate the scan number of the large spike peak
-#' @param smoothing_window numeric: scan window size for smoothing ladder signal
+#' @param smoothing_window numeric: ladder signal smoothing window size for passed to pracma::savgol()
 #' @param max_combinations numeric: what is the maximum number of ladder
 #'        combinations that should be tested
 #' @param ladder_selection_window numeric: in the ladder assigning algorithm,
@@ -104,7 +104,7 @@ find_ladders <- function(fsa_list,
                              ladder_sizes = NULL,
                              hq_ladder=FALSE,
                              spike_location = NULL,
-                             smoothing_window = 5,
+                             smoothing_window = 21,
                              max_combinations = 2500000,
                              ladder_selection_window = 5){
 

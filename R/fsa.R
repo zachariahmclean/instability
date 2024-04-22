@@ -18,10 +18,6 @@ detrend_signal = function(x, bins = 50){
   return(x_detrended)
 }
 
-moving_average = function(x, n = 10){
-  #centered, n =  total scans
-  as.vector(stats::filter(x, rep(1 / n, n), sides = 2))
-}
 
 # method specific
 
@@ -39,13 +35,8 @@ process_ladder_signal = function(ladder,
   ladder_df <- ladder_df[spike_location:nrow(ladder_df),]
 
   ladder_df$detrended_signal <- detrend_signal(ladder_df$signal)
-  ladder_df$smoothed_signal <- moving_average(ladder_df$detrended_signal, n = smoothing_window)
-  # peaks <- pracma::findpeaks(ladder_df$smoothed_signal,
-  #                                       peakpat = "[+]{1,}[0]+[-]{1,}" #see https://stackoverflow.com/questions/46864211/find-sustained-peaks-using-pracmafindpeaks
-  #                                       )
-  # ladder_df$maxima <- find_maxima(ladder_df$scan %in% peaks[,2])
-  ladder_df$maxima <- find_maxima(ladder_df$smoothed_signal)
-
+  ladder_df$smoothed_signal <- pracma::savgol(ladder_df$detrended_signal,
+                                              smoothing_window)
   return(ladder_df)
 }
 
@@ -58,10 +49,38 @@ find_ladder_peaks = function(ladder_df,
   ladder_peak_threshold = 1
 
   while (length(ladder_peaks) < n_reference_sizes) {
-    ladder_df$peak <- ladder_df$smoothed_signal > median_signal + sd_signal * ladder_peak_threshold & ladder_df$maxima
-    ladder_peaks <- ladder_df[which(ladder_df$peak), "scan"]
 
+    peaks <- pracma::findpeaks(ladder_df$smoothed_signal,
+                               peakpat = "[+]{6,}[0]*[-]{6,}", #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
+                               minpeakheight = median_signal + sd_signal * ladder_peak_threshold)
+
+    ladder_peaks <- ladder_df$scan[peaks[,2]]
+
+    # lower the threshold for the next cycle
     ladder_peak_threshold = ladder_peak_threshold - 0.01
+
+    # provide an exit if there are not enough peaks found
+    if(sd_signal * ladder_peak_threshold <= 0){
+      break
+    }
+  }
+
+  #go through raw signal and make sure that the identified scan in the smoothed signal is still the highest
+  #it will also deal with cases where the scans have the same height (which.max will chose first)
+  n_scans <- length(ladder_df$scan)
+  window_width <- 3
+  peak_position <- numeric(length(ladder_peaks))
+  for (i in seq_along(peak_position)) {
+
+
+    if(ladder_peaks[i] + window_width > 1 & ladder_peaks[i] + window_width < n_scans ){ # make sure that the subsetting would be in bounds when taking window into account
+      max_peak <- which.max(ladder_df$signal[(ladder_peaks[i] - window_width):(ladder_peaks[i] + window_width)])
+
+      peak_position[i] <- ladder_peaks[i] - window_width -1 + max_peak
+    }
+    else{
+      peak_position[i] <- ladder_peaks[i]
+    }
   }
 
   return(ladder_peaks)

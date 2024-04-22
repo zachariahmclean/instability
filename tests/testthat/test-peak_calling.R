@@ -1,18 +1,18 @@
 test_that("multiplication works", {
 
-#   # fsa_list <- instability::cell_line_fsa_list[1]
-#   file_list <- list.files("C:/Users/zlm2/R/Fragment analysis/2024-4-20 instability mouse test/data/mouse_fsa/", recursive = TRUE, full.names = TRUE)
-#   fsa_list <- read_fsa(file_list[grep("321417m_B09_B9.fsa",file_list)])
-#
-#   suppressWarnings(
-#     test_ladders <- find_ladders(fsa_list,
-#                                  ladder_channel = "DATA.105",
-#                                  signal_channel = "DATA.1",
-#                                  ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#                                  hq_ladder = FALSE,
-#                                  max_combinations = 2500000,
-#                                  ladder_selection_window = 8)
-#   )
+  # fsa_list <- instability::cell_line_fsa_list[1]
+  file_list <- list.files("C:/Users/zlm2/R/Fragment analysis/2024-4-20 instability mouse test/data/mouse_fsa/", recursive = TRUE, full.names = TRUE)
+  fsa_list <- read_fsa(file_list[grep("321417m_B09_B9.fsa",file_list)])
+
+  suppressWarnings(
+    test_ladders <- find_ladders(fsa_list,
+                                 ladder_channel = "DATA.105",
+                                 signal_channel = "DATA.1",
+                                 ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                                 hq_ladder = FALSE,
+                                 max_combinations = 2500000,
+                                 ladder_selection_window = 8)
+  )
 #
 #   test_fragments <- find_fragments(test_ladders,
 #                  peakpat = "[+]{6,}[0]*[-]{6,}")
