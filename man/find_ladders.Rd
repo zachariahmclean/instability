@@ -8,10 +8,11 @@ find_ladders(
   fsa_list,
   ladder_channel = "DATA.105",
   signal_channel = "DATA.1",
-  ladder_sizes = NULL,
+  ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490,
+    500),
   hq_ladder = FALSE,
   spike_location = NULL,
-  smoothing_window = 5,
+  smoothing_window = 21,
   max_combinations = 2500000,
   ladder_selection_window = 5
 )
@@ -32,7 +33,7 @@ defaults to GeneScan™ 500 LIZ™}
 
 \item{spike_location}{numeric: indicate the scan number of the large spike peak}
 
-\item{smoothing_window}{numeric: scan window size for smoothing ladder signal}
+\item{smoothing_window}{numeric: ladder signal smoothing window size for passed to pracma::savgol()}
 
 \item{max_combinations}{numeric: what is the maximum number of ladder
 combinations that should be tested}

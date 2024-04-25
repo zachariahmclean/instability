@@ -200,10 +200,6 @@ fit_ladder <- function(ladder,
     scans <- 0:(length(ladder) - 1)
   }
 
-  if (is.null(ladder_sizes)){
-    ladder_sizes <- c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500)
-  }
-
   if(hq_ladder){
     ladder_sizes <- ladder_sizes[!ladder_sizes %in% c(35, 250, 340)]
   }
@@ -390,7 +386,10 @@ find_fragment_peaks <- function(trace_bp_df,
   df <- trace_bp_df[peak_position, c("scan", "size", "signal")]
   colnames(df) <- c("scan", "size", "height")
 
-  return(df)
+  # remove shoulder peaks
+  df2 <- deshoulder(df, shoulder_window = 1.5)
+
+  return(df2)
 }
 
 

@@ -101,7 +101,7 @@ read_fsa <- function(files){
 find_ladders <- function(fsa_list,
                              ladder_channel = "DATA.105",
                              signal_channel = "DATA.1",
-                             ladder_sizes = NULL,
+                             ladder_sizes =  c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                              hq_ladder=FALSE,
                              spike_location = NULL,
                              smoothing_window = 21,

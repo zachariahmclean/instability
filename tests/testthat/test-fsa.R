@@ -174,8 +174,6 @@ test_that("find ladders", {
 
 
 
-
-
 test_that("fix ladders", {
 
   file_list <- instability::cell_line_fsa_list
@@ -434,19 +432,19 @@ testthat::test_that("full pipline", {
 
 
   # ggplot2::ggplot(plot_data,
-  #        aes(as.factor(treatment), rel_gain,
+  #                 ggplot2::aes(as.factor(treatment), rel_gain,
   #            colour = as.factor(treatment))) +
   #   ggplot2::geom_boxplot(outlier.shape = NA) +
   #   ggplot2::geom_jitter() +
-  #   facet_wrap(ggplot2::vars(genotype)) +
-  #   labs(y = "Average repeat gain\n(relative to DMSO)",
+  #   ggplot2::facet_wrap(ggplot2::vars(genotype)) +
+  #   ggplot2::labs(y = "Average repeat gain\n(relative to DMSO)",
   #        x = "Branaplam (nM)") +
   #   ggplot2::theme(legend.position = "none")
 
 
   medians <- aggregate(rel_gain~treatment + genotype, plot_data, median, na.rm = TRUE)
 
-  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85561, 0.70219, 0.56223 , 1.00000, 1.17530, 1.12011, 1.00459)))
+  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85697, 0.70219, 0.56223 , 1.00000, 1.18329, 1.10977, 1.00459)))
 
 
 })
