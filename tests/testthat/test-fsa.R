@@ -10,7 +10,7 @@ testthat::test_that("find ladder peaks",{
   test_processed <- process_ladder_signal(file_list[[1]]$Data$DATA.105,
                                           scans = 0:(length(file_list[[1]]$Data$DATA.105) -1),
                                           spike_location = 1000,
-                                          smoothing_window = 10)
+                                          smoothing_window = 21)
 
 
   ladder_sizes=c(50, 75, 100, 139, 150, 160, 200, 300, 350, 400, 450, 490, 500)
@@ -29,7 +29,7 @@ testthat::test_that("find ladder peaks",{
     40
   )
 
-  testthat::expect_true(length(test_ladder_peaks_40) >= 40)
+  testthat::expect_true(length(test_ladder_peaks_40) >= 32)
 
 })
 
@@ -87,7 +87,7 @@ test_that("fit ladder", {
     spike_location = NULL,
     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
     hq_ladder = FALSE,
-    smoothing_window = 5,
+    smoothing_window = 21,
     max_combinations = 2500000,
     ladder_selection_window = 5
   )
@@ -118,7 +118,7 @@ test_that("local southern", {
     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
     hq_ladder = FALSE,
     spike_location = NULL,
-    smoothing_window = 5,
+    smoothing_window = 21,
     max_combinations = 2500000,
     ladder_selection_window = 5
   )
@@ -165,16 +165,12 @@ test_that("find ladders", {
                ladder_selection_window = 8)
   )
 
-  test_ladders_fixed <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
 
-  testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1568, 1633, 1926, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
-  testthat::expect_true(all(test_ladders_fixed$`20230413_B03.fsa`$ladder_df$scan == c(1633, 1926, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
+  testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1633, 1783, 1927, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
 
 
 
 })
-
-
 
 
 
@@ -192,16 +188,28 @@ test_that("fix ladders", {
                                  ladder_selection_window = 8)
   )
 
+
+  example_list <- list(
+    "20230413_B03.fsa" = data.frame(
+      size = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+      scan = c(1555, 1633, 1783, 1827, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)
+    )
+  )
+
+  suppressWarnings(
+    test_ladders_fixed_manual <- fix_ladders_manual(
+      test_ladders,
+      example_list
+    )
+  )
+
   test_ladders_fixed <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
 
-
-
-  testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1568, 1633, 1926, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
-  testthat::expect_true(all(test_ladders_fixed$`20230413_B03.fsa`$ladder_df$scan == c(1633, 1926, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
-
-
+  testthat::expect_true(all(test_ladders_fixed$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1633, 1783, 1927, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
 
 })
+
+
 
 test_that("fix ladders manual", {
 
@@ -233,68 +241,6 @@ test_that("fix ladders manual", {
 
 
 
-testthat::test_that("fix_ladders_auto", {
-
-
-
-  # simple option:
-  file_list <- instability::cell_line_fsa_list
-
-  suppressWarnings(
-    test_ladders <- find_ladders(file_list[which(names(file_list) == "20230413_B03.fsa")],
-                                 ladder_channel = "DATA.105",
-                                 signal_channel = "DATA.1",
-                                 ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                                 hq_ladder = FALSE,
-                                 max_combinations = 2500000,
-                                 ladder_selection_window = 8)
-  )
-
-  fixed_ladder <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
-
-  test_df <- fixed_ladder[[1]]$trace_bp_df
-
-
-  peaks_df <- find_fragment_peaks(test_df,
-                      smoothing_window = 5,
-                      minimum_peak_signal = 20,
-                      minpeakdistance = 20)
-
-  # ggplot2::ggplot(test_df,
-  #                 aes(size, signal)) +
-  #   geom_line() +
-  #   geom_point(data = peaks_df,
-  #              aes(size, height),
-  #              shape = 1, colour = "blue") +
-  #   scale_x_continuous(limits = c(475, 625)) +
-  #   scale_y_continuous(limits = c(-50,1000))
-
-
-  suppressWarnings(
-    peak_list <- find_fragments(fixed_ladder,
-                                smoothing_window = 4,
-                                minimum_peak_signal = 20,
-                                min_bp_size = 100)
-  )
-
-
-
-
-  expect_true(all(fixed_ladder[[1]]$ladder_df[c(1,2,3), "scan"] == c(1633, 1926, 2159)))
-
-  # ggplot2::ggplot(peak_list[[1]]$trace_bp_df,
-  #                 aes(size, signal)) +
-  #   geom_line() +
-  #   geom_point(data = peak_list[[1]]$peak_table_df,
-  #              aes(size, height),
-  #              shape = 1, colour = "blue") +
-  #   geom_hline(yintercept = 50) +
-  #   scale_x_continuous(limits = c(475, 625)) +
-  #   scale_y_continuous(limits = c(-50,1000))
-
-
-})
-
 testthat::test_that("find_fragments", {
 
 
@@ -303,7 +249,7 @@ testthat::test_that("find_fragments", {
 
   file_list <- instability::cell_line_fsa_list
   suppressWarnings(
-  test_ladders <- find_ladders(file_list,
+  test_ladders <- find_ladders(file_list[which(names(file_list) =="20230413_B03.fsa")],
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
@@ -312,11 +258,8 @@ testthat::test_that("find_fragments", {
                                ladder_selection_window = 8)
 )
 
-fixed_ladder <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
-
 suppressWarnings(
-peak_list <- find_fragments(fixed_ladder,
-                            smoothing_window = 5,
+peak_list <- find_fragments(test_ladders,
                             minimum_peak_signal = 20,
                             min_bp_size = 100)
 )
@@ -370,7 +313,6 @@ testthat::test_that("metadata transfer", {
   )
 
   peak_list <- find_fragments(metadata_added,
-                              smoothing_window = 5,
                               minimum_peak_signal = 20,
                               min_bp_size = 300)
 
@@ -404,9 +346,8 @@ testthat::test_that("full pipline", {
                                max_combinations = 2500000,
                                ladder_selection_window = 5)
   )
-  test_ladders_fixed <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
 
-  # plot_ladders(test_ladders_fixed[1:9], n_facet_col = 3,
+  # plot_ladders(test_ladders[1:9], n_facet_col = 3,
   #              xlim = c(1000, 4800),
   #              ylim = c(0, 15000))
 
@@ -415,16 +356,15 @@ testthat::test_that("full pipline", {
   # pdf(file = "C:/Users/zlm2/Downloads/ladder.pdf", width = 12, height = 6) # Set width and height as desired
   #
   # # Loop through the list of plots
-  # for (i in seq_along(test_ladders_fixed)) {
-  #   test_ladders_fixed[[i]]$plot_ladder(xlim = c(1400, 4500))
+  # for (i in seq_along(test_ladders)) {
+  #   test_ladders[[i]]$plot_ladder(xlim = c(1400, 4500))
   # }
   #
   # # Close the PDF device
   # dev.off()
 
 
-  peak_list <- find_fragments(test_ladders_fixed,
-                              smoothing_window = 5,
+  peak_list <- find_fragments(test_ladders,
                               minimum_peak_signal = 20,
                               min_bp_size = 300)
 
@@ -492,20 +432,19 @@ testthat::test_that("full pipline", {
 
 
   # ggplot2::ggplot(plot_data,
-  #        aes(as.factor(treatment), rel_gain,
+  #                 ggplot2::aes(as.factor(treatment), rel_gain,
   #            colour = as.factor(treatment))) +
   #   ggplot2::geom_boxplot(outlier.shape = NA) +
   #   ggplot2::geom_jitter() +
-  #   facet_wrap(ggplot2::vars(genotype)) +
-  #   labs(y = "Average repeat gain\n(relative to DMSO)",
+  #   ggplot2::facet_wrap(ggplot2::vars(genotype)) +
+  #   ggplot2::labs(y = "Average repeat gain\n(relative to DMSO)",
   #        x = "Branaplam (nM)") +
   #   ggplot2::theme(legend.position = "none")
 
 
   medians <- aggregate(rel_gain~treatment + genotype, plot_data, median, na.rm = TRUE)
 
-  round(medians$rel_gain, 5)
-  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85527, 0.70219, 0.56016, 1.00000, 1.17530, 1.11743, 1.00459)))
+  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85697, 0.70219, 0.56223 , 1.00000, 1.18329, 1.10977, 1.00459)))
 
 
 })

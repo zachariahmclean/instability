@@ -56,7 +56,7 @@ read_fsa <- function(files){
 #'        defaults to GeneScan™ 500 LIZ™
 #' @param hq_ladder logical: If TRUE, c(35, 250, 340) will be dropped from ladder
 #' @param spike_location numeric: indicate the scan number of the large spike peak
-#' @param smoothing_window numeric: scan window size for smoothing ladder signal
+#' @param smoothing_window numeric: ladder signal smoothing window size for passed to pracma::savgol()
 #' @param max_combinations numeric: what is the maximum number of ladder
 #'        combinations that should be tested
 #' @param ladder_selection_window numeric: in the ladder assigning algorithm,
@@ -101,10 +101,10 @@ read_fsa <- function(files){
 find_ladders <- function(fsa_list,
                              ladder_channel = "DATA.105",
                              signal_channel = "DATA.1",
-                             ladder_sizes = NULL,
+                             ladder_sizes =  c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                              hq_ladder=FALSE,
                              spike_location = NULL,
-                             smoothing_window = 5,
+                             smoothing_window = 21,
                              max_combinations = 2500000,
                              ladder_selection_window = 5){
 
@@ -375,13 +375,13 @@ extract_trace_table <- function(fragments_trace_list){
 #' class.
 #'
 #' @param fragments_trace_list A list of fragments_trace objects containing fragment data.
-#' @param smoothing_window numeric: signal smoothing window size
+#' @param smoothing_window numeric: signal smoothing window size passed to pracma::savgol()
 #' @param minimum_peak_signal numeric: minimum height of peak from smoothed trace
 #' @param min_bp_size numeric: minimum bp size of peaks to consider
 #' @param max_bp_size numeric: maximum bp size of peaks to consider
 #' @param ... pass additional arguments to findpeaks, or change the default arguments
 #' we set. minimum_peak_signal above is passed to findpeaks as minpeakheight, and
-#' peakpat has been set to "[+]{1,}[0]*[-]{1,}" so that peaks with flat tops are
+#' peakpat has been set to "[+]{6,}[0]*[-]{6,}" so that peaks with flat tops are
 #' still called, #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
 #'
 #'
@@ -389,6 +389,7 @@ extract_trace_table <- function(fragments_trace_list){
 #' @export
 #'
 #' @importFrom pracma findpeaks
+#' @importFrom pracma savgol
 #'
 #' @details
 #' This function is basically a wrapper around pracma::findpeaks. As mentioned above,
@@ -415,7 +416,7 @@ extract_trace_table <- function(fragments_trace_list){
 #'  plot_traces(fragments_list, show_peaks = TRUE, n_facet_col = 1,
 #'  xlim = c(400, 550), ylim = c(0,1200))
 find_fragments <- function(fragments_trace_list,
-                           smoothing_window = 4,
+                           smoothing_window = 21,
                            minimum_peak_signal = 20,
                            min_bp_size = 100,
                            max_bp_size = 1000,

@@ -6,7 +6,7 @@
 \usage{
 find_fragments(
   fragments_trace_list,
-  smoothing_window = 4,
+  smoothing_window = 21,
   minimum_peak_signal = 20,
   min_bp_size = 100,
   max_bp_size = 1000,
@@ -16,7 +16,7 @@ find_fragments(
 \arguments{
 \item{fragments_trace_list}{A list of fragments_trace objects containing fragment data.}
 
-\item{smoothing_window}{numeric: signal smoothing window size}
+\item{smoothing_window}{numeric: signal smoothing window size passed to pracma::savgol()}
 
 \item{minimum_peak_signal}{numeric: minimum height of peak from smoothed trace}
 
@@ -26,7 +26,7 @@ find_fragments(
 
 \item{...}{pass additional arguments to findpeaks, or change the default arguments
 we set. minimum_peak_signal above is passed to findpeaks as minpeakheight, and
-peakpat has been set to "[+]{1,}\link{0}*[-]{1,}" so that peaks with flat tops are
+peakpat has been set to "[+]{6,}\link{0}*[-]{6,}" so that peaks with flat tops are
 still called, #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks}
 }
 \value{
