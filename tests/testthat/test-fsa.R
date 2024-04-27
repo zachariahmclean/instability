@@ -238,7 +238,104 @@ test_that("fix ladders manual", {
 })
 
 
+testthat::test_that("fix_ladder_interactive",{
 
+  file_list <- instability::cell_line_fsa_list
+
+  suppressWarnings(
+    test_ladders <- find_ladders(file_list[which(names(file_list) == "20230413_B03.fsa")],
+                                 ladder_channel = "DATA.105",
+                                 signal_channel = "DATA.1",
+                                 ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                                 hq_ladder = FALSE,
+                                 max_combinations = 2500000,
+                                 ladder_selection_window = 8)
+  )
+
+
+  example_list <- list(
+    "20230413_B03.fsa" = data.frame(
+      size = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+      scan = c(1555, 1633, 1783, 1827, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)
+    )
+  )
+
+  suppressWarnings(
+    test_ladders_fixed_manual <- fix_ladders_manual(
+      test_ladders,
+      example_list
+    )
+  )
+
+
+library(plotly)
+
+
+
+  # Generate 16 vertical lines
+  vertical_lines <- lapply(test_ladders_fixed_manual$`20230413_B03.fsa`$ladder_df$scan, function(i) {
+    list(
+      type = "line",
+      x0 = i,   # Adjust as needed for the positions of your vertical lines
+      x1 = i,   # Adjust as needed for the positions of your vertical lines
+      y0 = 0,
+      y1 = max(test_ladders_fixed_manual$`20230413_B03.fsa`$trace_bp_df$ladder_signal),
+      yref = "paper"
+    )
+  })
+
+  plot_ly(test_ladders_fixed_manual$`20230413_B03.fsa`$trace_bp_df, x = ~scan, y = ~ladder_signal, type = 'scatter', mode = "lines") %>%
+    layout(shapes = vertical_lines) %>%
+    # allow to edit plot by dragging lines
+    config(edits = list(shapePosition = TRUE))
+
+
+
+
+
+
+  tmp <- test_ladders_fixed_manual$`20230413_B03.fsa`$ladder_df
+
+  shapes_with_labels <- list()
+  for (i in 1:nrow(tmp)) {
+    shape <- list(
+      type = "rect",
+      x0 = tmp$scan[i] - 10,   # Adjust as needed for the positions of your shapes
+      x1 = tmp$scan[i] + 10,   # Adjust as needed for the positions of your shapes
+      y0 = 0,
+      y1 = max(test_ladders_fixed_manual$`20230413_B03.fsa`$trace_bp_df$ladder_signal),
+      yref = "paper",
+      fillcolor = "rgba(0,0,0,0)",  # Transparent fill
+      line = list(
+        color = "black",
+        width = 1
+      ),
+      editable = TRUE,  # Allow shape editing
+      text = tmp$size[i],  # Label text
+      xanchor = "center",
+      yanchor = "center",
+      textangle = 0,
+      font = list(
+        color = "black",
+        size = 12
+      )
+    )
+    shapes_with_labels[[i]] <- shape
+  }
+
+
+  plot_ly(test_ladders_fixed_manual$`20230413_B03.fsa`$trace_bp_df, x = ~scan, y = ~ladder_signal, type = 'scatter', mode = "lines") %>%
+    layout(shapes = shapes_with_labels) %>%
+    # allow to edit plot by dragging lines
+    config(edits = list(shapePosition = TRUE))
+
+
+
+
+
+
+
+})
 
 
 testthat::test_that("find_fragments", {
