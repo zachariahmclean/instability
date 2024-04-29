@@ -115,6 +115,7 @@ find_ladders <- function(fsa_list,
     ladder_list[[i]]$raw_ladder <- fsa_list[[i]]$Data[[ladder_channel]]
     ladder_list[[i]]$raw_data <- fsa_list[[i]]$Data[[signal_channel]]
     ladder_list[[i]]$scan <- 0:(length(fsa_list[[i]]$Data[[signal_channel]])- 1)
+    ladder_list[[i]]$off_scale_scans <- fsa_list[[i]]$Data$OfSc.1
   }
 
   pb <- utils::txtProgressBar(min = 0, max = length(ladder_list), style = 3)
@@ -145,7 +146,8 @@ find_ladders <- function(fsa_list,
       scan = ladder_list[[i]]$scan,
       size = ladder_list[[i]]$predict_size(),
       signal = ladder_list[[i]]$raw_data,
-      ladder_signal = ladder_list[[i]]$raw_ladder
+      ladder_signal = ladder_list[[i]]$raw_ladder,
+      off_scale = ladder_list[[i]]$scan %in% ladder_list[[i]]$off_scale_scans
     )
 
     #make a warning if one of the ladder modes is bad
