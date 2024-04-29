@@ -1,5 +1,78 @@
 ######################## Helper functions ####################################
-# np_repeat algorithim -----------------------------------------------------------
+
+
+deshoulder <- function(peak_table_df, shoulder_window){
+
+  fragment_size <- peak_table_df$size
+  heights <- peak_table_df$height
+  fragment_size_deshoulder <- numeric()
+  for(i in seq_along(fragment_size)){
+
+    if(i == 1 ){
+
+      if(fragment_size[i + 1] - fragment_size[i] > shoulder_window){
+        fragment_size_deshoulder <- append(fragment_size_deshoulder, fragment_size[i])
+      }
+      else if(heights[i] > heights[i + 1]){
+        fragment_size_deshoulder <- append(fragment_size_deshoulder, fragment_size[i])
+      }
+      else{
+        next
+      }
+    } else if(i == length(fragment_size)){
+
+      if(fragment_size[i - 1] - fragment_size[i] > shoulder_window){
+        fragment_size_deshoulder <- append(fragment_size_deshoulder, fragment_size[i])
+      }
+      else if(heights[i] > heights[i - 1]){
+        fragment_size_deshoulder <- append(fragment_size_deshoulder, fragment_size[i])
+      }
+      else{
+        next
+      }
+    } else if(fragment_size[i + 1] - fragment_size[i] < shoulder_window | fragment_size[i] - fragment_size[i - 1] < shoulder_window){
+
+      before <- fragment_size[i + 1] - fragment_size[i] < shoulder_window
+      after <- fragment_size[i] - fragment_size[i - 1] < shoulder_window
+      before_and_higher <- heights[i] > heights[i + 1]
+      after_and_higher <- heights[i] > heights[i - 1]
+
+      if(before & after){
+        if(before_and_higher & after_and_higher){
+          fragment_size_deshoulder <- append(fragment_size_deshoulder, fragment_size[i])
+        }
+        else {
+          next
+        }
+      }
+      else if(before && before_and_higher){
+        fragment_size_deshoulder <- append(fragment_size_deshoulder, fragment_size[i])
+      }
+      else if(after && after_and_higher){
+        fragment_size_deshoulder <- append(fragment_size_deshoulder, fragment_size[i])
+      }
+      else {
+        next
+      }
+    }
+    else{
+      fragment_size_deshoulder <- append(fragment_size_deshoulder, fragment_size[i])
+    }
+
+  }
+
+  new_peak_table_df <- peak_table_df[which(peak_table_df$size %in% fragment_size_deshoulder), ]
+
+  return(new_peak_table_df)
+
+}
+
+
+
+
+
+
+# np_repeat algorithm -----------------------------------------------------------
 np_repeat <- function(size,
                       main_peak_size,
                       main_peak_repeat,
@@ -216,7 +289,8 @@ add_repeats_helper <- function(fragments_repeats,
       unique_id = character(),
       size = numeric(),
       height = numeric(),
-      repeats = numeric()
+      repeats = numeric(),
+      off_scale = logical()
       )
 
   }
@@ -224,7 +298,12 @@ add_repeats_helper <- function(fragments_repeats,
     repeat_table_df <-  data.frame(unique_id = fragments_repeats$peak_table_df$unique_id,
                                size = fragments_repeats$peak_table_df$size,
                                height = fragments_repeats$peak_table_df$height,
-                               repeats = (fragments_repeats$peak_table_df$size - assay_size_without_repeat) / repeat_size)
+                               repeats = (fragments_repeats$peak_table_df$size - assay_size_without_repeat) / repeat_size,
+                               off_scale = ifelse(any(colnames(fragments_repeats$peak_table_df) == "off_scale"),
+                                                  fragments_repeats$peak_table_df$off_scale,
+                                                  rep(FALSE, nrow(fragments_repeats$peak_table_df)))
+
+                                 )
 
     # Correct repeat length with positive controls
     if(correct_repeat_length == TRUE){
@@ -237,9 +316,9 @@ add_repeats_helper <- function(fragments_repeats,
     # use different repeat calling algorithm
     if(repeat_algorithm == "nearest_peak"){
       repeat_table_df$repeats <- np_repeat(
-        size = fragments_repeats$peak_table_df$size,
+        size = repeat_table_df$size,
         main_peak_size = fragments_repeats$allele_1_size,
-        main_peak_repeat = repeat_table_df$repeats[which(fragments_repeats$peak_table_df$size == fragments_repeats$allele_1_size)],
+        main_peak_repeat = repeat_table_df$repeats[which(repeat_table_df$size == fragments_repeats$allele_1_size)],
         repeat_size = repeat_size)
     }
 

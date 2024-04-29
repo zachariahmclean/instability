@@ -8,10 +8,11 @@ find_ladders(
   fsa_list,
   ladder_channel = "DATA.105",
   signal_channel = "DATA.1",
-  ladder_sizes = NULL,
+  ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490,
+    500),
   hq_ladder = FALSE,
   spike_location = NULL,
-  smoothing_window = 5,
+  smoothing_window = 21,
   max_combinations = 2500000,
   ladder_selection_window = 5
 )
@@ -32,7 +33,7 @@ defaults to GeneScan™ 500 LIZ™}
 
 \item{spike_location}{numeric: indicate the scan number of the large spike peak}
 
-\item{smoothing_window}{numeric: scan window size for smoothing ladder signal}
+\item{smoothing_window}{numeric: ladder signal smoothing window size for passed to pracma::savgol()}
 
 \item{max_combinations}{numeric: what is the maximum number of ladder
 combinations that should be tested}
@@ -54,6 +55,9 @@ the ladders in the ladder channel which is used to call the bp size. The output
 is a list of fragments_traces. bp sizes are assigned using the local Southern
 method. Basically, for each data point, linear models are made for the lower
 and upper 3 size standard and the predicted sizes are averaged.
+
+The ladder peaks are assigned from largest to smallest. I would recommend excluding
+size standard peaks less than 50 bp (eg size standard 35 bp).
 
 Each ladder should be manually inspected to make sure that is has been correctly
 assigned.

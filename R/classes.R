@@ -68,6 +68,10 @@ fragments <- R6::R6Class("fragments", public = list(
              self$peak_table_df$height,
              col = "blue")
     }
+
+    if(any(self$trace_bp_df$off_scale)){
+      abline(v = self$trace_bp_df[which(self$trace_bp_df$off_scale), "size"], col =  adjustcolor("red", alpha = 0.3), lwd  = 2.5)
+    }
   }
 
 
@@ -94,6 +98,7 @@ fragments_trace <- R6::R6Class(
     raw_ladder = NULL,
     raw_data = NULL,
     scan = NULL,
+    off_scale_scans = NULL,
     ladder_df = NULL,
     trace_bp_df = NULL,
     peak_table_df = NULL,
@@ -289,6 +294,16 @@ fragments_repeats <- R6::R6Class(
         return()
       }
 
+      if(!is.null(xlim)){
+        if(length(xlim == 2) & is(xlim, "numeric")){
+          data <- data[which(data$x < xlim[2] & data$x > xlim[1]), ]
+        }
+        else{
+          stop(call. = FALSE,
+               "xlim must be a numeric vector with length of 2")
+        }
+      }
+
 
       allele_1_mode <- ifelse(is.null(self$repeat_table_df), round(self$allele_1_size), round(self$allele_1_repeat))
       allele_2_mode <- ifelse(is.null(self$repeat_table_df), round(self$allele_2_size), round(self$allele_2_repeat))
@@ -303,15 +318,15 @@ fragments_repeats <- R6::R6Class(
 
 
 
-      barplot(names.arg = all_x_values,
-              height = y_values,
-           main = self$unique_id,
-           xlab = ifelse(is.null(self$repeat_table_df), "Size", "Repeat"),
-           ylab = "Signal",
-           ylim = ylim,
-           xlim = xlim,
-           beside = TRUE,
-           col = sapply(all_x_values, function(x) if(!is.na(allele_1_mode) && x == allele_1_mode) "red" else if(!is.na(allele_2_mode) && x == allele_2_mode) "blue" else "gray")
+      barplot(
+        names.arg = all_x_values,
+        height = y_values,
+        main = self$unique_id,
+        xlab = ifelse(is.null(self$repeat_table_df), "Size", "Repeat"),
+        ylab = "Signal",
+        ylim = ylim,
+        beside = TRUE,
+        col = sapply(all_x_values, function(x) if(!is.na(allele_1_mode) && x == allele_1_mode) "red" else if(!is.na(allele_2_mode) && x == allele_2_mode) "blue" else "gray")
       )
 
       #why doesn't the following code work? can't even get rectangle to show up on its own
