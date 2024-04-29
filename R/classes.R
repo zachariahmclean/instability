@@ -94,6 +94,7 @@ fragments_trace <- R6::R6Class(
     raw_ladder = NULL,
     raw_data = NULL,
     scan = NULL,
+    off_scale_scans = NULL,
     ladder_df = NULL,
     trace_bp_df = NULL,
     peak_table_df = NULL,

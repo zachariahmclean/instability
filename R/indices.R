@@ -165,12 +165,21 @@ compute_metrics <- function(fragments_repeats,
     "Extremly low"
   }
 
+  QC_off_scale <- if(any(fragments_repeats$repeat_table_df$off_scale)){
+    paste("The following repeats were determined off scale (check ladder too, could be scans in any channel):",
+          paste(round(fragments_repeats$repeat_table_df[which(fragments_repeats$repeat_table_df$off_scale), "repeats"]), collapse = ", "))
+  }
+  else{
+    NA_character_
+  }
+
   # make a wide dataframe
   metrics <- data.frame(
     unique_id = fragments_repeats$unique_id,
     QC_comments = NA_character_,
     QC_modal_peak_height = QC_modal_peak_height,
     QC_peak_number = QC_peak_number,
+    QC_off_scale = QC_off_scale,
     modal_peak_repeat = fragments_repeats$allele_1_repeat,
     modal_peak_height = fragments_repeats$allele_1_height,
     index_peak_repeat = fragments_repeats$index_repeat,

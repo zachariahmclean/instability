@@ -383,8 +383,8 @@ find_fragment_peaks <- function(trace_bp_df,
     }
   }
 
-  df <- trace_bp_df[peak_position, c("scan", "size", "signal")]
-  colnames(df) <- c("scan", "size", "height")
+  df <- trace_bp_df[peak_position, c("scan", "size", "signal", "off_scale")]
+  colnames(df) <- c("scan", "size", "height", "off_scale")
 
   # remove shoulder peaks
   df2 <- deshoulder(df, shoulder_window = 1.5)

@@ -301,9 +301,8 @@ testthat::test_that("metadata transfer", {
                                max_combinations = 2500000,
                                ladder_selection_window = 8)
   )
-  test_ladders_fixed <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
   suppressWarnings(
-  metadata_added <- add_metadata(test_ladders_fixed, metadata,
+  metadata_added <- add_metadata(test_ladders, metadata,
                                  unique_id = "unique_id",
                                   plate_id = "plate_id",
                                   group_id = "cell_line",

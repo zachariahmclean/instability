@@ -289,7 +289,8 @@ add_repeats_helper <- function(fragments_repeats,
       unique_id = character(),
       size = numeric(),
       height = numeric(),
-      repeats = numeric()
+      repeats = numeric(),
+      off_scale = logical()
       )
 
   }
@@ -297,7 +298,12 @@ add_repeats_helper <- function(fragments_repeats,
     repeat_table_df <-  data.frame(unique_id = fragments_repeats$peak_table_df$unique_id,
                                size = fragments_repeats$peak_table_df$size,
                                height = fragments_repeats$peak_table_df$height,
-                               repeats = (fragments_repeats$peak_table_df$size - assay_size_without_repeat) / repeat_size)
+                               repeats = (fragments_repeats$peak_table_df$size - assay_size_without_repeat) / repeat_size,
+                               off_scale = ifelse(any(colnames(fragments_repeats$peak_table_df) == "off_scale"),
+                                                  fragments_repeats$peak_table_df$off_scale,
+                                                  rep(FALSE, nrow(fragments_repeats$peak_table_df)))
+
+                                 )
 
     # Correct repeat length with positive controls
     if(correct_repeat_length == TRUE){
