@@ -74,6 +74,9 @@ read_fsa <- function(files){
 #' method. Basically, for each data point, linear models are made for the lower
 #' and upper 3 size standard and the predicted sizes are averaged.
 #'
+#' The ladder peaks are assigned from largest to smallest. I would recommend excluding
+#' size standard peaks less than 50 bp (eg size standard 35 bp).
+#'
 #' Each ladder should be manually inspected to make sure that is has been correctly
 #' assigned.
 #'
@@ -115,6 +118,7 @@ find_ladders <- function(fsa_list,
     ladder_list[[i]]$raw_ladder <- fsa_list[[i]]$Data[[ladder_channel]]
     ladder_list[[i]]$raw_data <- fsa_list[[i]]$Data[[signal_channel]]
     ladder_list[[i]]$scan <- 0:(length(fsa_list[[i]]$Data[[signal_channel]])- 1)
+    ladder_list[[i]]$off_scale_scans <- fsa_list[[i]]$Data$OfSc.1
   }
 
   pb <- utils::txtProgressBar(min = 0, max = length(ladder_list), style = 3)
@@ -145,7 +149,8 @@ find_ladders <- function(fsa_list,
       scan = ladder_list[[i]]$scan,
       size = ladder_list[[i]]$predict_size(),
       signal = ladder_list[[i]]$raw_data,
-      ladder_signal = ladder_list[[i]]$raw_ladder
+      ladder_signal = ladder_list[[i]]$raw_ladder,
+      off_scale = ladder_list[[i]]$scan %in% ladder_list[[i]]$off_scale_scans
     )
 
     #make a warning if one of the ladder modes is bad
@@ -436,8 +441,6 @@ find_fragments <- function(fragments_trace_list,
     new_fragments_repeats$trace_bp_df <- x$trace_bp_df
     new_fragments_repeats$peak_table_df <- x$peak_table_df
     new_fragments_repeats <- transfer_metadata_helper(x, new_fragments_repeats)
-
-    #placeholder for function that transfers metadata
 
     return(new_fragments_repeats)
 
@@ -1161,8 +1164,10 @@ remove_fragments <- function(fragments_list,
 #'
 #' @param fragments_trace_list A list of fragments_trace objects containing fragment data.
 #' @param n_facet_col A numeric value indicating the number of columns for faceting in the plot.
+#' @param sample_subset A character vector of unique ids for a subset of samples to plot
 #' @param xlim the x limits of the plot. A numeric vector of length two.
 #' @param ylim the y limits of the plot. A numeric vector of length two.
+
 #'
 #' @return a plot of ladders
 #' @export
@@ -1184,8 +1189,13 @@ remove_fragments <- function(fragments_list,
 #'
 plot_ladders <- function(fragments_trace_list,
                          n_facet_col = 2,
+                         sample_subset = NULL,
                          xlim = NULL,
                          ylim = NULL) {
+
+  if(!is.null(sample_subset)){
+    fragments_trace_list <- fragments_trace_list[which(names(fragments_trace_list) %in% sample_subset)]
+  }
 
   graphics::par(mfrow=c(ceiling(length(fragments_trace_list)/n_facet_col), n_facet_col)) # Adjust layout as needed
   for (i in seq_along(fragments_trace_list)) {
@@ -1205,11 +1215,18 @@ plot_ladders <- function(fragments_trace_list,
 #' @param fragments_list A list of fragments_repeats or fragments_trace objects containing fragment data.
 #' @param show_peaks If peak data are available, TRUE will plot the peaks on top of the trace as dots.
 #' @param n_facet_col A numeric value indicating the number of columns for faceting in the plot.
+#' @param sample_subset A character vector of unique ids for a subset of samples to plot
 #' @param xlim the x limits of the plot. A numeric vector of length two.
 #' @param ylim the y limits of the plot. A numeric vector of length two.
 #'
 #' @return plot traces from fragments object
 #' @export
+#'
+#' @details
+#' A plot of the raw signal by bp size. Red vertical line indicates the scan was
+#' flagged as off-scale. This is in any channel, so use your best judgment to determine
+#' if it's from the sample or ladder channel.
+#'
 #'
 #' @examples
 #'
@@ -1229,9 +1246,15 @@ plot_ladders <- function(fragments_trace_list,
 #'
 plot_traces <- function(fragments_list,
                         show_peaks = TRUE,
-                         n_facet_col = 2,
-                         xlim = NULL,
-                         ylim = NULL) {
+                        n_facet_col = 2,
+                        sample_subset = NULL,
+                        xlim = NULL,
+                        ylim = NULL) {
+
+
+  if(!is.null(sample_subset)){
+    fragments_list <- fragments_list[which(names(fragments_list) %in% sample_subset)]
+  }
 
   graphics::par(mfrow=c(ceiling(length(fragments_list)/n_facet_col), n_facet_col)) # Adjust layout as needed
   for (i in seq_along(fragments_list)) {
@@ -1251,6 +1274,7 @@ plot_traces <- function(fragments_list,
 #'
 #' @param fragments_list A list of fragments_repeats objects containing fragment data.
 #' @param n_facet_col A numeric value indicating the number of columns for faceting in the plot.
+#' @param sample_subset A character vector of unique ids for a subset of samples to plot
 #' @param xlim the x limits of the plot. A numeric vector of length two.
 #' @param ylim the y limits of the plot. A numeric vector of length two.
 #'
@@ -1273,8 +1297,13 @@ plot_traces <- function(fragments_list,
 #' plot_fragments(test_alleles[1:2])
 plot_fragments <- function(fragments_list,
                            n_facet_col = 2,
+                           sample_subset = NULL,
                            xlim = NULL,
                            ylim = NULL) {
+
+  if(!is.null(sample_subset)){
+    fragments_list <- fragments_list[which(names(fragments_list) %in% sample_subset)]
+  }
 
   graphics::par(mfrow=c(ceiling(length(fragments_list)/n_facet_col), n_facet_col)) # Adjust layout as needed
   for (i in seq_along(fragments_list)) {
