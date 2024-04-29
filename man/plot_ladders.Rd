@@ -4,12 +4,20 @@
 \alias{plot_ladders}
 \title{Plot ladder}
 \usage{
-plot_ladders(fragments_trace_list, n_facet_col = 2, xlim = NULL, ylim = NULL)
+plot_ladders(
+  fragments_trace_list,
+  n_facet_col = 2,
+  sample_subset = NULL,
+  xlim = NULL,
+  ylim = NULL
+)
 }
 \arguments{
 \item{fragments_trace_list}{A list of fragments_trace objects containing fragment data.}
 
 \item{n_facet_col}{A numeric value indicating the number of columns for faceting in the plot.}
+
+\item{sample_subset}{A character vector of unique ids for a subset of samples to plot}
 
 \item{xlim}{the x limits of the plot. A numeric vector of length two.}
 

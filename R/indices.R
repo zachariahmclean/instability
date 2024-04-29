@@ -196,6 +196,7 @@ compute_metrics <- function(fragments_repeats,
     max_height = max(size_filtered_df$height),
     max_delta_neg = min(size_filtered_df$repeat_delta_index_peak),
     max_delta_pos = max(size_filtered_df$repeat_delta_index_peak),
+    modal_repeat_delta = fragments_repeats$allele_1_repeat - fragments_repeats$index_repeat,
     average_repeat_gain = weighted.mean(size_filtered_df$repeats, size_filtered_df$height) - fragments_repeats$index_weighted_mean_repeat,
     instabity_index_jml = instability_index(
       repeats = size_filtered_df$repeats,

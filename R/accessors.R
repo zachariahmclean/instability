@@ -74,6 +74,9 @@ read_fsa <- function(files){
 #' method. Basically, for each data point, linear models are made for the lower
 #' and upper 3 size standard and the predicted sizes are averaged.
 #'
+#' The ladder peaks are assigned from largest to smallest. I would recommend excluding
+#' size standard peaks less than 50 bp (eg size standard 35 bp).
+#'
 #' Each ladder should be manually inspected to make sure that is has been correctly
 #' assigned.
 #'
@@ -1218,6 +1221,12 @@ plot_ladders <- function(fragments_trace_list,
 #'
 #' @return plot traces from fragments object
 #' @export
+#'
+#' @details
+#' A plot of the raw signal by bp size. Red vertical line indicates the scan was
+#' flagged as off-scale. This is in any channel, so use your best judgment to determine
+#' if it's from the sample or ladder channel.
+#'
 #'
 #' @examples
 #'

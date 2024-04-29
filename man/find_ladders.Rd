@@ -56,6 +56,9 @@ is a list of fragments_traces. bp sizes are assigned using the local Southern
 method. Basically, for each data point, linear models are made for the lower
 and upper 3 size standard and the predicted sizes are averaged.
 
+The ladder peaks are assigned from largest to smallest. I would recommend excluding
+size standard peaks less than 50 bp (eg size standard 35 bp).
+
 Each ladder should be manually inspected to make sure that is has been correctly
 assigned.
 }

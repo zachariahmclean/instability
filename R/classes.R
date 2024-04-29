@@ -68,6 +68,10 @@ fragments <- R6::R6Class("fragments", public = list(
              self$peak_table_df$height,
              col = "blue")
     }
+
+    if(any(self$trace_bp_df$off_scale)){
+      abline(v = self$trace_bp_df[which(self$trace_bp_df$off_scale), "size"], col =  adjustcolor("red", alpha = 0.3), lwd  = 2.5)
+    }
   }
 
 
@@ -291,7 +295,7 @@ fragments_repeats <- R6::R6Class(
       }
 
       if(!is.null(xlim)){
-        if(length(xlim == 2) & class(xlim) == "numeric"){
+        if(length(xlim == 2) & is(xlim, "numeric")){
           data <- data[which(data$x < xlim[2] & data$x > xlim[1]), ]
         }
         else{
