@@ -34,7 +34,9 @@ read_fsa <- function(files){
     file_list[[i]] <- seqinr::read.abif(files[i])
   }
 
-  names(file_list) <- basename(files)
+  unique_names <- make.unique(basename(files))
+
+  names(file_list) <- unique_names
 
   return(file_list)
 }
