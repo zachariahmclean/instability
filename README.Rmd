@@ -181,11 +181,10 @@ Finally, the repeat instability metrics can be calculated. In the metadata, a su
 metrics_grouped_df <- calculate_instability_metrics(
       fragments_list = repeats_list,
       grouped = TRUE,
-      peak_threshold = 0.05,
-      window_around_main_peak = c(-40, 40))
+      peak_threshold = 0.05)
 ```
 
-These metrics can then be used to quantify repeat instability. For example, this reproduces Figure 7e of [our manuscript](https://www.biorxiv.org/content/10.1101/2023.07.25.550489v1).
+These metrics can then be used to quantify repeat instability. For example, this reproduces Figure 7e of [our manuscript](https://www.nature.com/articles/s41467-024-47485-0).
 
 First, prepare the data for plotting by removing poor quality samples and finding the average repeat gain relative to the DMSO group for each cell line
 
@@ -203,15 +202,13 @@ Then we can plot the instability metrics
 
 ```{r ggplot}
 ggplot(plot_data,
-       aes(as.factor(treatment), rel_gain,
-           colour = as.factor(treatment))) +
+       aes(genotype, rel_gain, colour = genotype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter() +
-  facet_wrap(vars(genotype)) +
+  facet_wrap(vars(as.factor(treatment)), nrow = 1) +
   labs(y = "Average repeat gain\n(relative to DMSO)",
-       x = "Branaplam (nM)") +
+       x = "PMS1 pseudoexon status") +
   theme(legend.position = "none")
 
-  
 
 ```
