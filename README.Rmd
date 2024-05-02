@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 
 # instability package
 
-The goal of package is to provide a pipeline for short tandem repeat instability analysis from fragment analysis data. This package takes inputs of fsa files or peak tables (eg Genemapper5 software output), and a user supplied metadata data-frame. The functions identify ladders, calls peaks, find the modal peaks, calls repeats, then calculates repeat instability metrics (ie expansion index or average repeat gain).
+This package provides a pipeline for short tandem repeat instability analysis from fragment analysis data. The inputs are fsa files or peak tables (eg Genemapper5 software output), and a user supplied metadata data-frame. The functions identify ladders, calls peaks, find the modal peaks, calls repeats, then calculates repeat instability metrics (ie expansion index or average repeat gain).
 
 In this package, each sample is represented by an R6 'fragments' object, which are organised in lists. As a user, there are accessor functions that iterate over these lists, so you shouldn't need to interact with the fragments object. However, if you do, the attributes of the objects can be accessed with "\$".
 
@@ -48,7 +48,7 @@ library(ggplot2)
 
 First, we read in the raw data. In this case we will used example data within this package, but usually this would be either be fsa files that are read in using instability::read_fsa(), raw genemapper output or a peak table from another source (e.g. the Fragman R package)
 
-```{r}
+```{r fsa_import}
 fsa_raw <- instability::cell_line_fsa_list
 ```
 
@@ -58,22 +58,19 @@ The raw data are coerced into a list of 'fragments' class objects, which is a fu
 
 First we find the ladders and call bp size in the fsa file. The bp is assigned using the local Southern method. Basically, for each data point, linear models are made for the lower and upper 3 size standard and the predicted sizes are averaged.
 
-```{r,warning=FALSE, message=FALSE}
+```{r ladders,warning=FALSE, message=FALSE}
 
-liz500_ladder <- c(35, 50, 75, 100, 139, 150, 160, 200, 250, 
-                   300, 340, 350, 400, 450, 490, 500)
 
 ladder_list <- find_ladders(cell_line_fsa_list,
                                ladder_channel = "DATA.105",
-                               signal_channel = "DATA.1",
-                               ladder_sizes = liz500_ladder)
+                               signal_channel = "DATA.1")
 
 
 ```
 
 visually inspect each ladder to make sure that the ladders were correctly assigned
 
-```{r}
+```{r plot_ladders}
 
 plot_ladders(ladder_list[1], n_facet_col = 1,
              xlim = c(1000, 4800),
@@ -82,24 +79,20 @@ plot_ladders(ladder_list[1], n_facet_col = 1,
 
 ```
 
-One of the sample has a poorly fitting ladder (peaks in the 39-75 incorrect) so we can use fix_ladders_auto() to automatically fix it, or fix_ladders_manual() to manually fix it in the worst case scenario.
-
-```{r,warning=FALSE}
-ladders_fixed_list <- fix_ladders_auto(ladder_list, "20230413_B03.fsa")
-```
+If any of the ladders are incorrect, we can use fix_ladders_auto() to automatically fix it, or fix_ladders_manual() to manually fix it in the worst case scenario.
 
 ## Find fragments
 
 The fragment peaks are identified in the raw continuous trace data.
 
-```{r,warning=FALSE}
-peak_list <- find_fragments(ladders_fixed_list,
+```{r find_fragments,warning=FALSE}
+peak_list <- find_fragments(ladder_list,
                               min_bp_size = 300)
 ```
 
 Visually inspect the traces and called peaks to make sure they were correctly assigned.
 
-```{r}
+```{r plot_traces}
 
 plot_traces(peak_list[1], n_facet_col = 1,
             xlim = c(400, 550),
@@ -109,7 +102,7 @@ plot_traces(peak_list[1], n_facet_col = 1,
 
 Alternatively, if not starting from fsa files, this is where you would use exported data from Genemapper if you would rather use the Genemapper bp sizing and peak identification algorithms.
 
-```{r,warning=FALSE}
+```{r peak_table_to_fragments,warning=FALSE}
 peak_list_genemapper <- peak_table_to_fragments(instability::example_data,
                                             data_format = "genemapper5",
                                             dye_channel = "B",
@@ -121,7 +114,7 @@ peak_list_genemapper <- peak_table_to_fragments(instability::example_data,
 Metadata can be incorporated to enhance the fragments class and allow additional functionality in the `call_repeats()` (correcting repeat length across fragment analysis runs) and `calculate_instability_metrics()` (calculating expansion index or average repeat gain) functions. Some of the metadata fields are optional but highly recommended. Prepare a file (eg spreadsheet saved as .csv) with the following columns. If you use the specified column names, it will be automatically parsed by `add_metadata()`, otherwise you will need to match up which column name belongs to which metadata category (as done below in `add_metadata()`):
 
 | Metadata table column       | Description                                                                                                                                                                                                                                                                                                    |
-|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|-------------|-----------------------------------------------------------|
 | unique_id                   | The unique identifier for the fsa file. Usually the sample file name. This must be unique, including across runs.                                                                                                                                                                                              |
 | group_id                    | This groups the samples for instability metric calclations. Provide a group id value for each sample. For example, in a mouse experiment and using the expansion index, you need to group the samples since they have the same metrics baseline control (eg inherited repeat length), so provide the mouse id. |
 | metrics_baseline_control    | This is related to group_id. Indicate with 'TRUE' to specify which sample is the baseline control (eg mouse tail for inherited repeat length, or day-zero sample in cell line experiments)                                                                                                                     |
@@ -129,7 +122,7 @@ Metadata can be incorporated to enhance the fragments class and allow additional
 | size_standard               | This is related to plate_id. Indicate with 'TRUE' to specify which sample is the size standard of the repeat length.                                                                                                                                                                                           |
 | size_standard_repeat_length | This is related to size_standard. If the sample is a size standard, provide a numeric value of the modal repeat length.                                                                                                                                                                                        |
 
-```{r}
+```{r add_metadata}
 
 metadata <- instability::metadata
 
@@ -149,7 +142,7 @@ metadata_added_list <- add_metadata(
 
 Next we identify the modal peaks with `find_alleles()` and convert the base pair fragments to repeats with `call_repeats(`).
 
-```{r, warning=FALSE, message=FALSE}
+```{r find_alleles_and_repeats, warning=FALSE, message=FALSE}
 alleles_list <- find_alleles(
       fragments_list = metadata_added_list,
       number_of_peaks_to_return = 1)
@@ -163,7 +156,7 @@ repeats_list <- call_repeats(
 
 We can view the distribution of repeat sizes and the identified modal peak with a plotting function.
 
-```{r, warning=FALSE, message=FALSE}
+```{r plot_fragments, warning=FALSE, message=FALSE}
 
 plot_fragments(repeats_list[1], n_facet_col = 1)
 
@@ -171,7 +164,7 @@ plot_fragments(repeats_list[1], n_facet_col = 1)
 
 We can also view the data used to generate the model for calling the repeat size when we indicate size standard samples in the metadata and have `repeat_length_correction = "from_metadata"` in `call_repeats()`.
 
-```{r}
+```{r plot_repeat_correction_model}
 
 plot_repeat_correction_model(repeats_list)
 
@@ -184,19 +177,18 @@ In this case the dots are basically overlapping and in the middle of the linear 
 
 Finally, the repeat instability metrics can be calculated. In the metadata, a subset of the samples are set as 'metrics_baseline_control', meaning they are the samples taken at day 0 in this experiment. This allows us to set `grouped = TRUE` and set the index peak (the modal repeat size at the start of the experiment, or inherited repeat length in the case of mice) for the expansion index and other metrics.
 
-```{r, warning=FALSE, message=FALSE}
+```{r calculate_instability_metrics, warning=FALSE, message=FALSE}
 metrics_grouped_df <- calculate_instability_metrics(
       fragments_list = repeats_list,
       grouped = TRUE,
-      peak_threshold = 0.05,
-      window_around_main_peak = c(-40, 40))
+      peak_threshold = 0.05)
 ```
 
-These metrics can then be used to quantify repeat instability. For example, this reproduces Figure 7e of [our manuscript](https://www.biorxiv.org/content/10.1101/2023.07.25.550489v1).
+These metrics can then be used to quantify repeat instability. For example, this reproduces Figure 7e of [our manuscript](https://www.nature.com/articles/s41467-024-47485-0).
 
 First, prepare the data for plotting by removing poor quality samples and finding the average repeat gain relative to the DMSO group for each cell line
 
-```{r}
+```{r plot_data}
 plot_data <- metrics_grouped_df |>
     dplyr::left_join(metadata, by = dplyr::join_by(unique_id)) |>
     dplyr::filter(day > 0,
@@ -208,17 +200,15 @@ plot_data <- metrics_grouped_df |>
 
 Then we can plot the instability metrics
 
-```{r}
+```{r ggplot}
 ggplot(plot_data,
-       aes(as.factor(treatment), rel_gain,
-           colour = as.factor(treatment))) +
+       aes(genotype, rel_gain, colour = genotype)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter() +
-  facet_wrap(vars(genotype)) +
+  facet_wrap(vars(as.factor(treatment)), nrow = 1) +
   labs(y = "Average repeat gain\n(relative to DMSO)",
-       x = "Branaplam (nM)") +
+       x = "PMS1 pseudoexon status") +
   theme(legend.position = "none")
 
-  
 
 ```
