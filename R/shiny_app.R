@@ -1,13 +1,17 @@
 # modules -----------------------------------------------------------------
 ## select sample module
 sample_selection_ui <- function(id){
-  # shinyWidgets::pickerInput(shiny::NS(id, "unique_id_selection"), "Sample:", NULL,
-  #                           options = shinyWidgets::pickerOptions(iconBase = "fas")
-  #                           )
-  shiny::selectInput(shiny::NS(id, "unique_id_selection"), "Sample:", NULL)
+  shiny::tagList(
+    # shinyWidgets::pickerInput(shiny::NS(id, "unique_id_selection"), "Sample:", NULL,
+    #                           options = shinyWidgets::pickerOptions(iconBase = "fas")
+    #                           )
 
-
+    shiny::selectInput(shiny::NS(id, "unique_id_selection"), "Sample:", NULL),
+    shiny::checkboxInput(shiny::NS(id, "warning_checkbox"), label = "Select only samples with ladder warnings", value = FALSE)
+  )
 }
+
+
 
 sample_selection_module <- function(id, fragment_trace_list){
   shiny::moduleServer(id, function(input, output, session){
@@ -34,18 +38,44 @@ sample_selection_module <- function(id, fragment_trace_list){
 #     })
 
 
+
+
+    ladder_warning_samples <- shiny::reactive({
+      sapply(reactiveValuesToList(fragment_trace_list),
+             function(x){
+               if(is.null(tryCatch(ladder_rsq_warning_helper(x, 0.998),
+                                   warning = function(w) w))){
+                 FALSE
+               }
+               else{
+                 TRUE
+               }
+             })
+    })
+
+    choices <- reactive({
+      if(input$warning_checkbox){
+        names(fragment_trace_list)[which(ladder_warning_samples())]
+      }
+      else{
+        names(fragment_trace_list)
+        }
+    })
+
+
     shiny::observe({
-      shiny::updateSelectInput(session, "unique_id_selection", choices = names(fragment_trace_list)
+      shiny::updateSelectInput(session, "unique_id_selection",
+         choices = choices()
+
       )
     })
 
 
     selected_fragments_trace <- shiny::reactive({
+    # if(is.null(input$unique_id_selection)){
+    if(input$unique_id_selection == ""){
 
-      # if(is.null(input$unique_id_selection)){
-      if(input$unique_id_selection == ""){
-
-        fragment_trace_list[[names(fragment_trace_list)[1]]]
+        fragment_trace_list[[choices()[1]]]
       }
       else{
         fragment_trace_list[[input$unique_id_selection]]
@@ -94,11 +124,11 @@ plot_module_server <- function(id, fragment_ladder, input_unique_id_selection) {
       text_annotations <- list()
       for (i in 1:length(ladders$scan)) {
         shapes_with_labels[[i]] <- list(
-          type = "rect",
-          x0 = ladders$scan[i] - 1,   # Adjust as needed for the positions of your shapes
-          x1 = ladders$scan[i] + 1,   # Adjust as needed for the positions of your shapes
-          y0 = 0,
-          y1 = max(fragment_ladder()$trace_bp_df$ladder_signal),
+          type = "line",
+          x0 = ladders$scan[i] ,   # Adjust as needed for the positions of your shapes
+          x1 = ladders$scan[i] ,   # Adjust as needed for the positions of your shapes
+          y0 = 0.05,
+          y1 = 0.45 ,
           yref = "paper",
           fillcolor = "rgba(0,0,0,0)",  # Transparent fill
           line = list(
@@ -110,7 +140,7 @@ plot_module_server <- function(id, fragment_ladder, input_unique_id_selection) {
 
         # Add text annotation
         text_annotations[[i]] <- list(
-          x = ladders$scan[i] + 19,  # X-position of the text
+          x = ladders$scan[i],  # X-position of the text
           y = max(fragment_ladder()$trace_bp_df$ladder_signal) / 2,  # Adjust Y-position as needed
           text = ladders$size[i],
           showarrow = FALSE,  # Remove arrow if not desired
@@ -157,7 +187,7 @@ plot_module_server <- function(id, fragment_ladder, input_unique_id_selection) {
 
 ladder_export_ui <- function(id) {
   shiny::tagList(
-    shiny::downloadButton(shiny::NS(id, "download"))
+    shiny::downloadButton(shiny::NS(id, "download"), "Download ladder corrections")
   )
 }
 
@@ -175,20 +205,58 @@ ladder_export_server <- function(id, manual_ladder_list) {
 }
 
 
+## r squared table
+
+
+rsq_table_ui <- function(id) {
+  shiny::tagList(
+    shiny::tableOutput(shiny::NS(id, "rsq_table"))
+  )
+}
+
+rsq_table_server <- function(id, fragment_ladder) {
+  shiny::moduleServer(id, function(input, output, session) {
+
+    rsq_table <- reactive({
+      rsq <- sapply(fragment_ladder()$mod_parameters, function(y) suppressWarnings(summary(y$mod)$r.squared))
+      size_ranges <- sapply(fragment_ladder()$mod_parameters, function(y) y$mod$model$yi)
+      size_ranges_vector <- vector('numeric', ncol(size_ranges))
+      for (j in seq_along(size_ranges_vector)) {
+        size_ranges_vector[j] <- paste0(size_ranges[1,j],", ", size_ranges[2,j], ", ",size_ranges[3,j])
+      }
+
+      data.frame(
+        sizes = size_ranges_vector,
+        rsq = as.character(round(rsq, digits = 5))
+      )
+    })
+
+
+    output$rsq_table <- renderTable({
+
+      rsq_table()
+    })
+  })
+}
+
+
 
 # Shiny App ---------------------------------------------------------------
 
-ui <-  shiny::fluidPage(
-  shiny::fluidRow(shiny::column(2,
-                  sample_selection_ui("sample_selection"),
-                  ladder_export_ui("ladder_df_list_download")
-                  ),
-                  shiny::column(10,
-                  plot_module_ui("plot_module")
-
-                  )),
-  shiny::fluidRow(shiny::column(2,shiny::h5("Ladders:"),shiny::tableOutput('data1table')))
+ui <- shiny::fluidPage(
+  shiny::titlePanel("Interactive ladder fixing"),
+  shiny::sidebarLayout(
+    shiny::sidebarPanel(
+      sample_selection_ui("sample_selection"),
+      ladder_export_ui("ladder_df_list_download")
+    ),
+    shiny::mainPanel(
+      plot_module_ui("plot_module"),
+      rsq_table_ui("rsq_table")
+    )
+  )
 )
+
 
 
 
@@ -209,9 +277,9 @@ server_function <- function(input, output, session, fragment_trace_list) {
                                     selected_fragments_trace$sample,
                                     selected_fragments_trace$input_unique_id_selection)
 
-  output$data1table <- shiny::renderTable({
-    as.data.frame(shiny::reactiveValuesToList(plot_output$ladders()))
-  })
+
+  rsq_table_server("rsq_table", selected_fragments_trace$sample)
+
 
   # have a reactive list that gets updated when you change the stuff
   shiny::observe({
