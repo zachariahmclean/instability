@@ -1,8 +1,8 @@
 test_that("multiplication works", {
 
-  library(shiny)
-  library(ggplot2)
-  library(plotly)
+  # library(shiny)
+  # library(ggplot2)
+  # library(plotly)
 
 
   file_list <- instability::cell_line_fsa_list
@@ -31,11 +31,19 @@ test_that("multiplication works", {
     example_list
   )
 
+  plot_ladders(test_ladders_fixed_manual["20230413_B03.fsa"], n_facet_col = 1)
 
 
 
-  interactive_ladders(test_ladders_fixed_manual)
+  test_ladders_fixed_manual <- fix_ladders_manual(
+    test_ladders_fixed_manual,
+    readRDS("/Users/zlm2/Downloads/2024-05-09_150345_ladder_df_list.rds")
+  )
 
+
+  fix_ladder_interactive(test_ladders_fixed_manual)
+
+  plot_ladders(test_ladders_fixed_manual[1], n_facet_col = 1)
 
 
 })
