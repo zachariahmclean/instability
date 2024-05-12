@@ -155,6 +155,7 @@ test_that("find ladders", {
 
   file_list <- instability::cell_line_fsa_list
 
+
   suppressWarnings(
   test_ladders <- find_ladders(file_list[which(names(file_list) == "20230413_B03.fsa")],
                ladder_channel = "DATA.105",
@@ -162,8 +163,10 @@ test_that("find ladders", {
                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                hq_ladder = FALSE,
                max_combinations = 2500000,
-               ladder_selection_window = 8)
+               ladder_selection_window = 8,
+               show_progress_bar = FALSE)
   )
+
 
 
   testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1633, 1783, 1927, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
@@ -185,7 +188,8 @@ test_that("fix ladders", {
                                  ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                                  hq_ladder = FALSE,
                                  max_combinations = 2500000,
-                                 ladder_selection_window = 8)
+                                 ladder_selection_window = 8,
+                                 show_progress_bar = FALSE)
   )
 
 
@@ -196,14 +200,20 @@ test_that("fix ladders", {
     )
   )
 
-  suppressWarnings(
-    test_ladders_fixed_manual <- fix_ladders_manual(
-      test_ladders,
-      example_list
+  suppressMessages(
+    suppressWarnings(
+      test_ladders_fixed_manual <- fix_ladders_manual(
+        test_ladders,
+        example_list
+      )
     )
   )
 
-  test_ladders_fixed <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
+  suppressWarnings(
+    test_ladders_fixed <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
+  )
+
+
 
   testthat::expect_true(all(test_ladders_fixed$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1633, 1783, 1927, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
 
@@ -226,19 +236,19 @@ test_that("fix ladders manual", {
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                                hq_ladder = FALSE,
                                max_combinations = 2500000,
-                               ladder_selection_window = 8)
+                               ladder_selection_window = 8,
+                               show_progress_bar = FALSE)
 
+  suppressMessages(
   test_ladders_fixed_manual <- fix_ladders_manual(
     test_ladders,
     example_list
+  )
   )
 
   expect_true(nrow(test_ladders_fixed_manual[[1]]$ladder_df) == 16)
 
 })
-
-
-
 
 
 testthat::test_that("find_fragments", {
@@ -255,7 +265,8 @@ testthat::test_that("find_fragments", {
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                                hq_ladder = FALSE,
                                max_combinations = 2500000,
-                               ladder_selection_window = 8)
+                               ladder_selection_window = 8,
+                               show_progress_bar = FALSE)
 )
 
 suppressWarnings(
@@ -293,13 +304,14 @@ testthat::test_that("metadata transfer", {
 
 
   suppressWarnings(
-  test_ladders <- find_ladders(file_list,
+  test_ladders <- find_ladders(file_list[1],
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                                hq_ladder = FALSE,
                                max_combinations = 2500000,
-                               ladder_selection_window = 8)
+                               ladder_selection_window = 8,
+                               show_progress_bar = FALSE)
   )
   suppressWarnings(
   metadata_added <- add_metadata(test_ladders, metadata,
@@ -328,14 +340,6 @@ testthat::test_that("metadata transfer", {
 
 testthat::test_that("full pipline", {
 
-
-
-  # simple option:
-
-  # files <- list.files("data/GT_Z.McLean_2023-04-14/", full.names = TRUE)
-
-
-
   suppressWarnings(
   test_ladders <- find_ladders(cell_line_fsa_list,
                                ladder_channel = "DATA.105",
@@ -343,7 +347,8 @@ testthat::test_that("full pipline", {
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                                hq_ladder = FALSE,
                                max_combinations = 2500000,
-                               ladder_selection_window = 5)
+                               ladder_selection_window = 5,
+                               show_progress_bar = FALSE)
   )
 
   # plot_ladders(test_ladders[1:9], n_facet_col = 3,
@@ -381,12 +386,13 @@ testthat::test_that("full pipline", {
     fragments_list = fragment_metadata,
     number_of_peaks_to_return = 1)
 
-
+  suppressMessages(
   suppressWarnings(
 
   test_repeats <- call_repeats(
     fragments_list = fragment_alleles,
     repeat_length_correction = "from_metadata"
+  )
   )
   )
 
@@ -398,6 +404,7 @@ testthat::test_that("full pipline", {
   # plot_fragments(test_repeats[1:4])
   # plot_repeat_correction_model(test_repeats)
 
+  suppressMessages(
   suppressWarnings(
   test_metrics_grouped <- calculate_instability_metrics(
     fragments_list = test_repeats,
@@ -405,6 +412,7 @@ testthat::test_that("full pipline", {
     peak_threshold = 0.05,
     window_around_main_peak = c(-40, 40))
 
+  )
   )
 
 

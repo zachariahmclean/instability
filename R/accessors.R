@@ -65,6 +65,7 @@ read_fsa <- function(files){
 #'        the we iterate through the scans in blocks and test their linear fit.
 #'        In fragment analysis, we can assume that the ladder is linear over a
 #'        short distance. This value defines how large that block of peaks should be.
+#' @param show_progress_bar show progress bar
 #'
 #' @return list of fragments_trace objects
 #' @export
@@ -111,7 +112,8 @@ find_ladders <- function(fsa_list,
                              spike_location = NULL,
                              smoothing_window = 21,
                              max_combinations = 2500000,
-                             ladder_selection_window = 5){
+                             ladder_selection_window = 5,
+                             show_progress_bar = TRUE){
 
 
   ladder_list <- vector("list", length(fsa_list))
@@ -123,7 +125,9 @@ find_ladders <- function(fsa_list,
     ladder_list[[i]]$off_scale_scans <- fsa_list[[i]]$Data$OfSc.1
   }
 
-  pb <- utils::txtProgressBar(min = 0, max = length(ladder_list), style = 3)
+  if(show_progress_bar){
+    pb <- utils::txtProgressBar(min = 0, max = length(ladder_list), style = 3)
+  }
 
   #find ladder for each sample and use that to predict bp size
   for (i in seq_along(ladder_list)) {
@@ -159,7 +163,9 @@ find_ladders <- function(fsa_list,
     ladder_rsq_warning_helper(ladder_list[[i]],
                               rsq_threshold = 0.998)
 
-    utils::setTxtProgressBar(pb, i)
+    if(show_progress_bar){
+      utils::setTxtProgressBar(pb, i)
+    }
   }
 
   names(ladder_list) <- names(fsa_list)
@@ -307,7 +313,7 @@ fix_ladders_manual <- function(fragments_trace_list,
   for (i in seq_along(fragments_trace_list)) {
     if(fragments_trace_list[[i]]$unique_id %in% samples_to_fix){
       tmp_unique_id <- fragments_trace_list[[i]]$unique_id
-      print(paste("Fixing ladder for", tmp_unique_id))
+      message(paste("Fixing ladder for", tmp_unique_id))
 
       fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]$clone()
 
@@ -388,7 +394,7 @@ extract_trace_table <- function(fragments_trace_list){
 #' @param max_bp_size numeric: maximum bp size of peaks to consider
 #' @param ... pass additional arguments to findpeaks, or change the default arguments
 #' we set. minimum_peak_signal above is passed to findpeaks as minpeakheight, and
-#' peakpat has been set to "[+]{6,}[0]*[-]{6,}" so that peaks with flat tops are
+#' peakpat has been set to '[+]{6,}[0]*[-]{6,}' so that peaks with flat tops are
 #' still called, #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
 #'
 #'
@@ -767,7 +773,7 @@ find_alleles <- function(fragments_list,
 #' @param repeat_size An integer specifying the repeat size for repeat calling. Default is 3.
 #' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
 #'
-#' @return A list of \code{\link{fragments_repeats}} objects with repeat data added.
+#' @return A list of \code{"fragments_repeats"} objects with repeat data added.
 #'
 #' #' @details
 #' The calculated repeat lengths are assigned to the corresponding peaks in the provided `fragments_repeats` object. The repeat lengths can be used for downstream instability analysis.
@@ -777,7 +783,7 @@ find_alleles <- function(fragments_list,
 #' The `nearest_peak` algorithm aims to model and correct for the systematic variation in fragment sizes that occurs over base pairs. It calculates repeat lengths in a way that helps align peaks with the underlying repeat pattern, making the estimation of repeat lengths more reliable relative to the main peak. The calculated repeat lengths start from the main peak's repeat length (repeat length of the main peak calculated with simple algorithm described above) and increase in increments of the specified `repeat_size`. This approach is particularly useful for mitigating the impact of size measurement underestimate, often referred to as "drift," that can occur over base pairs. By ensuring that the calculated repeat lengths are evenly spaced apart by a fixed amount (`repeat_size`), this algorithm helps stabilize the estimation of repeat lengths across peaks, leading to more consistent results.
 #'
 #'
-#' @seealso [instability::find_main_peaks()]
+#' @seealso [find_alleles()]
 #'
 #' @export
 #'

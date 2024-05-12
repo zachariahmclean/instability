@@ -275,13 +275,14 @@ testthat::test_that("call_repeats", {
     peak_region_size_gap_threshold = 6,
     peak_region_height_threshold_multiplier = 1)
 
-
+  suppressMessages(
   test_repeats <- call_repeats(
     fragments_list = test_alleles,
     repeat_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     repeat_length_correction = "none"
+  )
   )
 
 
@@ -296,12 +297,14 @@ testthat::test_that("call_repeats", {
 
   # nearest peak algo
 
+  suppressMessages(
   test_repeats_np <- call_repeats(
     fragments_list = test_alleles,
     repeat_algorithm = "nearest_peak",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     repeat_length_correction = "none"
+  )
   )
 
 
@@ -330,12 +333,16 @@ testthat::test_that("call_repeats", {
                                         size_standard = "repeat_positive_control_TF",
                                         size_standard_repeat_length = "repeat_positive_control_length")
 
+  suppressMessages(
+  suppressMessages(
   test_repeats_corrected <- call_repeats(
     fragments_list = test_alleles_metadata,
     repeat_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     repeat_length_correction = "from_metadata"
+  )
+  )
   )
 
   mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$correction_mod$coefficients
@@ -361,13 +368,14 @@ testthat::test_that("call_repeats with correction from genemapper alleles", {
     peak_region_size_gap_threshold = 6,
     peak_region_height_threshold_multiplier = 1)
 
+  suppressMessages(
   test_repeats_corrected <- call_repeats(
     fragments_list = test_alleles,
     repeat_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     repeat_length_correction = "from_genemapper"
-  )
+  ))
 
   mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$correction_mod$coefficients
 
@@ -382,16 +390,16 @@ testthat::test_that("calculate metrics", {
   gm_raw <- instability::example_data
   metadata <- instability::metadata
   # Save raw data as a fragment class
-  suppressWarnings({
 
+  suppressWarnings(
     test_fragments <- peak_table_to_fragments(gm_raw,
                                               data_format = "genemapper5",
                                               dye_channel = "B",
                                               min_size_bp = 400)
-  })
+  )
 
 
-  suppressWarnings({
+
     test_metadata <- add_metadata(
       fragments_list = test_fragments,
       metadata_data.frame = metadata,
@@ -409,16 +417,21 @@ testthat::test_that("calculate metrics", {
       peak_region_height_threshold_multiplier = 1)
 
 
-    test_repeats <- call_repeats(
-      fragments_list = test_alleles,
-      repeat_algorithm = "simple",
-      assay_size_without_repeat = 87,
-      repeat_size = 3,
-      repeat_length_correction = "none"
+    suppressWarnings(
+      test_repeats <- call_repeats(
+        fragments_list = test_alleles,
+        repeat_algorithm = "simple",
+        assay_size_without_repeat = 87,
+        repeat_size = 3,
+        repeat_length_correction = "none"
+      )
     )
+
 
     # grouped
 
+    suppressMessages(
+    suppressWarnings(
     test_metrics_grouped <- calculate_instability_metrics(
       fragments_list = test_repeats,
       grouped = TRUE,
@@ -428,8 +441,8 @@ testthat::test_that("calculate metrics", {
       percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
       repeat_range = c( 1,2,3,4,seq(6,20,2)),
       index_override_dataframe = NULL)
-  })
-
+    )
+    )
 
 
   testthat::expect_true(round(mean(test_metrics_grouped$expansion_index, na.rm = TRUE), 3) == 6.673)
@@ -439,7 +452,7 @@ testthat::test_that("calculate metrics", {
   # ungrouped
 
 
-  suppressWarnings({
+  suppressWarnings(
     test_repeats <- call_repeats(
       fragments_list = test_alleles,
       repeat_algorithm = "simple",
@@ -447,7 +460,10 @@ testthat::test_that("calculate metrics", {
       repeat_size = 3,
       repeat_length_correction = "none"
     )
+  )
 
+
+    suppressMessages(
     test_metrics_ungrouped <- calculate_instability_metrics(
       fragments_list = test_repeats,
       grouped = FALSE,
@@ -457,8 +473,8 @@ testthat::test_that("calculate metrics", {
       percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
       repeat_range = c( 1,2,3,4,seq(6,20,2)),
       index_override_dataframe = NULL)
-    })
 
+  )
 
 
   testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index, na.rm = TRUE), 3) == 4.899)

@@ -14,7 +14,8 @@ find_ladders(
   spike_location = NULL,
   smoothing_window = 21,
   max_combinations = 2500000,
-  ladder_selection_window = 5
+  ladder_selection_window = 5,
+  show_progress_bar = TRUE
 )
 }
 \arguments{
@@ -42,6 +43,8 @@ combinations that should be tested}
 the we iterate through the scans in blocks and test their linear fit.
 In fragment analysis, we can assume that the ladder is linear over a
 short distance. This value defines how large that block of peaks should be.}
+
+\item{show_progress_bar}{show progress bar}
 }
 \value{
 list of fragments_trace objects
