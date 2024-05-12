@@ -2,11 +2,7 @@
 ## select sample module
 sample_selection_ui <- function(id){
   shiny::tagList(
-    # shinyWidgets::pickerInput(shiny::NS(id, "unique_id_selection"), "Sample:", NULL,
-    #                           options = shinyWidgets::pickerOptions(iconBase = "fas")
-    #                           )
-
-    shiny::selectInput(shiny::NS(id, "unique_id_selection"), "Sample:", NULL),
+    shiny::selectInput(shiny::NS(id, "unique_id_selection"), "Sample selection", NULL),
     shiny::checkboxInput(shiny::NS(id, "warning_checkbox"), label = "Select only samples with ladder warnings", value = FALSE)
   )
 }
@@ -16,32 +12,8 @@ sample_selection_ui <- function(id){
 sample_selection_module <- function(id, fragment_trace_list){
   shiny::moduleServer(id, function(input, output, session){
 
-
-    # ladder_warning <- shiny::reactive({
-    #   sapply(reactiveValuesToList(fragment_trace_list),
-    #          function(x){
-    #            if(is.null(tryCatch(ladder_rsq_warning_helper(x, 0.998),
-    #                                warning = function(w) w))){
-    #              NA
-    #            }
-    #            else{
-    #              "fa-triangle-exclamation"
-    #            }
-    #          })
-    # })
-#
-#
-#     shiny::observe({
-#       shinyWidgets::updatePickerInput(session, "unique_id_selection", choices = names(fragment_trace_list),
-#                                       choicesOpt = list(icon = ladder_warning())
-#                                       )
-#     })
-
-
-
-
     ladder_warning_samples <- shiny::reactive({
-      sapply(reactiveValuesToList(fragment_trace_list),
+      sapply(shiny::reactiveValuesToList(fragment_trace_list),
              function(x){
                if(is.null(tryCatch(ladder_rsq_warning_helper(x, 0.998),
                                    warning = function(w) w))){
@@ -50,10 +22,10 @@ sample_selection_module <- function(id, fragment_trace_list){
                else{
                  TRUE
                }
-             })
+            })
     })
 
-    choices <- reactive({
+    choices <- shiny::reactive({
       if(input$warning_checkbox){
         names(fragment_trace_list)[which(ladder_warning_samples())]
       }
@@ -88,6 +60,8 @@ sample_selection_module <- function(id, fragment_trace_list){
 
   })
 }
+
+
 ## plot module
 plot_module_ui <- function(id) {
   shiny::tagList(
@@ -95,7 +69,8 @@ plot_module_ui <- function(id) {
   )
 }
 
-plot_module_server <- function(id, fragment_ladder, input_unique_id_selection) {
+plot_module_server <- function(id, fragment_ladder, input_unique_id_selection,
+                               find_scan_max) {
   shiny::moduleServer(id, function(input, output, session) {
 
     # Initialize ladders as NULL
@@ -172,8 +147,14 @@ plot_module_server <- function(id, fragment_ladder, input_unique_id_selection) {
         scan_positions <- ed[grepl("^shapes.*x.*", names(ed))]
         if (length(scan_positions) != 2) return()
         row_index <- unique(as.numeric(sub(".*\\[(.*?)\\].*", "\\1", names(scan_positions)[1])) + 1)
-        new_scans <- round(as.numeric(scan_positions))
-        ladders$scan[row_index] <- new_scans[1] + 1 # +1 because the shape is a box 1 above and one below scan
+
+        # find maximal signal in the user defined region
+        selected_scan <- round(as.numeric(scan_positions))[1]
+        window_df <- fragment_ladder()$trace_bp_df[which(fragment_ladder()$trace_bp_df$scan > selected_scan - find_scan_max() & fragment_ladder()$trace_bp_df$scan < selected_scan + find_scan_max()), ]
+        new_scan <- window_df[which(window_df$ladder_signal == max(window_df$ladder_signal)), "scan"]
+
+        #assign scan
+        ladders$scan[row_index] <- new_scan[1]
       }
     })
 
@@ -217,7 +198,7 @@ rsq_table_ui <- function(id) {
 rsq_table_server <- function(id, fragment_ladder) {
   shiny::moduleServer(id, function(input, output, session) {
 
-    rsq_table <- reactive({
+    rsq_table <- shiny::reactive({
       rsq <- sapply(fragment_ladder()$mod_parameters, function(y) suppressWarnings(summary(y$mod)$r.squared))
       size_ranges <- sapply(fragment_ladder()$mod_parameters, function(y) y$mod$model$yi)
       size_ranges_vector <- vector('numeric', ncol(size_ranges))
@@ -227,19 +208,17 @@ rsq_table_server <- function(id, fragment_ladder) {
 
       data.frame(
         sizes = size_ranges_vector,
-        rsq = as.character(round(rsq, digits = 5))
+        r_squared = as.character(round(rsq, digits = 4))
       )
     })
 
 
-    output$rsq_table <- renderTable({
+    output$rsq_table <- shiny::renderTable({
 
       rsq_table()
     })
   })
 }
-
-
 
 # Shiny App ---------------------------------------------------------------
 
@@ -248,6 +227,8 @@ ui <- shiny::fluidPage(
   shiny::sidebarLayout(
     shiny::sidebarPanel(
       sample_selection_ui("sample_selection"),
+      shiny::sliderInput("find_scan_max", "Snap to tallest scan window",
+                         min = 0, max = 50, value = 10),
       ladder_export_ui("ladder_df_list_download")
     ),
     shiny::mainPanel(
@@ -275,7 +256,8 @@ server_function <- function(input, output, session, fragment_trace_list) {
 
   plot_output <- plot_module_server("plot_module",
                                     selected_fragments_trace$sample,
-                                    selected_fragments_trace$input_unique_id_selection)
+                                    selected_fragments_trace$input_unique_id_selection,
+                                    shiny::reactive(input$find_scan_max))
 
 
   rsq_table_server("rsq_table", selected_fragments_trace$sample)
@@ -288,21 +270,21 @@ server_function <- function(input, output, session, fragment_trace_list) {
     selected_ladder_df <- selected_fragments_trace$sample()$ladder_df
     selected_sample_scans <- selected_ladder_df[which(!is.na(selected_ladder_df$size)), "scan"]
 
-    plot_ladder_df <- as.data.frame(reactiveValuesToList(plot_output$ladders()))
+    plot_ladder_df <- as.data.frame(shiny::reactiveValuesToList(plot_output$ladders()))
     plot_scans <- plot_ladder_df[which(!is.na(plot_ladder_df$size)), "scan"]
 
     #skip if ladder info hasn't been updated
     if(identical(selected_sample_scans, plot_scans)){
       return()
     }
-    else if(nrow(as.data.frame(reactiveValuesToList(plot_output$ladders()))) == 0 ){
+    else if(nrow(as.data.frame(shiny::reactiveValuesToList(plot_output$ladders()))) == 0 ){
       return()
     }
 
-    manual_ladder_list[[sample_unique_id]] <- as.data.frame(reactiveValuesToList(plot_output$ladders()))
+    manual_ladder_list[[sample_unique_id]] <- as.data.frame(shiny::reactiveValuesToList(plot_output$ladders()))
     fragment_trace_list_reactive[[sample_unique_id]] <- fix_ladders_manual(
-      reactiveValuesToList(fragment_trace_list_reactive)[sample_unique_id],
-      reactiveValuesToList(manual_ladder_list)[sample_unique_id]
+      shiny::reactiveValuesToList(fragment_trace_list_reactive)[sample_unique_id],
+      shiny::reactiveValuesToList(manual_ladder_list)[sample_unique_id]
     )[[1]]
 
   })
@@ -315,7 +297,67 @@ server_function <- function(input, output, session, fragment_trace_list) {
 
 
 
-fix_ladder_interactive <- function(fragment_trace_list) {
+#' Fix ladders interactively
+#'
+#' An app for fixing ladders
+#'
+#' @param fragment_trace_list A list of fragments_trace objects containing fragment data
+#'
+#' @return interactive shiny app
+#' @export
+#' @details
+#' This function helps you fix ladders that are incorrectly assigned. Run `fix_ladders_interactive()`
+#' and provide output from `find_ladders`. In the app, for each sample, click on
+#' line for the incorrect ladder size and drag it to the correct peak.
+#'
+#' Once you are satisfied with the ladders for all the broken samples, click the download
+#' button to generate a file that has the ladder correction data. Read this file
+#' back into R using readRDS, then use [fix_ladders_manual()] and supply the ladder
+#' correction data as `ladder_df_list`. This allows the manually corrected data to
+#' be saved and used within a script so that the correct does not need to be done
+#' every time.
+#'
+#' @seealso [fix_ladders_manual()], [find_ladders()]
+#'
+#'
+#' @examples
+#' file_list <- instability::cell_line_fsa_list[c("20230413_B03.fsa")]
+#'
+#' test_ladders <- find_ladders(file_list)
+#'
+#' # to create an example, lets brake one of the ladders
+#' brake_ladder_list <- list(
+#'   "20230413_B03.fsa" = data.frame(
+#'     size = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+#'     scan = c(1555, 1633, 1783, 1827, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)
+#'   )
+#' )
+#'
+#' test_ladders_broken <- fix_ladders_manual(
+#'   test_ladders,
+#'   brake_ladder_list
+#'  )
+#'
+#'  plot_ladders(test_ladders_broken["20230413_B03.fsa"],
+#'            n_facet_col = 1)
+#'
+#'
+#' if (interactive()) {
+#'   fix_ladders_interactive(test_ladders_broken)
+#' }
+#'
+#' # once you have corrected your ladders in the app, export the data we need to incorporate that into the script
+#' #ladder_df_list <- readRDS('path/to/exported/data.rds')
+#' #test_ladders_fixed <- fix_ladders_manual(test_ladders_broken, ladder_df_list)
+#'
+#' #plot_ladders(test_ladders_fixed["20230413_B03.fsa"],
+#' #           n_facet_col = 1)
+#'
+fix_ladders_interactive <- function(fragment_trace_list) {
+
+  message("To incorporate the manual corrections into your script you need to do the following:")
+  message("1: read in the corrected ladder data using 'ladder_df_list <- readRDS('path/to/exported/data.rds')'")
+  message("2: Run 'fix_ladders_manual(fragments_trace_list, ladder_df_list)'")
 
   # Launch the Shiny app with fragment_trace_list passed as a parameter
   shiny::shinyApp(

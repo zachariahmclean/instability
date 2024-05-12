@@ -24,7 +24,7 @@ call_repeats(
 \item{repeat_length_correction}{A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.}
 }
 \value{
-A list of \code{\link{fragments_repeats}} objects with repeat data added.
+A list of \code{"fragments_repeats"} objects with repeat data added.
 
 #' @details
 The calculated repeat lengths are assigned to the corresponding peaks in the provided \code{fragments_repeats} object. The repeat lengths can be used for downstream instability analysis.

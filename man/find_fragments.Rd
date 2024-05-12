@@ -26,7 +26,7 @@ find_fragments(
 
 \item{...}{pass additional arguments to findpeaks, or change the default arguments
 we set. minimum_peak_signal above is passed to findpeaks as minpeakheight, and
-peakpat has been set to "[+]{6,}\link{0}*[-]{6,}" so that peaks with flat tops are
+peakpat has been set to '[+]{6,}\link{0}*[-]{6,}' so that peaks with flat tops are
 still called, #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks}
 }
 \value{

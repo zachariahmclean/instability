@@ -35,10 +35,11 @@ experiment and things to consider when using this package:
   in the `size_standard_repeat_length` column.
 
 - If starting from fsa files, the GeneScan™ 1200 LIZ™ dye Size Standard
-  will not work. The ladder identification algorithm is optimized for
-  GeneScan™ 500 LIZ™. Similarly, the GeneScan™ 600 LIZ™ Size Standard
-  will likely not work. Both of 1200 LIZ™ and 500 LIZ™ ladders have an
-  extremely challenging pattern of ladder peaks.
+  ladder assignment may not work very well. The ladder identification
+  algorithm is optimized for GeneScan™ 500 LIZ™ or GeneScan™ 600 LIZ™.
+  The 1200 LIZ™ ladder has an extremely challenging pattern of ladder
+  peaks to automatically assign. However, these ladders can be fixed
+  manually with the `fix_ladders_interactive()` app.
 
 ## Installation
 
@@ -105,20 +106,18 @@ plot_ladders(ladder_list[1], n_facet_col = 1,
 
 <img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
 
-One of the sample has a poorly fitting ladder (peaks in the 39-75
-incorrect) so we can use fix_ladders_auto() to automatically fix it, or
-fix_ladders_manual() to manually fix it in the worst case scenario.
+If the ladders are are not assigned correctly, you can either try
+fix_ladders_auto() (optimal for when just a single ladder peak is
+wrong), or manually using the fix_ladders_interactive() app.
 
-``` r
-ladders_fixed_list <- fix_ladders_auto(ladder_list, "20230413_B03.fsa")
-```
+![](man/figures/ladder_fixing.gif)
 
 ## Find fragments
 
 The fragment peaks are identified in the raw continuous trace data.
 
 ``` r
-peak_list <- find_fragments(ladders_fixed_list,
+peak_list <- find_fragments(ladder_list,
                               min_bp_size = 300)
 ```
 
@@ -132,7 +131,7 @@ plot_traces(peak_list[1], n_facet_col = 1,
             ylim = c(0,1200))
 ```
 
-<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-6-1.png" width="100%" />
 
 Alternatively, if not starting from fsa files, this is where you would
 use exported data from Genemapper if you would rather use the Genemapper
@@ -207,7 +206,7 @@ peak with a plotting function.
 plot_fragments(repeats_list[1], n_facet_col = 1)
 ```
 
-<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
 
 We can also view the data used to generate the model for calling the
 repeat size when we indicate size standard samples in the metadata and
@@ -218,7 +217,7 @@ have `repeat_length_correction = "from_metadata"` in `call_repeats()`.
 plot_repeat_correction_model(repeats_list)
 ```
 
-<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />
 
 In this case the dots are basically overlapping and in the middle of the
 linear model, indicating that we have correctly identified the known
@@ -275,4 +274,4 @@ ggplot(plot_data,
   theme(legend.position = "none")
 ```
 
-<img src="man/figures/README-unnamed-chunk-15-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-14-1.png" width="100%" />
