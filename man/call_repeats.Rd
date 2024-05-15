@@ -93,5 +93,5 @@ test_repeats_corrected <- call_repeats(
 )
 }
 \seealso{
-\code{\link[=find_main_peaks]{find_main_peaks()}}
+\code{\link[=find_alleles]{find_alleles()}}
 }

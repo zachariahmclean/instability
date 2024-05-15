@@ -56,8 +56,8 @@ read_fsa <- function(files){
 #'        signal
 #' @param ladder_sizes numeric vector: bp sizes of ladder used in fragment analysis.
 #'        defaults to GeneScan™ 500 LIZ™
-#' @param hq_ladder logical: If TRUE, c(35, 250, 340) will be dropped from ladder
-#' @param spike_location numeric: indicate the scan number of the large spike peak
+#' @param spike_location numeric: indicate the scan number of the large spike peak.
+#' @param scan_subset numeric vector (length 2): filter the ladder and data signal between the selected scans (eg scan_subset = c(3000, 5000))
 #' @param smoothing_window numeric: ladder signal smoothing window size for passed to pracma::savgol()
 #' @param max_combinations numeric: what is the maximum number of ladder
 #'        combinations that should be tested
@@ -96,7 +96,6 @@ read_fsa <- function(files){
 #'                                ladder_channel = "DATA.105",
 #'                                signal_channel = "DATA.1",
 #'                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'                                hq_ladder = FALSE,
 #'                                max_combinations = 2500000,
 #'                                ladder_selection_window = 8)
 #'
@@ -108,8 +107,8 @@ find_ladders <- function(fsa_list,
                              ladder_channel = "DATA.105",
                              signal_channel = "DATA.1",
                              ladder_sizes =  c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                             hq_ladder=FALSE,
                              spike_location = NULL,
+                             scan_subset = NULL,
                              smoothing_window = 21,
                              max_combinations = 2500000,
                              ladder_selection_window = 5,
@@ -118,11 +117,27 @@ find_ladders <- function(fsa_list,
 
   ladder_list <- vector("list", length(fsa_list))
   for(i in seq_along(fsa_list)){
+
     ladder_list[[i]] <- fragments_trace$new(unique_id = names(fsa_list[i]))
     ladder_list[[i]]$raw_ladder <- fsa_list[[i]]$Data[[ladder_channel]]
     ladder_list[[i]]$raw_data <- fsa_list[[i]]$Data[[signal_channel]]
     ladder_list[[i]]$scan <- 0:(length(fsa_list[[i]]$Data[[signal_channel]])- 1)
     ladder_list[[i]]$off_scale_scans <- fsa_list[[i]]$Data$OfSc.1
+
+    #allow user to subset to particular scans
+    if(!is.null(scan_subset)){
+
+      ladder_list[[i]]$raw_ladder <- ladder_list[[i]]$raw_ladder[scan_subset[1]:scan_subset[2]]
+      ladder_list[[i]]$raw_data <- ladder_list[[i]]$raw_data[scan_subset[1]:scan_subset[2]]
+      ladder_list[[i]]$scan <- ladder_list[[i]]$scan[scan_subset[1]:scan_subset[2]]
+
+      # set spike location since it's automatically set usually, and user may select scans to start after
+      spike_location <- scan_subset[1]
+
+    }
+
+
+
   }
 
   if(show_progress_bar){
@@ -138,7 +153,6 @@ find_ladders <- function(fsa_list,
       ladder = ladder_list[[i]]$raw_ladder,
       scans = ladder_list[[i]]$scan,
       ladder_sizes = ladder_sizes,
-      hq_ladder = hq_ladder,
       spike_location = spike_location,
       smoothing_window = smoothing_window,
       max_combinations = max_combinations,
@@ -215,7 +229,6 @@ find_ladders <- function(fsa_list,
 #'                                ladder_channel = "DATA.105",
 #'                                signal_channel = "DATA.1",
 #'                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'                                hq_ladder = FALSE,
 #'                                max_combinations = 2500000,
 #'                                ladder_selection_window = 8)
 #'
@@ -277,7 +290,6 @@ fix_ladders_auto <- function(fragments_trace_list,
 #'   ladder_channel = "DATA.105",
 #'   signal_channel = "DATA.1",
 #'   ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'   hq_ladder = FALSE,
 #'   max_combinations = 2500000,
 #'   ladder_selection_window = 8)
 #'
@@ -356,7 +368,6 @@ fix_ladders_manual <- function(fragments_trace_list,
 #'   ladder_channel = "DATA.105",
 #'   signal_channel = "DATA.1",
 #'   ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'   hq_ladder = FALSE,
 #'   max_combinations = 2500000,
 #'   ladder_selection_window = 8)
 #'
@@ -417,7 +428,6 @@ extract_trace_table <- function(fragments_trace_list){
 #'                               ladder_channel = "DATA.105",
 #'                               signal_channel = "DATA.1",
 #'                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'                               hq_ladder = FALSE,
 #'                               max_combinations = 2500000,
 #'                               ladder_selection_window = 8)
 #'
@@ -1188,7 +1198,6 @@ remove_fragments <- function(fragments_list,
 #'                                ladder_channel = "DATA.105",
 #'                                signal_channel = "DATA.1",
 #'                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'                                hq_ladder = FALSE,
 #'                                max_combinations = 2500000,
 #'                                ladder_selection_window = 8)
 #'
@@ -1244,7 +1253,6 @@ plot_ladders <- function(fragments_trace_list,
 #'                                ladder_channel = "DATA.105",
 #'                                signal_channel = "DATA.1",
 #'                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'                                hq_ladder = FALSE,
 #'                                max_combinations = 2500000,
 #'                                ladder_selection_window = 8)
 #'

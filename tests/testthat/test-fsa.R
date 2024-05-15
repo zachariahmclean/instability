@@ -61,7 +61,9 @@ test_that("iterative ladder", {
   ladder_sizes=c(50, 75, 100, 139, 150, 160, 200, 300, 350, 400, 450, 490, 500)
 
 
-  iteration_result <- ladder_iteration(ladder_sizes, scans_162)
+  iteration_result <- ladder_iteration(ladder_sizes, scans_162,
+                                       choose = 4,
+                                       max_combinations = 2500000)
 
   expect_true(round(mean(iteration_result$scan),3) == 2877.923)
 
@@ -86,7 +88,6 @@ test_that("fit ladder", {
     scans = test_scans,
     spike_location = NULL,
     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-    hq_ladder = FALSE,
     smoothing_window = 21,
     max_combinations = 2500000,
     ladder_selection_window = 5
@@ -99,7 +100,6 @@ test_that("fit ladder", {
   testthat::expect_true(round(mod$coefficients[[2]],5) == 6.25118)
 
 })
-
 
 
 test_that("local southern", {
@@ -116,7 +116,6 @@ test_that("local southern", {
     ladder = test_ladder_signal,
     scans = test_scans,
     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-    hq_ladder = FALSE,
     spike_location = NULL,
     smoothing_window = 21,
     max_combinations = 2500000,
@@ -161,7 +160,6 @@ test_that("find ladders", {
                ladder_channel = "DATA.105",
                signal_channel = "DATA.1",
                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-               hq_ladder = FALSE,
                max_combinations = 2500000,
                ladder_selection_window = 8,
                show_progress_bar = FALSE)
@@ -176,6 +174,30 @@ test_that("find ladders", {
 })
 
 
+test_that("find ladders scan subset", {
+
+  file_list <- instability::cell_line_fsa_list
+
+
+  suppressWarnings(
+    test_ladders <- find_ladders(file_list[which(names(file_list) == "20230413_B03.fsa")],
+                                 ladder_channel = "DATA.105",
+                                 signal_channel = "DATA.1",
+                                 ladder_sizes = c(200, 250, 300, 340, 350, 400, 450),
+                                 scan_subset =  c(2400,4250),
+                                 max_combinations = 2500000,
+                                 ladder_selection_window = 8,
+                                 show_progress_bar = FALSE)
+  )
+
+
+
+  testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(2525, 2828, 3161, 3408, 3470, 3792, 4085)))
+
+
+
+})
+
 
 test_that("fix ladders", {
 
@@ -186,7 +208,6 @@ test_that("fix ladders", {
                                  ladder_channel = "DATA.105",
                                  signal_channel = "DATA.1",
                                  ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                                 hq_ladder = FALSE,
                                  max_combinations = 2500000,
                                  ladder_selection_window = 8,
                                  show_progress_bar = FALSE)
@@ -234,7 +255,6 @@ test_that("fix ladders manual", {
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               hq_ladder = FALSE,
                                max_combinations = 2500000,
                                ladder_selection_window = 8,
                                show_progress_bar = FALSE)
@@ -263,7 +283,6 @@ testthat::test_that("find_fragments", {
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               hq_ladder = FALSE,
                                max_combinations = 2500000,
                                ladder_selection_window = 8,
                                show_progress_bar = FALSE)
@@ -308,7 +327,6 @@ testthat::test_that("metadata transfer", {
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               hq_ladder = FALSE,
                                max_combinations = 2500000,
                                ladder_selection_window = 8,
                                show_progress_bar = FALSE)
@@ -345,7 +363,6 @@ testthat::test_that("full pipline", {
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               hq_ladder = FALSE,
                                max_combinations = 2500000,
                                ladder_selection_window = 5,
                                show_progress_bar = FALSE)

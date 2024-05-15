@@ -10,8 +10,8 @@ find_ladders(
   signal_channel = "DATA.1",
   ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490,
     500),
-  hq_ladder = FALSE,
   spike_location = NULL,
+  scan_subset = NULL,
   smoothing_window = 21,
   max_combinations = 2500000,
   ladder_selection_window = 5,
@@ -30,9 +30,9 @@ signal}
 \item{ladder_sizes}{numeric vector: bp sizes of ladder used in fragment analysis.
 defaults to GeneScan™ 500 LIZ™}
 
-\item{hq_ladder}{logical: If TRUE, c(35, 250, 340) will be dropped from ladder}
+\item{spike_location}{numeric: indicate the scan number of the large spike peak.}
 
-\item{spike_location}{numeric: indicate the scan number of the large spike peak}
+\item{scan_subset}{numeric vector (length 2): filter the ladder and data signal between the selected scans (eg scan_subset = c(3000, 5000))}
 
 \item{smoothing_window}{numeric: ladder signal smoothing window size for passed to pracma::savgol()}
 
@@ -73,7 +73,6 @@ file_list <- instability::cell_line_fsa_list
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               hq_ladder = FALSE,
                                max_combinations = 2500000,
                                ladder_selection_window = 8)
 

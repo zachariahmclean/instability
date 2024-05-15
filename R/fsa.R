@@ -25,15 +25,8 @@ process_ladder_signal = function(ladder,
                                  scans,
                                  spike_location,
                                  smoothing_window){
-  ladder_df <- data.frame(signal = ladder)
-  ladder_df$scan <- scans
-
-  if(is.null(spike_location)){
-    spike_location <- which.max(ladder_df$signal) + 45
-  }
-
-  ladder_df <- ladder_df[spike_location:nrow(ladder_df),]
-
+  ladder_df <- data.frame(signal = ladder, scan = scans)
+  ladder_df <- ladder_df[which(ladder_df$scan >= spike_location),]
   ladder_df$detrended_signal <- detrend_signal(ladder_df$signal)
   ladder_df$smoothed_signal <- pracma::savgol(ladder_df$detrended_signal,
                                               smoothing_window)
@@ -90,8 +83,8 @@ find_ladder_peaks = function(ladder_df,
 
 ladder_iteration = function(reference_sizes,
                             observed_sizes,
-                            choose = 4,
-                            max_combinations = 2500000){
+                            choose,
+                            max_combinations){
 
   find_best_combination <- function(recombinations,
                                     reference_sizes){
@@ -111,15 +104,19 @@ ladder_iteration = function(reference_sizes,
   #Keep going until the the number reference peaks left is small
   while (length(reference_sizes) > 0) {
 
-    #calculate the window to look at
+    # observed_sizes and reference_sizes reset each loop
+
+    # calculate the window to look at for this loop
     n_observed = length(observed_sizes)
     n_refernce = length(reference_sizes)
-    remainder = n_refernce - choose #how many peaks will left to be assigned after this selection
-    start_window = n_observed - remainder  #What is going on here? something to do with keeping track of how many peaks are left to assign in the observed
+    remainder = n_refernce - choose #how many peaks will be left to be assigned after this selection
+    start_window = n_observed - remainder
 
 
-    if(start_window == 1){ # this means that the length of the remaining lists is the same so we can line them up
-      selected_recombinations = observed_sizes
+    if(n_observed == n_refernce){
+      assigned_observed = append(assigned_observed, observed_sizes)
+      assigned_reference = append(assigned_reference, reference_sizes)
+      break
     }
     else{
       n_recombinations = nCr(length(observed_sizes[1:start_window]), choose)
@@ -129,8 +126,6 @@ ladder_iteration = function(reference_sizes,
       }
 
       recombinations = utils::combn(observed_sizes[1:start_window] , choose)
-      # print(paste0(length(observed_sizes[1:start_window]), " pick ", choose))
-      # print(paste0(ncol(recombinations), " combinations"))
 
       selected_recombinations = find_best_combination(
         recombinations = recombinations,
@@ -188,7 +183,6 @@ ladder_iteration = function(reference_sizes,
 fit_ladder <- function(ladder,
                        scans,
                        ladder_sizes,
-                       hq_ladder,
                        spike_location,
                        smoothing_window,
                        max_combinations,
@@ -198,10 +192,6 @@ fit_ladder <- function(ladder,
 
   if (is.null(scans)){
     scans <- 0:(length(ladder) - 1)
-  }
-
-  if(hq_ladder){
-    ladder_sizes <- ladder_sizes[!ladder_sizes %in% c(35, 250, 340)]
   }
 
   if(is.null(spike_location)){
@@ -219,7 +209,6 @@ fit_ladder <- function(ladder,
   ladder_peaks <- find_ladder_peaks(
     ladder_df = ladder_df,
     n_reference_sizes = length(ladder_sizes))
-
 
   peaks_fit_df <- ladder_iteration(
       reference_sizes = rev(ladder_sizes), #start away from the spike going backwards

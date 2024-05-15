@@ -11,11 +11,9 @@ test_that("{shinytest2} recording: fix_ladder-checkbox", {
                                ladder_channel = "DATA.105",
                                signal_channel = "DATA.1",
                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               hq_ladder = FALSE,
                                max_combinations = 2500000,
                                ladder_selection_window = 8,
                                show_progress_bar = FALSE)
-
 
 
   example_list <- list(
