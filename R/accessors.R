@@ -1235,6 +1235,7 @@ plot_ladders <- function(fragments_trace_list,
 #' @param sample_subset A character vector of unique ids for a subset of samples to plot
 #' @param xlim the x limits of the plot. A numeric vector of length two.
 #' @param ylim the y limits of the plot. A numeric vector of length two.
+#' @param height_color_threshold Threshold relative to tallest peak to color the dots (blue above, purple below).
 #'
 #' @return plot traces from fragments object
 #' @export
@@ -1251,10 +1252,7 @@ plot_ladders <- function(fragments_trace_list,
 #'
 #'   test_ladders <- find_ladders(file_list,
 #'                                ladder_channel = "DATA.105",
-#'                                signal_channel = "DATA.1",
-#'                                ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'                                max_combinations = 2500000,
-#'                                ladder_selection_window = 8)
+#'                                signal_channel = "DATA.1")
 #'
 #'  # Manually inspect the ladders
 #'  plot_traces(test_ladders[1], n_facet_col = 1)
@@ -1265,7 +1263,8 @@ plot_traces <- function(fragments_list,
                         n_facet_col = 2,
                         sample_subset = NULL,
                         xlim = NULL,
-                        ylim = NULL) {
+                        ylim = NULL,
+                        height_color_threshold = 0.05) {
 
 
   if(!is.null(sample_subset)){
@@ -1277,7 +1276,8 @@ plot_traces <- function(fragments_list,
     fragments_list[[i]]$plot_trace(
       show_peaks = show_peaks,
       xlim = xlim,
-      ylim = ylim)
+      ylim = ylim,
+      height_color_threshold = height_color_threshold)
   }
   graphics::par(mfrow=c(1, 1)) # Reset the layout
 }

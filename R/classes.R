@@ -46,15 +46,23 @@ fragments <- R6::R6Class("fragments", public = list(
     )
   },
   plot_trace = function(show_peaks = TRUE,
-                         ylim = NULL,
-                         xlim = NULL){
+                        ylim = NULL,
+                        xlim = NULL,
+                        height_color_threshold = 0.05){
     if(is.null(self$trace_bp_df)){
       stop(call. = FALSE,
            paste(self$unique_id, "This sample does not have trace data, so cannot make plot"))
     }
 
-    plot(self$trace_bp_df$size,
-         self$trace_bp_df$signal,
+    tace_df <- self$trace_bp_df
+    if(!is.null(xlim)){
+      tace_df <- tace_df[which(tace_df$size < xlim[2] & tace_df$size > xlim[1]), ]
+    }
+
+
+
+    plot(tace_df$size,
+         tace_df$signal,
          main = self$unique_id,
          type = "l",
          xlab = "Size",
@@ -63,10 +71,28 @@ fragments <- R6::R6Class("fragments", public = list(
          xlim = xlim)
 
     if(!is.null(self$peak_table_df) && show_peaks){
+      peak_table <- self$peak_table_df
+      if(!is.null(xlim)){
+        peak_table <- peak_table[which(peak_table$size < xlim[2] & peak_table$size > xlim[1]), ]
+      }
+
+      tallest_peak_height <- max(peak_table$height)[1]
+      if(!is.null(self$allele_1_height) && !is.na(self$allele_1_height)){
+        tallest_peak_height <- self$allele_1_height
+      }
+
+
+
+      peaks_above <- peak_table[which(peak_table$height > tallest_peak_height *  height_color_threshold), ]
+      peaks_below <-  peak_table[which(peak_table$height < tallest_peak_height *  height_color_threshold), ]
+
       # Adding peaks
-      points(self$peak_table_df$size,
-             self$peak_table_df$height,
+      points(peaks_above$size,
+             peaks_above$height,
              col = "blue")
+      points(peaks_below$size,
+             peaks_below$height,
+             col = "purple")
     }
 
     if(any(self$trace_bp_df$off_scale)){
