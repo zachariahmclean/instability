@@ -31,12 +31,13 @@ a list of fragments_trace object, equal length and names to the list input
 }
 \description{
 This function tries to automatically identify badly assigned peaks and reassign
-them. It will only work if some consecutive peaks are correctly assigned.
+them. It will only work if some consecutive peaks are correctly assigned. A good
+function to use if only one ladder peak is wrong.
 }
 \details{
 This function takes a list of fragments_traces objects and tries to automatically
 fix the ladder. It uses an assumption that some of the peaks are correct (high
-r-squared of three size standard linear model) and then uses those to predict
+r-squared standard linear model) and then uses those to predict
 where the size standard should be. If the size standard is where it's expected,
 it will be assigned, otherwise it will be dropped.
 
@@ -47,16 +48,9 @@ The ladders should be manually inspected to confirm correct assignment.
 
 file_list <- instability::cell_line_fsa_list
 
-  test_ladders <- find_ladders(file_list,
-                               ladder_channel = "DATA.105",
-                               signal_channel = "DATA.1",
-                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               max_combinations = 2500000,
-                               ladder_selection_window = 8)
+test_ladders <- find_ladders(file_list)
 
-  ladders_fixed_list <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
-
-
+ladders_fixed_list <- fix_ladders_auto(test_ladders, "20230413_B03.fsa")
 
 }
 \seealso{

@@ -16,15 +16,16 @@ A data.frame containing peak data for each sample.
 Extracts peak data from each sample in a list of fragments.
 }
 \examples{
- gm_raw <- instability::example_data
- metadata <- instability::metadata
+gm_raw <- instability::example_data
+metadata <- instability::metadata
 
- test_fragments <- peak_table_to_fragments(gm_raw,
-   data_format = "genemapper5",
-   dye_channel = "B",
-   min_size_bp = 400)
+test_fragments <- peak_table_to_fragments(gm_raw,
+  data_format = "genemapper5",
+  dye_channel = "B",
+  min_size_bp = 400
+)
 
- test_metadata <- add_metadata(
+test_metadata <- add_metadata(
   fragments_list = test_fragments,
   metadata_data.frame = metadata,
   unique_id = "unique_id",
@@ -32,22 +33,24 @@ Extracts peak data from each sample in a list of fragments.
   group_id = "cell_line",
   metrics_baseline_control = "metrics_baseline_control_TF",
   size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length")
+  size_standard_repeat_length = "repeat_positive_control_length"
+)
 
- test_alleles <- find_alleles(
-   fragments_list = test_metadata,
-   number_of_peaks_to_return = 1,
-   peak_region_size_gap_threshold = 6,
-   peak_region_height_threshold_multiplier = 1)
+test_alleles <- find_alleles(
+  fragments_list = test_metadata,
+  number_of_peaks_to_return = 1,
+  peak_region_size_gap_threshold = 6,
+  peak_region_height_threshold_multiplier = 1
+)
 
- test_repeats <- call_repeats(
-   fragments_list = test_alleles,
-   repeat_algorithm = "simple",
-   assay_size_without_repeat = 87,
-   repeat_size = 3,
-   repeat_length_correction = "none"
-  )
+test_repeats <- call_repeats(
+  fragments_list = test_alleles,
+  repeat_algorithm = "simple",
+  assay_size_without_repeat = 87,
+  repeat_size = 3,
+  repeat_length_correction = "none"
+)
 
-  extract_alleles(test_repeats)
+extract_alleles(test_repeats)
 
 }

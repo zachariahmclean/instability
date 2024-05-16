@@ -24,12 +24,13 @@ metadata <- instability::metadata
 test_fragments <- peak_table_to_fragments(
   gm_raw,
   data_format = "genemapper5",
-  dye_channel = "B")
+  dye_channel = "B"
+)
 
 all_fragment_names <- names(test_fragments)
 
-#pull out unique ids of samples to remove
-samples_to_remove <- all_fragment_names[c(1,5,10)]
+# pull out unique ids of samples to remove
+samples_to_remove <- all_fragment_names[c(1, 5, 10)]
 
 samples_removed <- remove_fragments(test_fragments, samples_to_remove)
 

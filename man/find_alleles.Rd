@@ -33,16 +33,18 @@ The number of peaks to be returned, and the parameters for identifying peak regi
 It's important to note that both peak_region_height_threshold_multiplier and peak_region_size_gap_threshold influence the criteria for identifying peak regions, and finding the right balance between them is crucial.
 }
 \examples{
- gm_raw <- instability::example_data
+gm_raw <- instability::example_data
 
 test_fragments <- peak_table_to_fragments(
   gm_raw,
   data_format = "genemapper5",
-  dye_channel = "B")
+  dye_channel = "B"
+)
 
 test_alleles <- find_alleles(
   fragments_list = test_fragments,
   number_of_peaks_to_return = 2,
   peak_region_size_gap_threshold = 6,
-  peak_region_height_threshold_multiplier = 1)
+  peak_region_height_threshold_multiplier = 1
+)
 }

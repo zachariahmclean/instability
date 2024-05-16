@@ -30,19 +30,26 @@ signal}
 \item{ladder_sizes}{numeric vector: bp sizes of ladder used in fragment analysis.
 defaults to GeneScan™ 500 LIZ™}
 
-\item{spike_location}{numeric: indicate the scan number of the large spike peak.}
+\item{spike_location}{numeric: indicate the scan number to start looking for
+ladder peaks. Usually this can be automatically found (when set to NULL) since
+there's a big spike right at the start. However, if your ladder peaks
+are taller than the big spike, you will need to set this starting scan
+number manually.}
 
-\item{scan_subset}{numeric vector (length 2): filter the ladder and data signal between the selected scans (eg scan_subset = c(3000, 5000))}
+\item{scan_subset}{numeric vector (length 2): filter the ladder and data signal
+between the selected scans (eg scan_subset = c(3000, 5000)).}
 
-\item{smoothing_window}{numeric: ladder signal smoothing window size for passed to pracma::savgol()}
+\item{smoothing_window}{numeric: ladder signal smoothing window size passed
+to pracma::savgol().}
 
 \item{max_combinations}{numeric: what is the maximum number of ladder
 combinations that should be tested}
 
 \item{ladder_selection_window}{numeric: in the ladder assigning algorithm,
 the we iterate through the scans in blocks and test their linear fit.
-In fragment analysis, we can assume that the ladder is linear over a
-short distance. This value defines how large that block of peaks should be.}
+We can assume that the ladder is linear over a short distance. This value
+defines how large that block of peaks should be. Make sure that this is
+shorter than your size standard.}
 
 \item{show_progress_bar}{show progress bar}
 }
@@ -69,16 +76,10 @@ assigned.
 
 file_list <- instability::cell_line_fsa_list
 
-  test_ladders <- find_ladders(file_list,
-                               ladder_channel = "DATA.105",
-                               signal_channel = "DATA.1",
-                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               max_combinations = 2500000,
-                               ladder_selection_window = 8)
+test_ladders <- find_ladders(file_list)
 
- # Manually inspect the ladders
- plot_ladders(test_ladders[1], n_facet_col = 1)
-
+# Manually inspect the ladders
+plot_ladders(test_ladders[1], n_facet_col = 1)
 
 }
 \seealso{

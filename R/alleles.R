@@ -1,6 +1,6 @@
 ################## general helper functions for finding peaks ###################
 # maxima -----------------------------------------------------------------------
-find_maxima = function(x) {
+find_maxima <- function(x) {
   maxima <- logical(length(x))
 
   for (i in 2:(length(x) - 1)) {
@@ -15,7 +15,6 @@ find_maxima = function(x) {
 
 # find peaks ------------------------------------------------------------------
 find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_region_height_threshold_multiplier) {
-
   # Function to find positions of local maxima
   find_maxima_positions <- function(heights, positions) {
     maxima_positions <- which(find_maxima(heights))
@@ -115,12 +114,12 @@ find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_regio
 }
 
 # candidate alleles ------------------------------------------------------------
-find_candidate_peaks = function(heights,
-                                size,
-                                peak_region_size_gap_threshold,
-                                peak_region_height_threshold_multiplier,
-                                number_of_peaks_to_return) {
-  #find peaks
+find_candidate_peaks <- function(heights,
+                                 size,
+                                 peak_region_size_gap_threshold,
+                                 peak_region_height_threshold_multiplier,
+                                 number_of_peaks_to_return) {
+  # find peaks
 
   output <- find_peaks(
     heights = heights,
@@ -129,36 +128,35 @@ find_candidate_peaks = function(heights,
     peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier
   )
 
-  #do a first pass and if only one significant peak region found when we expect two,
-  #see if there are two significant maxima in the region
-  #this is to identify alleles close in size and homozygous
+  # do a first pass and if only one significant peak region found when we expect two,
+  # see if there are two significant maxima in the region
+  # this is to identify alleles close in size and homozygous
 
 
   if (length(output$top_regional_peaks) == 1 &
-      number_of_peaks_to_return == 2) {
-    region_positions <- which(output$peak_regions== 1)
+    number_of_peaks_to_return == 2) {
+    region_positions <- which(output$peak_regions == 1)
     region_heights <- heights[region_positions]
     region_maxima <- find_maxima(region_heights)
     significant_maxima <-
       which(region_heights > max(region_heights) * 0.5)
-    #chose the two tallest maxima if more than one peak has now been found
+    # chose the two tallest maxima if more than one peak has now been found
     if (length(significant_maxima) > 1) {
       sig_maxima_heights <- region_heights[significant_maxima]
       second_tallest_height <-
         sig_maxima_heights[order(sig_maxima_heights, decreasing = TRUE)][2]
       top_peaks <-
         region_positions[which(region_heights[significant_maxima] >= second_tallest_height)][1:2]
-    } #deal with case where the peak after the wt peak is pretty high, perhaps indicating heterozygous +1
+    } # deal with case where the peak after the wt peak is pretty high, perhaps indicating heterozygous +1
     else if (region_heights[significant_maxima + 1] / region_heights[significant_maxima] > 0.5) {
       top_peaks <-
         region_positions[c(significant_maxima, significant_maxima + 1)]
-    } #homozygous
+    } # homozygous
     else {
       top_peaks <-
         c(region_positions[significant_maxima], region_positions[significant_maxima])
     }
-  }
-  else {
+  } else {
     top_peaks <- output$top_regional_peaks
 
     top_peaks <-
@@ -166,11 +164,10 @@ find_candidate_peaks = function(heights,
   }
 
 
-    return(list(
-      top_peaks = top_peaks,
-      peak_regions = output$peak_regions
-    ))
-
+  return(list(
+    top_peaks = top_peaks,
+    peak_regions = output$peak_regions
+  ))
 }
 
 ################### R6 Class Method Helpers #################################
@@ -182,14 +179,15 @@ find_main_peaks_helper <- function(fragments_repeats_class,
   # do some checks
   if (!number_of_peaks_to_return %in% c(1, 2)) {
     stop("number_of_peaks_to_return must be 1 or 2",
-         call. = FALSE)
+      call. = FALSE
+    )
   }
 
-  #this abstraction doesn't work because the peak data is hard coded below
-  #change it so the peak data is passed as an argument
+  # this abstraction doesn't work because the peak data is hard coded below
+  # change it so the peak data is passed as an argument
 
-  fragment_heights  <- if(is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$height else fragments_repeats_class$repeat_table_df$height
-  fragment_sizes  <- if(is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$size else fragments_repeats_class$repeat_table_df$repeats
+  fragment_heights <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$height else fragments_repeats_class$repeat_table_df$height
+  fragment_sizes <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$size else fragments_repeats_class$repeat_table_df$repeats
 
   top_peaks <- find_candidate_peaks(
     fragment_heights,
@@ -203,45 +201,40 @@ find_main_peaks_helper <- function(fragments_repeats_class,
     warning(paste0(fragments_repeats_class$unique_id, ": No main alleles identified"))
   }
 
-  #change this so that it populates either repeat, size
+  # change this so that it populates either repeat, size
 
   if (number_of_peaks_to_return == 2) {
-    #shorter repeat allele
-    if(is.null(fragments_repeats_class$repeat_table_df)){
+    # shorter repeat allele
+    if (is.null(fragments_repeats_class$repeat_table_df)) {
       fragments_repeats_class$allele_2_size <- fragment_sizes[top_peaks$top_peaks[1]]
-    }
-    else{
+    } else {
       fragments_repeats_class$allele_2_repeat <- fragment_sizes[top_peaks$top_peaks[1]]
     }
     fragments_repeats_class$allele_2_height <- fragment_heights[top_peaks$top_peaks[1]]
 
-    #longer repeat allele
-    if(is.null(fragments_repeats_class$repeat_table_df)){
+    # longer repeat allele
+    if (is.null(fragments_repeats_class$repeat_table_df)) {
       fragments_repeats_class$allele_1_size <- fragment_sizes[top_peaks$top_peaks[2]]
-    }
-    else{
+    } else {
       fragments_repeats_class$allele_1_repeat <- fragment_sizes[top_peaks$top_peaks[2]]
     }
     fragments_repeats_class$allele_1_height <- fragment_heights[top_peaks$top_peaks[2]]
-
   } else if (number_of_peaks_to_return == 1) {
-    #shorter repeat allele doesn't exist
+    # shorter repeat allele doesn't exist
     fragments_repeats_class$allele_2_size <- NA_real_
     fragments_repeats_class$allele_2_repeat <- NA_real_
     fragments_repeats_class$allele_2_height <- NA_real_
 
-    #longer repeat allele
-    if(is.null(fragments_repeats_class$repeat_table_df)){
+    # longer repeat allele
+    if (is.null(fragments_repeats_class$repeat_table_df)) {
       fragments_repeats_class$allele_1_size <- fragment_sizes[top_peaks$top_peaks[1]]
-    }
-    else{
+    } else {
       fragments_repeats_class$allele_1_repeat <- fragment_sizes[top_peaks$top_peaks[1]]
     }
     fragments_repeats_class$allele_1_height <- fragment_heights[top_peaks$top_peaks[1]]
-
   }
 
-  #peak_regions
+  # peak_regions
   fragments_repeats_class$.__enclos_env__$private$peak_regions <-
     top_peaks$peak_regions
 

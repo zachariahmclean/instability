@@ -50,13 +50,14 @@ The function supports different data formats and allows specifying column names 
 }
 \examples{
 
-  gm_raw <- instability::example_data
+gm_raw <- instability::example_data
 
-  test_fragments <- peak_table_to_fragments(
-    gm_raw,
-    data_format = "genemapper5",
-    dye_channel = "B",
-    min_size_bp = 400)
+test_fragments <- peak_table_to_fragments(
+  gm_raw,
+  data_format = "genemapper5",
+  dye_channel = "B",
+  min_size_bp = 400
+)
 
 }
 \seealso{

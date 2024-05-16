@@ -1,5 +1,4 @@
 test_that("{shinytest2} recording: fix_ladder-checkbox", {
-
   # Don't run these tests on the CRAN build servers
   skip_on_cran()
 
@@ -8,12 +7,13 @@ test_that("{shinytest2} recording: fix_ladder-checkbox", {
 
 
   test_ladders <- find_ladders(file_list,
-                               ladder_channel = "DATA.105",
-                               signal_channel = "DATA.1",
-                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                               max_combinations = 2500000,
-                               ladder_selection_window = 8,
-                               show_progress_bar = FALSE)
+    ladder_channel = "DATA.105",
+    signal_channel = "DATA.1",
+    ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+    max_combinations = 2500000,
+    ladder_selection_window = 8,
+    show_progress_bar = FALSE
+  )
 
 
   example_list <- list(
@@ -24,12 +24,12 @@ test_that("{shinytest2} recording: fix_ladder-checkbox", {
   )
 
   suppressMessages(
-  suppressWarnings(
-    test_ladders_fixed_manual <- fix_ladders_manual(
-      test_ladders,
-      example_list
+    suppressWarnings(
+      test_ladders_fixed_manual <- fix_ladders_manual(
+        test_ladders,
+        example_list
+      )
     )
-  )
   )
 
 
@@ -56,7 +56,7 @@ test_that("{shinytest2} recording: fix_ladder-checkbox", {
   rsq_table_html <- app$get_values()$output$`rsq_table-rsq_table`
 
   # Extract numbers with decimal points using regular expressions
-  matches <- gregexpr("\\b\\d+(\\.\\d+)?\\b(?= </td> </tr>\\n)", rsq_table_html, perl=TRUE)
+  matches <- gregexpr("\\b\\d+(\\.\\d+)?\\b(?= </td> </tr>\\n)", rsq_table_html, perl = TRUE)
 
   # Extract matched numbers
   numbers <- regmatches(rsq_table_html, matches)[[1]]
@@ -64,7 +64,5 @@ test_that("{shinytest2} recording: fix_ladder-checkbox", {
 
 
   # I got these numbers by changing to sample 20230413_B03.fsa and moving 100 back to the right place, then round as above and remove the 1.0000
-  expect_identical(numbers, c(0.9986, 0.9995, 0.9994, 0.9995, 0.9990, 1.0000, 1.0000, 0.9993, 0.9995, 1.0000, 1.000, 0.9993,1.000, 0.9990))
-
+  expect_identical(numbers, c(0.9986, 0.9995, 0.9994, 0.9995, 0.9990, 1.0000, 1.0000, 0.9993, 0.9995, 1.0000, 1.000, 0.9993, 1.000, 0.9990))
 })
-
