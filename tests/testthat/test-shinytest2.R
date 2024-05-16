@@ -34,8 +34,10 @@ test_that("{shinytest2} recording: fix_ladder-checkbox", {
 
 
 
+  suppressMessages(
+    shiny_app <- fix_ladders_interactive(test_ladders_fixed_manual)
+  )
 
-  shiny_app <- fix_ladders_interactive(test_ladders_fixed_manual)
 
   app <- shinytest2::AppDriver$new(shiny_app, height = 945, width = 1619)
   # Update output value

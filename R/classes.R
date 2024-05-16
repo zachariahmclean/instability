@@ -128,21 +128,32 @@ fragments_trace <- R6::R6Class(
     ladder_df = NULL,
     trace_bp_df = NULL,
     peak_table_df = NULL,
-
-    #model related
     mod_parameters = NULL,
-    generate_mod_parameters = function() {
-      # Perform any necessary calculations to fit the model and save the parameters
-      ladder_df <- self$ladder_df[which(!is.na(self$ladder_df$size)), ]
-      ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
-      self$mod_parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
-      invisible(self)
-    },
-    predict_size = function() {
-      # Predict fragment sizes for new data points
-      predicted_sizes <- local_southern_predict(local_southern_fit = self$mod_parameters , scans = self$scan)
 
-      return(predicted_sizes)
+    find_ladder = function(fsa,
+                            ladder_channel = "DATA.105",
+                            signal_channel = "DATA.1",
+                            ladder_sizes =  c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                            spike_location = NULL,
+                            scan_subset = NULL,
+                            smoothing_window = 21,
+                            max_combinations = 2500000,
+                            ladder_selection_window = 5,
+                            show_progress_bar = TRUE){
+
+      self2 <- find_ladder_helper(fragments_trace = self,
+                         fsa = fsa,
+                         ladder_channel = ladder_channel,
+                         signal_channel = signal_channel,
+                         ladder_sizes = ladder_sizes,
+                         spike_location = spike_location,
+                         scan_subset = scan_subset,
+                         smoothing_window = smoothing_window,
+                         max_combinations = max_combinations,
+                         ladder_selection_window = ladder_selection_window,
+                         show_progress_bar = show_progress_bar)
+
+      return(self2)
     },
     call_peaks = function(smoothing_window = 4,
                           minimum_peak_signal = 20,

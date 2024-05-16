@@ -100,9 +100,11 @@ ladder_iteration = function(reference_sizes,
 
   assigned_reference = vector('numeric')
   assigned_observed = vector('numeric')
+  max_iterations <- 1000
+  iteration_count <- 1
 
   #Keep going until the the number reference peaks left is small
-  while (length(reference_sizes) > 0) {
+  while (length(reference_sizes) > 0 && iteration_count < max_iterations) {
 
     # observed_sizes and reference_sizes reset each loop
 
@@ -167,6 +169,8 @@ ladder_iteration = function(reference_sizes,
 
     reference_sizes = reference_sizes[(last_selected_reference_position + 1):length(reference_sizes)]
     observed_sizes = observed_sizes[(last_selected_scan_position + 1):length(observed_sizes)]
+
+    iteration_count <- iteration_count + 1
 
   }
 
@@ -321,6 +325,87 @@ local_southern_predict <- function(local_southern_fit, scans) {
 }
 
 
+
+find_ladder_helper <- function(fragments_trace,
+                               fsa,
+                               ladder_channel,
+                               signal_channel,
+                               ladder_sizes,
+                               spike_location,
+                               scan_subset,
+                               smoothing_window,
+                               max_combinations,
+                               ladder_selection_window,
+                               show_progress_bar){
+
+  if(show_progress_bar){
+    pb <- utils::txtProgressBar(min = 0, max = length(ladder_list), style = 3)
+  }
+
+  fragments_trace$raw_ladder <- fsa$Data[[ladder_channel]]
+  fragments_trace$raw_data <- fsa$Data[[signal_channel]]
+  fragments_trace$scan <- 0:(length(fsa$Data[[signal_channel]])- 1)
+  fragments_trace$off_scale_scans <- fsa$Data$OfSc.1
+
+  #allow user to subset to particular scans
+  if(!is.null(scan_subset)){
+
+    fragments_trace$raw_ladder <- fragments_trace$raw_ladder[scan_subset[1]:scan_subset[2]]
+    fragments_trace$raw_data <- fragments_trace$raw_data[scan_subset[1]:scan_subset[2]]
+    fragments_trace$scan <- fragments_trace$scan[scan_subset[1]:scan_subset[2]]
+
+    # set spike location since it's automatically set usually, and user may select scans to start after
+    spike_location <- scan_subset[1]
+  }
+
+  #ladder
+  ladder_df <- fit_ladder(
+    ladder = fragments_trace$raw_ladder,
+    scans = fragments_trace$scan,
+    ladder_sizes = ladder_sizes,
+    spike_location = spike_location,
+    smoothing_window = smoothing_window,
+    max_combinations = max_combinations,
+    ladder_selection_window = ladder_selection_window)
+
+  fragments_trace$ladder_df <- ladder_df
+
+  # predict bp size
+  ladder_df <- ladder_df[which(!is.na(ladder_df$size)), ]
+  ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
+  fragments_trace$mod_parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
+
+  predicted_size <- local_southern_predict(local_southern_fit = fragments_trace$mod_parameters , scans = fragments_trace$scan)
+
+  fragments_trace$trace_bp_df <- data.frame(
+    unique_id = rep(fragments_trace$unique_id, length(fragments_trace$scan)),
+    scan = fragments_trace$scan,
+    size = predicted_size,
+    signal = fragments_trace$raw_data,
+    ladder_signal = fragments_trace$raw_ladder,
+    off_scale = fragments_trace$scan %in% fragments_trace$off_scale_scans
+  )
+
+  #make a warning if one of the ladder modes is bad
+  ladder_rsq_warning_helper(fragments_trace,
+                            rsq_threshold = 0.998)
+
+  if(show_progress_bar){
+      utils::setTxtProgressBar(pb, i)
+
+  }
+
+  return(fragments_trace)
+
+
+}
+
+
+
+
+
+
+
 # peak calling ------------------------------------------------------------
 
 
@@ -391,13 +476,16 @@ ladder_fix_helper <- function(fragments_trace,
   fragments_trace_copy <- fragments_trace$clone()
 
   fragments_trace_copy$ladder_df <- replacement_ladder_df
-  fragments_trace_copy$generate_mod_parameters()
-  data_bp <- fragments_trace_copy$predict_size()
+  ladder_df <- fragments_trace_copy$ladder_df[which(!is.na(fragments_trace_copy$ladder_df$size)), ]
+  ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
+  fragments_trace_copy$mod_parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
+
+  predicted_size <- local_southern_predict(local_southern_fit = fragments_trace_copy$mod_parameters , scans = fragments_trace_copy$scan)
 
   fragments_trace_copy$trace_bp_df <- data.frame(
     unique_id = rep(fragments_trace_copy$unique_id, length(fragments_trace_copy$scan)),
     scan = fragments_trace_copy$scan,
-    size = fragments_trace_copy$predict_size(),
+    size = predicted_size,
     signal = fragments_trace_copy$raw_data,
     ladder_signal = fragments_trace_copy$raw_ladder
   )

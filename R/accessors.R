@@ -119,67 +119,17 @@ find_ladders <- function(fsa_list,
   for(i in seq_along(fsa_list)){
 
     ladder_list[[i]] <- fragments_trace$new(unique_id = names(fsa_list[i]))
-    ladder_list[[i]]$raw_ladder <- fsa_list[[i]]$Data[[ladder_channel]]
-    ladder_list[[i]]$raw_data <- fsa_list[[i]]$Data[[signal_channel]]
-    ladder_list[[i]]$scan <- 0:(length(fsa_list[[i]]$Data[[signal_channel]])- 1)
-    ladder_list[[i]]$off_scale_scans <- fsa_list[[i]]$Data$OfSc.1
-
-    #allow user to subset to particular scans
-    if(!is.null(scan_subset)){
-
-      ladder_list[[i]]$raw_ladder <- ladder_list[[i]]$raw_ladder[scan_subset[1]:scan_subset[2]]
-      ladder_list[[i]]$raw_data <- ladder_list[[i]]$raw_data[scan_subset[1]:scan_subset[2]]
-      ladder_list[[i]]$scan <- ladder_list[[i]]$scan[scan_subset[1]:scan_subset[2]]
-
-      # set spike location since it's automatically set usually, and user may select scans to start after
-      spike_location <- scan_subset[1]
-
-    }
-
-
-
-  }
-
-  if(show_progress_bar){
-    pb <- utils::txtProgressBar(min = 0, max = length(ladder_list), style = 3)
-  }
-
-  #find ladder for each sample and use that to predict bp size
-  for (i in seq_along(ladder_list)) {
-
-    #ladder
-
-    ladder_fit <- fit_ladder(
-      ladder = ladder_list[[i]]$raw_ladder,
-      scans = ladder_list[[i]]$scan,
-      ladder_sizes = ladder_sizes,
+    ladder_list[[i]]$find_ladder(
+      fsa_list[[i]],
+      ladder_channel = ladder_channel,
+      signal_channel = signal_channel,
+      ladder_sizes =  ladder_sizes,
       spike_location = spike_location,
+      scan_subset = scan_subset,
       smoothing_window = smoothing_window,
       max_combinations = max_combinations,
-      ladder_selection_window = ladder_selection_window)
-
-    ladder_list[[i]]$ladder_df <- ladder_fit
-
-    # predict bp size
-    ladder_list[[i]]$generate_mod_parameters()
-    data_bp <- ladder_list[[i]]$predict_size()
-
-    ladder_list[[i]]$trace_bp_df <- data.frame(
-      unique_id = rep(ladder_list[[i]]$unique_id, length(ladder_list[[i]]$scan)),
-      scan = ladder_list[[i]]$scan,
-      size = ladder_list[[i]]$predict_size(),
-      signal = ladder_list[[i]]$raw_data,
-      ladder_signal = ladder_list[[i]]$raw_ladder,
-      off_scale = ladder_list[[i]]$scan %in% ladder_list[[i]]$off_scale_scans
-    )
-
-    #make a warning if one of the ladder modes is bad
-    ladder_rsq_warning_helper(ladder_list[[i]],
-                              rsq_threshold = 0.998)
-
-    if(show_progress_bar){
-      utils::setTxtProgressBar(pb, i)
-    }
+      ladder_selection_window = ladder_selection_window,
+      show_progress_bar = show_progress_bar)
   }
 
   names(ladder_list) <- names(fsa_list)
