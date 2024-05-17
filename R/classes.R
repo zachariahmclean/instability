@@ -143,9 +143,16 @@ fragments_trace <- R6::R6Class(
                            max_combinations = 2500000,
                            ladder_selection_window = 5,
                            show_progress_bar = TRUE) {
+
+      if(any(sapply(list(self$raw_ladder, self$raw_data, self$scan, self$off_scale_scans), is.null))){
+        self$raw_ladder <- fsa$Data[[ladder_channel]]
+        self$raw_data <- fsa$Data[[signal_channel]]
+        self$scan <- 0:(length(fsa$Data[[signal_channel]]) - 1)
+        self$off_scale_scans <- fsa$Data$OfSc.1
+      }
+
       self2 <- find_ladder_helper(
         fragments_trace = self,
-        fsa = fsa,
         ladder_channel = ladder_channel,
         signal_channel = signal_channel,
         ladder_sizes = ladder_sizes,

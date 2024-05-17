@@ -324,7 +324,6 @@ local_southern_predict <- function(local_southern_fit, scans) {
 
 
 find_ladder_helper <- function(fragments_trace,
-                               fsa,
                                ladder_channel,
                                signal_channel,
                                ladder_sizes,
@@ -333,11 +332,6 @@ find_ladder_helper <- function(fragments_trace,
                                smoothing_window,
                                max_combinations,
                                ladder_selection_window) {
-
-  fragments_trace$raw_ladder <- fsa$Data[[ladder_channel]]
-  fragments_trace$raw_data <- fsa$Data[[signal_channel]]
-  fragments_trace$scan <- 0:(length(fsa$Data[[signal_channel]]) - 1)
-  fragments_trace$off_scale_scans <- fsa$Data$OfSc.1
 
   # allow user to subset to particular scans
   if (!is.null(scan_subset)) {
