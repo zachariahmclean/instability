@@ -10,7 +10,7 @@ repeat instability metrics (ie expansion index or average repeat gain).
 To report bugs or feature requests, please visit the Github issue
 tracker [here](https://github.com/zachariahmclean/instability/issues).
 For assistance or any other inquires, contact [Zach
-McLean](mailto:zmclean@mgh.harvard.edu?subject=%5BGitHub%5D%20Source%20Han%20Sans).
+McLean](mailto:zmclean@mgh.harvard.edu?subject=%5BGitHub%5D%20instability).
 
 If you use this package, please cite
 [this](https://www.nature.com/articles/s41467-024-47485-0) paper for

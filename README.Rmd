@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 
 This package provides a pipeline for short tandem repeat instability analysis from fragment analysis data. The inputs are fsa files or peak tables (eg Genemapper5 software output), and a user supplied metadata data-frame. The functions identify ladders, calls peaks, and calculates repeat instability metrics (ie expansion index or average repeat gain).
 
-To report bugs or feature requests, please visit the Github issue tracker [here](https://github.com/zachariahmclean/instability/issues). For assistance or any other inquires, contact [Zach McLean](mailto:zmclean@mgh.harvard.edu?subject=%5BGitHub%5D%20Source%20Han%20Sans).
+To report bugs or feature requests, please visit the Github issue tracker [here](https://github.com/zachariahmclean/instability/issues). For assistance or any other inquires, contact [Zach McLean](mailto:zmclean@mgh.harvard.edu?subject=%5BGitHub%5D%20instability).
 
 If you use this package, please cite [this](https://www.nature.com/articles/s41467-024-47485-0) paper for now.
 
