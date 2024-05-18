@@ -1,8 +1,6 @@
-
 # peak_table_to_fragments -------------------------------------------------
 
-testthat::test_that("peak_table_to_fragments",{
-
+testthat::test_that("peak_table_to_fragments", {
   gm_raw <- instability::example_data
 
   test_fragments <- peak_table_to_fragments(
@@ -38,12 +36,11 @@ testthat::test_that("peak_table_to_fragments",{
   testthat::expect_true(unique(test_fragments_classes) == "fragments_repeats")
   # no missing unique ids
   testthat::expect_false(any(is.na(test_fragments_ids)))
-
 })
 
 # repeat_table_to_fragments -------------------------------------------------
 
-testthat::test_that("repeat_table_to_fragments",{
+testthat::test_that("repeat_table_to_fragments", {
   repeat_table <- instability::example_data_repeat_table
 
   test_fragments <- repeat_table_to_repeats(
@@ -73,24 +70,22 @@ testthat::test_that("repeat_table_to_fragments",{
   testthat::expect_true(unique(test_fragments_classes) == "fragments_repeats")
   # no missing unique ids
   testthat::expect_false(any(is.na(test_fragments_ids)))
-
-
 })
 
 
 # add metadata -------------------------------------------------
 
 testthat::test_that("add_metadata", {
-
   gm_raw <- instability::example_data
   metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            data_format = "genemapper5",
-                                            # peak_size_col = "size",
-                                            # peak_height_col = "signal",
-                                            dye_channel = "B")
+    data_format = "genemapper5",
+    # peak_size_col = "size",
+    # peak_height_col = "signal",
+    dye_channel = "B"
+  )
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
@@ -100,7 +95,8 @@ testthat::test_that("add_metadata", {
     group_id = "cell_line",
     metrics_baseline_control = "metrics_baseline_control_TF",
     size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length")
+    size_standard_repeat_length = "repeat_positive_control_length"
+  )
 
 
   # plate id assigned
@@ -119,7 +115,7 @@ testthat::test_that("add_metadata", {
 
   testthat::expect_true(all(!is.na(test_fragments_group_id)))
 
-  #index samples assigned
+  # index samples assigned
   test_fragments_index <- vector("logical", length(test_metadata))
   for (i in seq_along(test_metadata)) {
     test_fragments_index[i] <- test_metadata[[i]]$metrics_baseline_control
@@ -147,25 +143,23 @@ testthat::test_that("add_metadata", {
     test_fragments_repeat_sizing_value[i] <- test_metadata[[i]]$size_standard_repeat_length
   }
 
-  testthat::expect_true(test_fragments_repeat_sizing_value[repeat_sizing_samples[1]] == 113 & test_fragments_repeat_sizing_value[repeat_sizing_samples[2]] == 115 )
+  testthat::expect_true(test_fragments_repeat_sizing_value[repeat_sizing_samples[1]] == 113 & test_fragments_repeat_sizing_value[repeat_sizing_samples[2]] == 115)
   testthat::expect_true(all(is.na(test_fragments_repeat_sizing_value[which(!seq_along(test_fragments_repeat_sizing_value) %in% repeat_sizing_samples)])))
-
-
 })
 
 
 
 testthat::test_that("add_metadata missing", {
-
   gm_raw <- instability::example_data
   metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            data_format = "genemapper5",
-                                            # peak_size_col = "size",
-                                            # peak_height_col = "signal",
-                                            dye_channel = "B")
+    data_format = "genemapper5",
+    # peak_size_col = "size",
+    # peak_height_col = "signal",
+    dye_channel = "B"
+  )
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
@@ -175,7 +169,8 @@ testthat::test_that("add_metadata missing", {
     group_id = "cell_line",
     metrics_baseline_control = "metrics_baseline_control_TF",
     size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length")
+    size_standard_repeat_length = "repeat_positive_control_length"
+  )
 
   testthat::expect_true(is.na(test_metadata[[1]]$plate_id))
 
@@ -187,7 +182,8 @@ testthat::test_that("add_metadata missing", {
     group_id = NA,
     metrics_baseline_control = "metrics_baseline_control_TF",
     size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length")
+    size_standard_repeat_length = "repeat_positive_control_length"
+  )
 
   testthat::expect_true(is.na(test_metadata[[1]]$group_id))
 
@@ -199,7 +195,8 @@ testthat::test_that("add_metadata missing", {
     group_id = "cell_line",
     metrics_baseline_control = NA,
     size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length")
+    size_standard_repeat_length = "repeat_positive_control_length"
+  )
 
   testthat::expect_false(test_metadata[[1]]$metrics_baseline_control)
 
@@ -212,7 +209,8 @@ testthat::test_that("add_metadata missing", {
     group_id = "cell_line",
     metrics_baseline_control = "metrics_baseline_control_TF",
     size_standard = NA,
-    size_standard_repeat_length = "repeat_positive_control_length")
+    size_standard_repeat_length = "repeat_positive_control_length"
+  )
 
   testthat::expect_false(test_metadata[[1]]$size_standard)
 
@@ -224,10 +222,10 @@ testthat::test_that("add_metadata missing", {
     group_id = "cell_line",
     metrics_baseline_control = "metrics_baseline_control_TF",
     size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = NA)
+    size_standard_repeat_length = NA
+  )
 
   testthat::expect_true(is.na(test_metadata[[1]]$size_standard_repeat_length))
-
 })
 
 
@@ -239,14 +237,16 @@ testthat::test_that("find_alleles", {
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            data_format = "genemapper5",
-                                            dye_channel = "B")
+    data_format = "genemapper5",
+    dye_channel = "B"
+  )
 
   test_alleles <- find_alleles(
     fragments_list = test_fragments,
     number_of_peaks_to_return = 2,
     peak_region_size_gap_threshold = 6,
-    peak_region_height_threshold_multiplier = 1)
+    peak_region_height_threshold_multiplier = 1
+  )
 
   allele_1_size <- vector("numeric", length(test_alleles))
   for (i in seq_along(test_alleles)) {
@@ -254,8 +254,6 @@ testthat::test_that("find_alleles", {
   }
 
   testthat::expect_true(all(!is.na(allele_1_size)))
-
-
 })
 
 # call repeats ---------------------------------------
@@ -266,22 +264,25 @@ testthat::test_that("call_repeats", {
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            data_format = "genemapper5",
-                                            dye_channel = "B")
+    data_format = "genemapper5",
+    dye_channel = "B"
+  )
 
   test_alleles <- find_alleles(
     fragments_list = test_fragments,
     number_of_peaks_to_return = 2,
     peak_region_size_gap_threshold = 6,
-    peak_region_height_threshold_multiplier = 1)
+    peak_region_height_threshold_multiplier = 1
+  )
 
-
-  test_repeats <- call_repeats(
-    fragments_list = test_alleles,
-    repeat_algorithm = "simple",
-    assay_size_without_repeat = 87,
-    repeat_size = 3,
-    repeat_length_correction = "none"
+  suppressMessages(
+    test_repeats <- call_repeats(
+      fragments_list = test_alleles,
+      repeat_algorithm = "simple",
+      assay_size_without_repeat = 87,
+      repeat_size = 3,
+      repeat_length_correction = "none"
+    )
   )
 
 
@@ -296,23 +297,24 @@ testthat::test_that("call_repeats", {
 
   # nearest peak algo
 
-  test_repeats_np <- call_repeats(
-    fragments_list = test_alleles,
-    repeat_algorithm = "nearest_peak",
-    assay_size_without_repeat = 87,
-    repeat_size = 3,
-    repeat_length_correction = "none"
+  suppressMessages(
+    test_repeats_np <- call_repeats(
+      fragments_list = test_alleles,
+      repeat_algorithm = "nearest_peak",
+      assay_size_without_repeat = 87,
+      repeat_size = 3,
+      repeat_length_correction = "none"
+    )
   )
 
 
   test_repeats_np_dif <- vector("list", length(test_repeats_np))
   for (i in seq_along(test_repeats_np)) {
-
     repeat_sizes <- test_repeats_np[[i]]$repeat_table_df$repeats
 
     lag <- vector("numeric", length(repeat_sizes))
     for (j in 2:length(repeat_sizes)) {
-      lag[j] <- repeat_sizes[j] - repeat_sizes[j-1]
+      lag[j] <- repeat_sizes[j] - repeat_sizes[j - 1]
     }
 
     test_repeats_np_dif[[i]] <- lag
@@ -325,54 +327,60 @@ testthat::test_that("call_repeats", {
   # correct repeat length
 
   test_alleles_metadata <- add_metadata(test_alleles, metadata,
-                                        group_id = "cell_line",
-                                        unique_id = "unique_id",
-                                        size_standard = "repeat_positive_control_TF",
-                                        size_standard_repeat_length = "repeat_positive_control_length")
+    group_id = "cell_line",
+    unique_id = "unique_id",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length"
+  )
 
-  test_repeats_corrected <- call_repeats(
-    fragments_list = test_alleles_metadata,
-    repeat_algorithm = "simple",
-    assay_size_without_repeat = 87,
-    repeat_size = 3,
-    repeat_length_correction = "from_metadata"
+  suppressMessages(
+    suppressMessages(
+      test_repeats_corrected <- call_repeats(
+        fragments_list = test_alleles_metadata,
+        repeat_algorithm = "simple",
+        assay_size_without_repeat = 87,
+        repeat_size = 3,
+        repeat_length_correction = "from_metadata"
+      )
+    )
   )
 
   mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$correction_mod$coefficients
 
-  testthat::expect_true(round(mod_coefficients[2],3) == 0.337)
-
+  testthat::expect_true(round(mod_coefficients[2], 3) == 0.337)
 })
 
 
 testthat::test_that("call_repeats with correction from genemapper alleles", {
-
   gm_raw <- instability::example_data_genemapper_alleles
   metadata <- instability::metadata
   # Save raw data as a fragment class
 
   test_fragments <- peak_table_to_fragments(gm_raw,
-                                            data_format = "genemapper5",
-                                            dye_channel = "B")
+    data_format = "genemapper5",
+    dye_channel = "B"
+  )
 
   test_alleles <- find_alleles(
     fragments_list = test_fragments,
     number_of_peaks_to_return = 2,
     peak_region_size_gap_threshold = 6,
-    peak_region_height_threshold_multiplier = 1)
+    peak_region_height_threshold_multiplier = 1
+  )
 
-  test_repeats_corrected <- call_repeats(
-    fragments_list = test_alleles,
-    repeat_algorithm = "simple",
-    assay_size_without_repeat = 87,
-    repeat_size = 3,
-    repeat_length_correction = "from_genemapper"
+  suppressMessages(
+    test_repeats_corrected <- call_repeats(
+      fragments_list = test_alleles,
+      repeat_algorithm = "simple",
+      assay_size_without_repeat = 87,
+      repeat_size = 3,
+      repeat_length_correction = "from_genemapper"
+    )
   )
 
   mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$correction_mod$coefficients
 
-  testthat::expect_true(round(mod_coefficients[2],3) == 0.337)
-
+  testthat::expect_true(round(mod_coefficients[2], 3) == 0.337)
 })
 
 
@@ -382,33 +390,37 @@ testthat::test_that("calculate metrics", {
   gm_raw <- instability::example_data
   metadata <- instability::metadata
   # Save raw data as a fragment class
-  suppressWarnings({
 
+  suppressWarnings(
     test_fragments <- peak_table_to_fragments(gm_raw,
-                                              data_format = "genemapper5",
-                                              dye_channel = "B",
-                                              min_size_bp = 400)
-  })
+      data_format = "genemapper5",
+      dye_channel = "B",
+      min_size_bp = 400
+    )
+  )
 
 
-  suppressWarnings({
-    test_metadata <- add_metadata(
-      fragments_list = test_fragments,
-      metadata_data.frame = metadata,
-      unique_id = "unique_id",
-      plate_id = "plate_id",
-      group_id = "cell_line",
-      metrics_baseline_control = "metrics_baseline_control_TF",
-      size_standard = "repeat_positive_control_TF",
-      size_standard_repeat_length = "repeat_positive_control_length")
 
-    test_alleles <- find_alleles(
-      fragments_list = test_metadata,
-      number_of_peaks_to_return = 1,
-      peak_region_size_gap_threshold = 6,
-      peak_region_height_threshold_multiplier = 1)
+  test_metadata <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length"
+  )
+
+  test_alleles <- find_alleles(
+    fragments_list = test_metadata,
+    number_of_peaks_to_return = 1,
+    peak_region_size_gap_threshold = 6,
+    peak_region_height_threshold_multiplier = 1
+  )
 
 
+  suppressWarnings(
     test_repeats <- call_repeats(
       fragments_list = test_alleles,
       repeat_algorithm = "simple",
@@ -416,20 +428,25 @@ testthat::test_that("calculate metrics", {
       repeat_size = 3,
       repeat_length_correction = "none"
     )
+  )
 
-    # grouped
 
-    test_metrics_grouped <- calculate_instability_metrics(
-      fragments_list = test_repeats,
-      grouped = TRUE,
-      peak_threshold = 0.05,
-      # note the lower lim should be a negative value
-      window_around_main_peak = c(-40, 40),
-      percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
-      repeat_range = c( 1,2,3,4,seq(6,20,2)),
-      index_override_dataframe = NULL)
-  })
+  # grouped
 
+  suppressMessages(
+    suppressWarnings(
+      test_metrics_grouped <- calculate_instability_metrics(
+        fragments_list = test_repeats,
+        grouped = TRUE,
+        peak_threshold = 0.05,
+        # note the lower lim should be a negative value
+        window_around_main_peak = c(-40, 40),
+        percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
+        repeat_range = c(1, 2, 3, 4, seq(6, 20, 2)),
+        index_override_dataframe = NULL
+      )
+    )
+  )
 
 
   testthat::expect_true(round(mean(test_metrics_grouped$expansion_index, na.rm = TRUE), 3) == 6.673)
@@ -439,7 +456,7 @@ testthat::test_that("calculate metrics", {
   # ungrouped
 
 
-  suppressWarnings({
+  suppressWarnings(
     test_repeats <- call_repeats(
       fragments_list = test_alleles,
       repeat_algorithm = "simple",
@@ -447,7 +464,10 @@ testthat::test_that("calculate metrics", {
       repeat_size = 3,
       repeat_length_correction = "none"
     )
+  )
 
+
+  suppressMessages(
     test_metrics_ungrouped <- calculate_instability_metrics(
       fragments_list = test_repeats,
       grouped = FALSE,
@@ -455,25 +475,21 @@ testthat::test_that("calculate metrics", {
       # note the lower lim should be a negative value
       window_around_main_peak = c(-40, 40),
       percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
-      repeat_range = c( 1,2,3,4,seq(6,20,2)),
-      index_override_dataframe = NULL)
-    })
-
+      repeat_range = c(1, 2, 3, 4, seq(6, 20, 2)),
+      index_override_dataframe = NULL
+    )
+  )
 
 
   testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index, na.rm = TRUE), 3) == 4.899)
   testthat::expect_true(all(is.na(test_metrics_ungrouped$average_repeat_gain)))
   testthat::expect_true(round(mean(test_metrics_ungrouped$skewness, na.rm = TRUE), 5) == -0.01007)
-
-
-
 })
 
 
 # remove fragments --------------------------------------------------------
 
-testthat::test_that("remove fragments",{
-
+testthat::test_that("remove fragments", {
   gm_raw <- instability::example_data
   metadata <- instability::metadata
   # Save raw data as a fragment class
@@ -481,41 +497,134 @@ testthat::test_that("remove fragments",{
   test_fragments <- peak_table_to_fragments(
     gm_raw,
     data_format = "genemapper5",
-    dye_channel = "B")
+    dye_channel = "B"
+  )
 
   all_fragment_names <- names(test_fragments)
-  samples_to_remove <- all_fragment_names[c(1,length(all_fragment_names))]
+  samples_to_remove <- all_fragment_names[c(1, length(all_fragment_names))]
 
   samples_removed <- remove_fragments(test_fragments, samples_to_remove)
 
   testthat::expect_true(all(!names(samples_removed) %in% samples_to_remove))
-
 })
 
 
 # plot fragments ----------------------------------------------------------
 
-testthat::test_that("plot fragments",{
 
-  # gm_raw <- instability::example_data
-  # metadata <- instability::metadata
-  # # Save raw data as a fragment class
-  #
-  # test_fragments <- peak_table_to_fragments(gm_raw,
-  #                                           data_format = "genemapper5",
-  #                                           dye_channel = "B")
-  #
-  # test_alleles <- find_alleles(
-  #   fragments_list = test_fragments,
-  #   number_of_peaks_to_return = 2,
-  #   peak_region_size_gap_threshold = 6,
-  #   peak_region_height_threshold_multiplier = 1)
-  #
-  # gg <- plot_fragments(test_alleles,
-  #                names(test_alleles)[1:9])
-  #
+testthat::test_that("full pipline", {
+  suppressWarnings(
+    test_ladders <- find_ladders(cell_line_fsa_list,
+      ladder_channel = "DATA.105",
+      signal_channel = "DATA.1",
+      ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+      max_combinations = 2500000,
+      ladder_selection_window = 5,
+      show_progress_bar = FALSE
+    )
+  )
 
-  ## come up with tests
+  # plot_ladders(test_ladders[1:9], n_facet_col = 3,
+  #              xlim = c(1000, 4800),
+  #              ylim = c(0, 15000))
 
 
+  # # Start a PDF device
+  # pdf(file = "C:/Users/zlm2/Downloads/ladder.pdf", width = 12, height = 6) # Set width and height as desired
+  #
+  # # Loop through the list of plots
+  # for (i in seq_along(test_ladders)) {
+  #   test_ladders[[i]]$plot_ladder(xlim = c(1400, 4500))
+  # }
+  #
+  # # Close the PDF device
+  # dev.off()
+
+
+  peak_list <- find_fragments(test_ladders,
+    minimum_peak_signal = 20,
+    min_bp_size = 300
+  )
+
+  fragment_metadata <- add_metadata(
+    fragments_list = peak_list,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = "plate_id",
+    group_id = "cell_line",
+    metrics_baseline_control = "metrics_baseline_control_TF",
+    size_standard = "repeat_positive_control_TF",
+    size_standard_repeat_length = "repeat_positive_control_length"
+  )
+
+  fragment_alleles <- find_alleles(
+    fragments_list = fragment_metadata,
+    number_of_peaks_to_return = 1
+  )
+
+  suppressMessages(
+    suppressWarnings(
+      test_repeats <- call_repeats(
+        fragments_list = fragment_alleles,
+        repeat_length_correction = "from_metadata"
+      )
+    )
+  )
+
+  # plot_traces(test_repeats[1:9], n_facet_col = 3,
+  #             xlim = c(400, 550),
+  #             ylim = c(0,2000))
+
+
+  # plot_fragments(test_repeats[1:4])
+  # plot_repeat_correction_model(test_repeats)
+
+  suppressMessages(
+    suppressWarnings(
+      test_metrics_grouped <- calculate_instability_metrics(
+        fragments_list = test_repeats,
+        grouped = TRUE,
+        peak_threshold = 0.05,
+        window_around_main_peak = c(-40, 40)
+      )
+    )
+  )
+
+
+  # Left join
+  plot_data <- merge(test_metrics_grouped, metadata, by = "unique_id", all.x = TRUE)
+
+  # Filter
+  plot_data <- plot_data[plot_data$day > 0 & plot_data$modal_peak_height > 500, ]
+
+  # Group by
+  plot_data <- split(plot_data, plot_data$cell_line)
+
+  # Mutate
+  for (i in seq_along(plot_data)) {
+    plot_data[[i]]$rel_gain <- plot_data[[i]]$average_repeat_gain / median(plot_data[[i]]$average_repeat_gain[which(plot_data[[i]]$treatment == 0)])
+  }
+
+  plot_data <- do.call(rbind, plot_data)
+
+  # Revise genotype levels
+
+  plot_data$genotype <- factor(plot_data$genotype, levels = c("non-edited", "edited"))
+
+
+
+  # ggplot2::ggplot(plot_data,
+  #                 ggplot2::aes(as.factor(treatment), rel_gain,
+  #            colour = as.factor(treatment))) +
+  #   ggplot2::geom_boxplot(outlier.shape = NA) +
+  #   ggplot2::geom_jitter() +
+  #   ggplot2::facet_wrap(ggplot2::vars(genotype)) +
+  #   ggplot2::labs(y = "Average repeat gain\n(relative to DMSO)",
+  #        x = "Branaplam (nM)") +
+  #   ggplot2::theme(legend.position = "none")
+
+
+  medians <- aggregate(rel_gain ~ treatment + genotype, plot_data, median, na.rm = TRUE)
+
+  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85697, 0.70219, 0.56223, 1.00000, 1.18329, 1.10977, 1.00459)))
 })

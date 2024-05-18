@@ -1,6 +1,6 @@
 Package: instability
 Title: Short tandem repeats somatic instability from fragment analysis data
-Version: 1.1.0
+Version: 1.2.0
 Authors@R: 
     person("Zachariah", "McLean", , "zachariah.louis.mclean@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-0968-0538"))
@@ -13,13 +13,16 @@ Suggests:
     ggplot2,
     knitr,
     rmarkdown,
+    shinytest2,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Imports: 
     graphics,
     grDevices,
+    plotly,
     pracma,
     seqinr,
+    shiny,
     stats,
     utils
 VignetteBuilder: knitr

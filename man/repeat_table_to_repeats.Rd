@@ -26,11 +26,11 @@ This function takes a repeat table data frame and converts it into a list of rep
 The function allows specifying column names for repeats, frequencies, and unique identifiers.
 }
 \examples{
-  repeat_table <- instability::example_data_repeat_table
-  test_fragments <- repeat_table_to_repeats(
-    repeat_table,
-    repeat_col = "repeats",
-    frequency_col = "height",
-    unique_id = "unique_id"
-    )
+repeat_table <- instability::example_data_repeat_table
+test_fragments <- repeat_table_to_repeats(
+  repeat_table,
+  repeat_col = "repeats",
+  frequency_col = "height",
+  unique_id = "unique_id"
+)
 }

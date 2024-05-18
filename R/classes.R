@@ -1,89 +1,119 @@
 # Fragments class ---------------------------------------------------------
 
-fragments <- R6::R6Class("fragments", public = list(
-  unique_id = NA_character_,
-  plate_id = NA_character_,
-  group_id = NA_character_,
-  metrics_baseline_control = FALSE,
-  size_standard = FALSE,
-  size_standard_repeat_length = NA_real_,
+fragments <- R6::R6Class("fragments",
+  public = list(
+    unique_id = NA_character_,
+    plate_id = NA_character_,
+    group_id = NA_character_,
+    metrics_baseline_control = FALSE,
+    size_standard = FALSE,
+    size_standard_repeat_length = NA_real_,
+    initialize = function(unique_id) {
+      if (length(unique_id) != 1) stop("Fragments must have a single unique id", call. = FALSE)
+      self$unique_id <- unique_id
+    },
+    add_metadata = function(metadata_data.frame,
+                            unique_id,
+                            plate_id,
+                            group_id,
+                            size_standard,
+                            size_standard_repeat_length,
+                            metrics_baseline_control) {
+      # clone the class so that it doesn't modify in place
+      self2 <- self$clone()
 
-  initialize = function(unique_id) {
-    if(length(unique_id) != 1) stop("Fragments must have a single unique id", call. = FALSE)
-    self$unique_id <- unique_id
-  },
+      # filter for row of sample
+      sample_metadata <- metadata_data.frame[which(metadata_data.frame[unique_id] == self2$unique_id), , drop = FALSE]
 
-  add_metadata = function(metadata_data.frame,
-                          unique_id,
-                          plate_id,
-                          group_id,
-                          size_standard,
-                          size_standard_repeat_length,
-                          metrics_baseline_control){
+      # add metadata to slots
+      self2$plate_id <- ifelse(!is.na(plate_id), as.character(sample_metadata[plate_id]), NA_character_)
+      self2$group_id <- ifelse(!is.na(group_id), as.character(sample_metadata[group_id]), NA_character_)
+      self2$size_standard <- ifelse(!is.na(size_standard),
+        ifelse(is.na(sample_metadata[size_standard]) || !as.logical(sample_metadata[size_standard]), FALSE, TRUE),
+        FALSE
+      )
+      self2$size_standard_repeat_length <- ifelse(!is.na(size_standard_repeat_length), as.double(sample_metadata[size_standard_repeat_length]), NA_real_)
+      self2$metrics_baseline_control <- ifelse(!is.na(metrics_baseline_control),
+        ifelse(is.na(sample_metadata[metrics_baseline_control]) || !as.logical(sample_metadata[metrics_baseline_control]), FALSE, TRUE),
+        FALSE
+      )
 
-    # clone the class so that it doesn't modify in place
-    self2 <- self$clone()
+      return(self2)
+    },
+    print = function(...) {
+      print_helper(self,
+        sample_attrs = c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_repeat_length")
+      )
+    },
+    plot_trace = function(show_peaks = TRUE,
+                          ylim = NULL,
+                          xlim = NULL,
+                          height_color_threshold = 0.05) {
+      if (is.null(self$trace_bp_df)) {
+        stop(
+          call. = FALSE,
+          paste(self$unique_id, "This sample does not have trace data, so cannot make plot")
+        )
+      }
 
-    # filter for row of sample
-    sample_metadata <- metadata_data.frame[which(metadata_data.frame[unique_id] == self2$unique_id), ,drop = FALSE]
+      tace_df <- self$trace_bp_df
+      if (!is.null(xlim)) {
+        tace_df <- tace_df[which(tace_df$size < xlim[2] & tace_df$size > xlim[1]), ]
+      }
 
-    # add metadata to slots
-    self2$plate_id <- ifelse(!is.na(plate_id), as.character(sample_metadata[plate_id]), NA_character_)
-    self2$group_id <- ifelse(!is.na(group_id), as.character(sample_metadata[group_id]), NA_character_)
-    self2$size_standard <- ifelse(!is.na(size_standard),
-                                  ifelse(is.na(sample_metadata[size_standard]) || !as.logical(sample_metadata[size_standard]), FALSE, TRUE),
-                                  FALSE)
-    self2$size_standard_repeat_length <- ifelse(!is.na(size_standard_repeat_length), as.double(sample_metadata[size_standard_repeat_length]), NA_real_)
-    self2$metrics_baseline_control <- ifelse(!is.na(metrics_baseline_control),
-                                             ifelse(is.na(sample_metadata[metrics_baseline_control]) || !as.logical(sample_metadata[metrics_baseline_control]), FALSE, TRUE),
-                                             FALSE)
 
-    return(self2)
-  },
-  print = function(...) {
-    print_helper(self,
-                 sample_attrs = c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_repeat_length")
-    )
-  },
-  plot_trace = function(show_peaks = TRUE,
-                         ylim = NULL,
-                         xlim = NULL){
-    if(is.null(self$trace_bp_df)){
-      stop(call. = FALSE,
-           paste(self$unique_id, "This sample does not have trace data, so cannot make plot"))
+
+      plot(tace_df$size,
+        tace_df$signal,
+        main = self$unique_id,
+        type = "l",
+        xlab = "Size",
+        ylab = "Signal",
+        ylim = ylim,
+        xlim = xlim
+      )
+
+      if (!is.null(self$peak_table_df) && show_peaks) {
+        peak_table <- self$peak_table_df
+        if (!is.null(xlim)) {
+          peak_table <- peak_table[which(peak_table$size < xlim[2] & peak_table$size > xlim[1]), ]
+        }
+
+        tallest_peak_height <- max(peak_table$height)[1]
+        if (!is.null(self$allele_1_height) && !is.na(self$allele_1_height)) {
+          tallest_peak_height <- self$allele_1_height
+        }
+
+
+
+        peaks_above <- peak_table[which(peak_table$height > tallest_peak_height * height_color_threshold), ]
+        peaks_below <- peak_table[which(peak_table$height < tallest_peak_height * height_color_threshold), ]
+
+        # Adding peaks
+        points(peaks_above$size,
+          peaks_above$height,
+          col = "blue"
+        )
+        points(peaks_below$size,
+          peaks_below$height,
+          col = "purple"
+        )
+      }
+
+      if (any(self$trace_bp_df$off_scale)) {
+        abline(v = self$trace_bp_df[which(self$trace_bp_df$off_scale), "size"], col = adjustcolor("red", alpha = 0.3), lwd = 2.5)
+      }
     }
-
-    plot(self$trace_bp_df$size,
-         self$trace_bp_df$signal,
-         main = self$unique_id,
-         type = "l",
-         xlab = "Size",
-         ylab = "Signal",
-         ylim = ylim,
-         xlim = xlim)
-
-    if(!is.null(self$peak_table_df) && show_peaks){
-      # Adding peaks
-      points(self$peak_table_df$size,
-             self$peak_table_df$height,
-             col = "blue")
-    }
-
-    if(any(self$trace_bp_df$off_scale)){
-      abline(v = self$trace_bp_df[which(self$trace_bp_df$off_scale), "size"], col =  adjustcolor("red", alpha = 0.3), lwd  = 2.5)
-    }
-  }
-
-
-),
-private = list(
-  find_main_peaks_used = FALSE,
-  repeats_not_called_reason = NA_character_,
-  validated_peaks_df = NULL,
-  correction_mod = NULL,
-  controls_repeats_df = NULL,
-  peak_regions = NA_real_
-))
+  ),
+  private = list(
+    find_main_peaks_used = FALSE,
+    repeats_not_called_reason = NA_character_,
+    validated_peaks_df = NULL,
+    correction_mod = NULL,
+    controls_repeats_df = NULL,
+    peak_regions = NA_real_
+  )
+)
 
 
 
@@ -102,31 +132,49 @@ fragments_trace <- R6::R6Class(
     ladder_df = NULL,
     trace_bp_df = NULL,
     peak_table_df = NULL,
-
-    #model related
     mod_parameters = NULL,
-    generate_mod_parameters = function() {
-      # Perform any necessary calculations to fit the model and save the parameters
-      ladder_df <- self$ladder_df[which(!is.na(self$ladder_df$size)), ]
-      ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
-      self$mod_parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
-      invisible(self)
-    },
-    predict_size = function() {
-      # Predict fragment sizes for new data points
-      predicted_sizes <- local_southern_predict(local_southern_fit = self$mod_parameters , scans = self$scan)
+    find_ladder = function(fsa,
+                           ladder_channel = "DATA.105",
+                           signal_channel = "DATA.1",
+                           ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                           spike_location = NULL,
+                           scan_subset = NULL,
+                           smoothing_window = 21,
+                           max_combinations = 2500000,
+                           ladder_selection_window = 5,
+                           show_progress_bar = TRUE) {
 
-      return(predicted_sizes)
+      if(any(sapply(list(self$raw_ladder, self$raw_data, self$scan, self$off_scale_scans), is.null))){
+        self$raw_ladder <- fsa$Data[[ladder_channel]]
+        self$raw_data <- fsa$Data[[signal_channel]]
+        self$scan <- 0:(length(fsa$Data[[signal_channel]]) - 1)
+        self$off_scale_scans <- fsa$Data$OfSc.1
+      }
+
+      self2 <- find_ladder_helper(
+        fragments_trace = self,
+        ladder_channel = ladder_channel,
+        signal_channel = signal_channel,
+        ladder_sizes = ladder_sizes,
+        spike_location = spike_location,
+        scan_subset = scan_subset,
+        smoothing_window = smoothing_window,
+        max_combinations = max_combinations,
+        ladder_selection_window = ladder_selection_window
+      )
+
+      return(self2)
     },
     call_peaks = function(smoothing_window = 4,
                           minimum_peak_signal = 20,
                           min_bp_size = 100,
                           max_bp_size = 1000,
-                          ...){
+                          ...) {
       df <- find_fragment_peaks(self$trace_bp_df,
-                                smoothing_window = smoothing_window,
-                                minimum_peak_signal = minimum_peak_signal,
-                                ...)
+        smoothing_window = smoothing_window,
+        minimum_peak_signal = minimum_peak_signal,
+        ...
+      )
 
       df$unique_id <- rep(self$unique_id, nrow(df))
       self$peak_table_df <- df[which(df$size > min_bp_size & df$size < max_bp_size), ]
@@ -135,17 +183,17 @@ fragments_trace <- R6::R6Class(
     },
     ladder_correction_auto = function(size_threshold = 60,
                                       size_tolerance = 2.5,
-                                      rsq_threshold = 0.9985){
-
+                                      rsq_threshold = 0.9985) {
       self2 <- ladder_self_mod_predict(self,
-                              size_threshold = size_threshold,
-                              size_tolerance = size_tolerance,
-                              rsq_threshold = rsq_threshold)
+        size_threshold = size_threshold,
+        size_tolerance = size_tolerance,
+        rsq_threshold = rsq_threshold
+      )
 
 
       return(self2)
     },
-    ladder_correction_manual = function(replacement_ladder_df){
+    ladder_correction_manual = function(replacement_ladder_df) {
       fixed_fragments_trace <- ladder_fix_helper(
         self,
         replacement_ladder_df = replacement_ladder_df
@@ -153,31 +201,33 @@ fragments_trace <- R6::R6Class(
 
       return(fixed_fragments_trace)
     },
-    plot_ladder = function(xlim = NULL, ylim = NULL){
-        # Scatter plot
-        plot(self$trace_bp_df$scan, self$trace_bp_df$ladder_signal,
-             xlab = "Scan", ylab = "Ladder Signal",
-             main = self$unique_id,
-             pch = 16,
-             xlim = xlim,
-             ylim = ylim)
+    plot_ladder = function(xlim = NULL, ylim = NULL) {
+      # Scatter plot
+      plot(self$trace_bp_df$scan, self$trace_bp_df$ladder_signal,
+        xlab = "Scan", ylab = "Ladder Signal",
+        main = self$unique_id,
+        pch = 16,
+        xlim = xlim,
+        ylim = ylim
+      )
 
-        # Adding text
-        text(self$ladder_df$scan, rep(max(self$trace_bp_df$ladder_signal) / 3, nrow(self$ladder_df)),
-             labels = self$ladder_df$size,
-             adj = 0.5, cex = 0.7, srt = 90)
+      # Adding text
+      text(self$ladder_df$scan, rep(max(self$trace_bp_df$ladder_signal) / 3, nrow(self$ladder_df)),
+        labels = self$ladder_df$size,
+        adj = 0.5, cex = 0.7, srt = 90
+      )
 
-        # Adding vertical lines with transparency
-        for (i in 1:nrow(self$ladder_df)) {
-          abline(v = self$ladder_df$scan[i],
-                 lty = 3,
-                 col = rgb(1, 0, 0, alpha = 0.3))
-        }
-
-
-
+      # Adding vertical lines with transparency
+      for (i in 1:nrow(self$ladder_df)) {
+        abline(
+          v = self$ladder_df$scan[i],
+          lty = 3,
+          col = rgb(1, 0, 0, alpha = 0.3)
+        )
+      }
     }
-  ))
+  )
+)
 
 
 # repeats -------------------------------
@@ -201,7 +251,6 @@ fragments_repeats <- R6::R6Class(
     index_repeat = NA_real_,
     index_height = NA_real_,
     index_weighted_mean_repeat = NA_real_,
-
     find_main_peaks = function(number_of_peaks_to_return = 2,
                                peak_region_size_gap_threshold = 6,
                                peak_region_height_threshold_multiplier = 1) {
@@ -216,49 +265,47 @@ fragments_repeats <- R6::R6Class(
       )
 
 
-      #finally, indicate in the private part of the class that this function has been used since that is required for next steps
+      # finally, indicate in the private part of the class that this function has been used since that is required for next steps
       self2$.__enclos_env__$private$find_main_peaks_used <- TRUE
 
 
       return(self2)
-
     },
     add_repeats = function(repeat_algorithm = "simple", # "simple" or "nearest_peak"
                            assay_size_without_repeat = 87,
                            repeat_size = 3,
-                           correct_repeat_length = FALSE){
-
+                           correct_repeat_length = FALSE) {
       repeat_class <- add_repeats_helper(self,
-                                         repeat_algorithm = repeat_algorithm,
-                                         assay_size_without_repeat = assay_size_without_repeat,
-                                         repeat_size = repeat_size,
-                                         correct_repeat_length = correct_repeat_length)
+        repeat_algorithm = repeat_algorithm,
+        assay_size_without_repeat = assay_size_without_repeat,
+        repeat_size = repeat_size,
+        correct_repeat_length = correct_repeat_length
+      )
 
       return(repeat_class)
     },
-
     instability_metrics = function(peak_threshold = 0.05,
                                    window_around_main_peak = c(NA, NA), # note the lower lim should be a negative value
                                    percentile_range = c(
                                      0.01, 0.05, 0.1, 0.2, 0.3,
                                      0.4, 0.5, 0.6, 0.7, 0.8,
-                                     0.9, 0.95, 0.99),
+                                     0.9, 0.95, 0.99
+                                   ),
                                    repeat_range = c(
-                                     1,2,3,4,6,8,10,12,14,16,18,20
-                                   )
-    ) {
-
+                                     1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20
+                                   )) {
       # check to make sure all the required inputs for the function have been given
-      if(private$find_main_peaks_used == FALSE){
+      if (private$find_main_peaks_used == FALSE) {
         stop(paste0(self$unique_id, " requires main alleles to be identified before repeats can be called. Find alleles using 'find_main_peaks()' whitin the class, or use the 'find_alleles()' accesesor to find the main peaks across a list of 'HTT_fragments' objects"),
-             call. = FALSE)
-      } else if(is.na(self$allele_1_repeat)){
+          call. = FALSE
+        )
+      } else if (is.na(self$allele_1_repeat)) {
         message(paste0(self$unique_id, ": metrics not calculated (no main peaks in sample)"))
         return(NULL)
       }
 
-      #set index repeat if it hasn't already been set
-      if(is.na(self$index_repeat)){
+      # set index repeat if it hasn't already been set
+      if (is.na(self$index_repeat)) {
         self$index_repeat <- self$allele_1_repeat
         self$index_height <- self$allele_1_height
       }
@@ -269,38 +316,36 @@ fragments_repeats <- R6::R6Class(
         peak_threshold = peak_threshold,
         window_around_main_peak = window_around_main_peak,
         percentile_range = percentile_range,
-        repeat_range = repeat_range)
+        repeat_range = repeat_range
+      )
 
       return(metrics)
-
     },
-    plot_fragments = function(
-    #show_peak_regions = FALSE,
+    plot_fragments = function( # show_peak_regions = FALSE,
                               ylim = NULL,
-                              xlim = NULL){
-
-      if(is.null(self$repeat_table_df)){
+                              xlim = NULL) {
+      if (is.null(self$repeat_table_df)) {
         data <- self$peak_table_df
         data$x <- data$size
-      }
-      else{
+      } else {
         data <- self$repeat_table_df
         data$x <- data$repeats
       }
 
-      if(nrow(data) == 0){
+      if (nrow(data) == 0) {
         plot.new()
         title(main = self$unique_id)
         return()
       }
 
-      if(!is.null(xlim)){
-        if(length(xlim == 2) & is(xlim, "numeric")){
+      if (!is.null(xlim)) {
+        if (length(xlim == 2) & is(xlim, "numeric")) {
           data <- data[which(data$x < xlim[2] & data$x > xlim[1]), ]
-        }
-        else{
-          stop(call. = FALSE,
-               "xlim must be a numeric vector with length of 2")
+        } else {
+          stop(
+            call. = FALSE,
+            "xlim must be a numeric vector with length of 2"
+          )
         }
       }
 
@@ -326,10 +371,10 @@ fragments_repeats <- R6::R6Class(
         ylab = "Signal",
         ylim = ylim,
         beside = TRUE,
-        col = sapply(all_x_values, function(x) if(!is.na(allele_1_mode) && x == allele_1_mode) "red" else if(!is.na(allele_2_mode) && x == allele_2_mode) "blue" else "gray")
+        col = sapply(all_x_values, function(x) if (!is.na(allele_1_mode) && x == allele_1_mode) "red" else if (!is.na(allele_2_mode) && x == allele_2_mode) "blue" else "gray")
       )
 
-      #why doesn't the following code work? can't even get rectangle to show up on its own
+      # why doesn't the following code work? can't even get rectangle to show up on its own
       # if(show_peak_regions == TRUE && !is.na(allele_1_mode)) {
       #   data$peak_region <- private$peak_regions
       #   unique_peak_regions <- unique(na.omit(private$peak_regions))
@@ -339,9 +384,6 @@ fragments_repeats <- R6::R6Class(
       #   }
       #
       # }
-
-
     }
   )
 )
-

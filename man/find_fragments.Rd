@@ -26,7 +26,7 @@ find_fragments(
 
 \item{...}{pass additional arguments to findpeaks, or change the default arguments
 we set. minimum_peak_signal above is passed to findpeaks as minpeakheight, and
-peakpat has been set to "[+]{6,}\link{0}*[-]{6,}" so that peaks with flat tops are
+peakpat has been set to '[+]{6,}\link{0}*[-]{6,}' so that peaks with flat tops are
 still called, #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks}
 }
 \value{
@@ -42,21 +42,18 @@ the default arguments arguments of pracma::findpeaks can be changed by passing t
 to find_fragments.
 }
 \examples{
- file_list <- instability::cell_line_fsa_list
+file_list <- instability::cell_line_fsa_list
 
- test_ladders <- find_ladders(file_list[1],
-                              ladder_channel = "DATA.105",
-                              signal_channel = "DATA.1",
-                              ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-                              hq_ladder = FALSE,
-                              max_combinations = 2500000,
-                              ladder_selection_window = 8)
+test_ladders <- find_ladders(file_list[1])
 
- fragments_list <- find_fragments(test_ladders,
-                                  min_bp_size = 300)
+fragments_list <- find_fragments(test_ladders,
+  min_bp_size = 300
+)
 
 
- # Manually inspect the ladders
- plot_traces(fragments_list, show_peaks = TRUE, n_facet_col = 1,
- xlim = c(400, 550), ylim = c(0,1200))
+# Manually inspect the ladders
+plot_traces(fragments_list,
+  show_peaks = TRUE, n_facet_col = 1,
+  xlim = c(400, 550), ylim = c(0, 1200)
+)
 }

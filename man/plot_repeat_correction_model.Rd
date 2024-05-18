@@ -22,13 +22,15 @@ metadata <- instability::metadata
 test_fragments <- peak_table_to_fragments(
   gm_raw,
   data_format = "genemapper5",
-  dye_channel = "B")
+  dye_channel = "B"
+)
 
 test_alleles <- find_alleles(
   fragments_list = test_fragments,
   number_of_peaks_to_return = 2,
   peak_region_size_gap_threshold = 6,
-  peak_region_height_threshold_multiplier = 1)
+  peak_region_height_threshold_multiplier = 1
+)
 
 test_metadata <- add_metadata(
   fragments_list = test_alleles,
@@ -38,7 +40,8 @@ test_metadata <- add_metadata(
   group_id = "cell_line",
   metrics_baseline_control = "metrics_baseline_control_TF",
   size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length")
+  size_standard_repeat_length = "repeat_positive_control_length"
+)
 
 test_repeats_corrected <- call_repeats(
   fragments_list = test_metadata,
@@ -49,6 +52,5 @@ test_repeats_corrected <- call_repeats(
 )
 
 plot_repeat_correction_model(test_repeats_corrected)
-
 
 }

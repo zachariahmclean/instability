@@ -30,21 +30,15 @@ as the ladder. It then reruns the bp sizing methods on those samples.
 \examples{
 
 
-test_ladders <- find_ladders(instability::cell_line_fsa_list[1],
-  ladder_channel = "DATA.105",
-  signal_channel = "DATA.1",
-  ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-  hq_ladder = FALSE,
-  max_combinations = 2500000,
-  ladder_selection_window = 8)
+test_ladders <- find_ladders(instability::cell_line_fsa_list[1])
 
- # first manually determine the real ladder peaks using your judgment
- # the raw ladder signal can be extracted
- raw_ladder <- test_ladders[1]$raw_ladder
+# first manually determine the real ladder peaks using your judgment
+# the raw ladder signal can be extracted
+raw_ladder <- test_ladders[1]$raw_ladder
 
- # or we can look at the "trace_bp_df" to see a dataframe that includes the scan and ladder signal
- raw_ladder_df <- test_ladders[[1]]$trace_bp_df[,c("unique_id", "scan", "ladder_signal")]
- plot(raw_ladder_df$scan, raw_ladder_df$ladder_signal)
+# or we can look at the "trace_bp_df" to see a dataframe that includes the scan and ladder signal
+raw_ladder_df <- test_ladders[[1]]$trace_bp_df[, c("unique_id", "scan", "ladder_signal")]
+plot(raw_ladder_df$scan, raw_ladder_df$ladder_signal)
 
 # once you have figured what sizes align with which peak, make a dataframe. The
 # fix_ladders_manual() function takes a list as an input so that multiple ladders
@@ -54,8 +48,8 @@ example_list <- list(
   "20230413_A01.fsa" = data.frame(
     size = c(100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
     scan = c(1971, 2208, 2269, 2329, 2581, 2888, 3228, 3479, 3543, 3872, 4170, 4412, 4460)
-    )
   )
+)
 
 test_ladders_fixed_manual <- fix_ladders_manual(
   test_ladders,

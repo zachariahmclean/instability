@@ -24,7 +24,7 @@ call_repeats(
 \item{repeat_length_correction}{A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.}
 }
 \value{
-A list of \code{\link{fragments_repeats}} objects with repeat data added.
+A list of \code{"fragments_repeats"} objects with repeat data added.
 
 #' @details
 The calculated repeat lengths are assigned to the corresponding peaks in the provided \code{fragments_repeats} object. The repeat lengths can be used for downstream instability analysis.
@@ -44,13 +44,15 @@ metadata <- instability::metadata
 test_fragments <- peak_table_to_fragments(
   gm_raw,
   data_format = "genemapper5",
-  dye_channel = "B")
+  dye_channel = "B"
+)
 
 test_alleles <- find_alleles(
   fragments_list = test_fragments,
   number_of_peaks_to_return = 2,
   peak_region_size_gap_threshold = 6,
-  peak_region_height_threshold_multiplier = 1)
+  peak_region_height_threshold_multiplier = 1
+)
 
 # Simple conversion from bp size to repeat size
 test_repeats <- call_repeats(
@@ -74,7 +76,7 @@ test_repeats_np <- call_repeats(
 
 # correct repeat length from metadata
 
- test_alleles_metadata <- add_metadata(
+test_alleles_metadata <- add_metadata(
   fragments_list = test_alleles,
   metadata_data.frame = metadata,
   unique_id = "unique_id",
@@ -82,7 +84,8 @@ test_repeats_np <- call_repeats(
   group_id = "cell_line",
   metrics_baseline_control = "metrics_baseline_control_TF",
   size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length")
+  size_standard_repeat_length = "repeat_positive_control_length"
+)
 
 test_repeats_corrected <- call_repeats(
   fragments_list = test_alleles_metadata,
@@ -93,5 +96,5 @@ test_repeats_corrected <- call_repeats(
 )
 }
 \seealso{
-\code{\link[=find_main_peaks]{find_main_peaks()}}
+\code{\link[=find_alleles]{find_alleles()}}
 }
