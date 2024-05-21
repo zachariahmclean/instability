@@ -16,7 +16,7 @@ If you use this package, please cite
 [this](https://www.nature.com/articles/s41467-024-47485-0) paper for
 now.
 
-## How to use the package
+# How to use the package
 
 In this package, each sample is represented by an R6 ‘fragments’ object,
 which are organised in lists. As a user, there are accessor functions
@@ -51,9 +51,9 @@ experiment and things to consider when using this package:
   peaks to automatically assign. However, these ladders can be fixed
   manually with the `fix_ladders_interactive()` app.
 
-## Installation
+# Installation
 
-You can install the development version of instability from
+You can install from
 [GitHub](https://github.com/zachariahmclean/instability) with:
 
 ``` r
@@ -61,15 +61,13 @@ You can install the development version of instability from
 devtools::install_github("zachariahmclean/instability")
 ```
 
-## Example
+Then load the package:
 
 ``` r
 library(instability)
-library(dplyr)
-library(ggplot2)
 ```
 
-## Import data
+# Import data
 
 First, we read in the raw data. In this case we will used example data
 within this package, but usually this would be either be fsa files that
@@ -80,7 +78,7 @@ peak table from another source (e.g. the Fragman R package)
 fsa_raw <- instability::cell_line_fsa_list
 ```
 
-## Find ladders
+# Find ladders
 
 The raw data are coerced into a list of ‘fragments’ class objects, which
 is a fundamental data structure used in this pipeline. The ‘fragments’
@@ -119,7 +117,7 @@ wrong), or manually using the fix_ladders_interactive() app.
 
 ![](man/figures/ladder_fixing.gif)
 
-## Find fragments
+# Find fragments
 
 The fragment peaks are identified in the raw continuous trace data.
 
@@ -154,7 +152,7 @@ peak_list_genemapper <- peak_table_to_fragments(instability::example_data,
 )
 ```
 
-## Add metadata
+# Add metadata
 
 Metadata can be incorporated to enhance the fragments class and allow
 additional functionality in the `call_repeats()` (correcting repeat
@@ -167,25 +165,14 @@ will be automatically parsed by `add_metadata()`, otherwise you will
 need to match up which column name belongs to which metadata category
 (as done below in `add_metadata()`):
 
-Metadata table column \| Description \|
-
-\|————-\|———————————————————–\| \| unique_id \| The unique identifier
-for the fsa file. Usually the sample file name. This must be unique,
-including across runs. \| \| group_id \| This groups the samples for
-instability metric calclations. Provide a group id value for each
-sample. For example, in a mouse experiment and using the expansion
-index, you need to group the samples since they have the same metrics
-baseline control (eg inherited repeat length), so provide the mouse id.
-\| \| metrics_baseline_control \| This is related to group_id. Indicate
-with ‘TRUE’ to specify which sample is the baseline control (eg mouse
-tail for inherited repeat length, or day-zero sample in cell line
-experiments) \| \| plate_id \| This groups the samples for correcting
-the repeat length. Provide a value for each fragment analysis run (eg
-date). \| \| size_standard \| This is related to plate_id. Indicate with
-‘TRUE’ to specify which sample is the size standard of the repeat
-length. \| \| size_standard_repeat_length \| This is related to
-size_standard. If the sample is a size standard, provide a numeric value
-of the modal repeat length. \|
+| Metadata table column       | Description                                                                                                                                                                                                                                                                                                     |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| unique_id                   | The unique identifier for the fsa file. Usually the sample file name. This must be unique, including across runs.                                                                                                                                                                                               |
+| group_id                    | This groups the samples for instability metric calculations. Provide a group id value for each sample. For example, in a mouse experiment and using the expansion index, you need to group the samples since they have the same metrics baseline control (eg inherited repeat length), so provide the mouse id. |
+| metrics_baseline_control    | This is related to group_id. Indicate with ‘TRUE’ to specify which sample is the baseline control (eg mouse tail for inherited repeat length, or day-zero sample in cell line experiments)                                                                                                                      |
+| plate_id                    | This groups the samples for correcting the repeat length. Provide a value for each fragment analysis run (eg date).                                                                                                                                                                                             |
+| size_standard               | This is related to plate_id. Indicate with ‘TRUE’ to specify which sample is the size standard of the repeat length.                                                                                                                                                                                            |
+| size_standard_repeat_length | This is related to size_standard. If the sample is a size standard, provide a numeric value of the modal repeat length.                                                                                                                                                                                         |
 
 ``` r
 metadata <- instability::metadata
@@ -245,7 +232,7 @@ tallest peak used for the repeat size standards. If the wrong peak was
 selected for one of the samples, the dots would be shifted across 3 bp
 and no longer overlapping.
 
-## Calculate instability metrics
+# Calculate instability metrics
 
 Finally, the repeat instability metrics can be calculated. In the
 metadata, a subset of the samples are set as ‘metrics_baseline_control’,
@@ -271,6 +258,17 @@ and finding the average repeat gain relative to the DMSO group for each
 cell line
 
 ``` r
+library(dplyr)
+#> 
+#> Attaching package: 'dplyr'
+#> The following objects are masked from 'package:stats':
+#> 
+#>     filter, lag
+#> The following objects are masked from 'package:base':
+#> 
+#>     intersect, setdiff, setequal, union
+
+
 plot_data <- metrics_grouped_df |>
   dplyr::left_join(metadata, by = dplyr::join_by(unique_id)) |>
   dplyr::filter(
@@ -287,6 +285,8 @@ plot_data <- metrics_grouped_df |>
 Then we can plot the instability metrics
 
 ``` r
+library(ggplot2)
+
 ggplot(
   plot_data,
   aes(genotype, rel_gain, colour = genotype)
