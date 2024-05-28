@@ -46,37 +46,76 @@ fragments <- R6::R6Class("fragments",
       )
     },
     plot_trace = function(show_peaks = TRUE,
+                          x_axis = NULL,
                           ylim = NULL,
                           xlim = NULL,
                           height_color_threshold = 0.05) {
       if (is.null(self$trace_bp_df)) {
         stop(
           call. = FALSE,
-          paste(self$unique_id, "This sample does not have trace data, so cannot make plot")
+          paste(self$unique_id, "This sample does not have trace data. Use fsa files as inputs to pipeline to plot trace.")
         )
       }
 
-      tace_df <- self$trace_bp_df
-      if (!is.null(xlim)) {
-        tace_df <- tace_df[which(tace_df$size < xlim[2] & tace_df$size > xlim[1]), ]
+      #there must be a simpler way of the following if else below
+      if (is.null(x_axis) && is.null(self$repeat_table_df)) {
+        data <- self$trace_bp_df
+        data$x <- data$size
+        x_axis_label <- "Size"
+      } else if (is.null(x_axis) && !is.null(self$repeat_table_df)) {
+        data <- self$trace_bp_df
+        data$x <- data$calculated_repeats
+        x_axis_label <- "Repeats"
+      } else if (x_axis == "size") {
+        data <- self$trace_bp_df
+        data$x <- data$size
+        x_axis_label <- "Size"
+      } else {
+        data <- self$trace_bp_df
+        data$x <- data$calculated_repeats
+        x_axis_label <- "Repeats"
       }
 
+      if (!is.null(xlim)) {
+        data <- data[which(data$x < xlim[2] & data$x > xlim[1]), ]
+      }
 
-
-      plot(tace_df$size,
-        tace_df$signal,
+      plot(data$x,
+        data$signal,
         main = self$unique_id,
         type = "l",
-        xlab = "Size",
+        xlab = x_axis_label,
         ylab = "Signal",
-        ylim = ylim,
-        xlim = xlim
+        ylim = ylim
       )
 
+
+      if (any(data$off_scale)) {
+        abline(v = data[which(data$off_scale), "x"], col = adjustcolor("red", alpha = 0.3), lwd = 2.5)
+      }
+
       if (!is.null(self$peak_table_df) && show_peaks) {
-        peak_table <- self$peak_table_df
+        if (is.null(x_axis) && is.null(self$repeat_table_df)) {
+          peak_table <- self$peak_table_df
+          peak_table$x <- peak_table$size
+        } else if (is.null(x_axis) && !is.null(self$repeat_table_df)) {
+          peak_table <- self$repeat_table_df
+          peak_table$x <- peak_table$repeats
+        } else if (x_axis == "size") {
+          peak_table <- self$peak_table_df
+          peak_table$x <- peak_table$size
+        } else {
+          peak_table <- self$repeat_table_df
+          peak_table$x <- peak_table$repeats
+        }
+
+        #exit eary if the peaktable is empty
+        if(nrow(peak_table) == 0){
+          return()
+        }
+
         if (!is.null(xlim)) {
-          peak_table <- peak_table[which(peak_table$size < xlim[2] & peak_table$size > xlim[1]), ]
+          peak_table <- peak_table[which(peak_table$x < xlim[2] & peak_table$x > xlim[1]), ]
         }
 
         tallest_peak_height <- max(peak_table$height)[1]
@@ -84,28 +123,41 @@ fragments <- R6::R6Class("fragments",
           tallest_peak_height <- self$allele_1_height
         }
 
-
-
         peaks_above <- peak_table[which(peak_table$height > tallest_peak_height * height_color_threshold), ]
         peaks_below <- peak_table[which(peak_table$height < tallest_peak_height * height_color_threshold), ]
+        tallest_peak_df <- peak_table[which(peak_table$height == tallest_peak_height), ]
 
         # Adding peaks
-        points(peaks_above$size,
+        points(peaks_above$x,
           peaks_above$height,
           col = "blue"
         )
-        points(peaks_below$size,
+        points(peaks_below$x,
           peaks_below$height,
           col = "purple"
         )
+        points(tallest_peak_df$x,
+               tallest_peak_df$height,
+               col = "green")
+
+        # Draw horizontal dotted lines to connect repeats to their actual place on the plot
+        if (!is.null(peak_table$repeats) && !is.null(peak_table$calculated_repeats)) {
+          for (i in 1:nrow(peak_table)) {
+            segments(x0 = peak_table$repeats[i],
+                     y0 = peak_table$height[i],
+                     x1 = peak_table$calculated_repeats[i],
+                     y1 = peak_table$height[i],
+                     lty = 2)
+          }
+        }
+
       }
 
-      if (any(self$trace_bp_df$off_scale)) {
-        abline(v = self$trace_bp_df[which(self$trace_bp_df$off_scale), "size"], col = adjustcolor("red", alpha = 0.3), lwd = 2.5)
-      }
     }
   ),
   private = list(
+    min_bp_size = NULL,
+    max_bp_size = NULL,
     find_main_peaks_used = FALSE,
     repeats_not_called_reason = NA_character_,
     validated_peaks_df = NULL,
@@ -271,14 +323,23 @@ fragments_repeats <- R6::R6Class(
 
       return(self2)
     },
-    add_repeats = function(repeat_algorithm = "simple", # "simple" or "nearest_peak"
-                           assay_size_without_repeat = 87,
+    add_repeats = function(assay_size_without_repeat = 87,
                            repeat_size = 3,
-                           correct_repeat_length = FALSE) {
-      repeat_class <- add_repeats_helper(self,
-        repeat_algorithm = repeat_algorithm,
+                           repeat_calling_algorithm  = "simple",
+                           repeat_calling_algorithm_size_window_around_allele =  repeat_size * 5,
+                           repeat_calling_algorithm_peak_assignment_scan_window = 3,
+                           repeat_calling_algorithm_size_period = repeat_size * 0.93 ,
+                           force_whole_repeat_units = FALSE,
+                           correct_repeat_length = FALSE){
+      repeat_class <- add_repeats_helper(
+        self,
         assay_size_without_repeat = assay_size_without_repeat,
         repeat_size = repeat_size,
+        repeat_calling_algorithm = repeat_calling_algorithm,
+        repeat_calling_algorithm_size_window_around_allele = repeat_calling_algorithm_size_window_around_allele,
+        repeat_calling_algorithm_peak_assignment_scan_window = repeat_calling_algorithm_peak_assignment_scan_window,
+        repeat_calling_algorithm_size_period = repeat_calling_algorithm_size_period,
+        force_whole_repeat_units = force_whole_repeat_units,
         correct_repeat_length = correct_repeat_length
       )
 

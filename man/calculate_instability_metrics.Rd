@@ -66,7 +66,7 @@ test_alleles <- find_alleles(
 
 test_repeats <- call_repeats(
   fragments_list = test_alleles,
-  repeat_algorithm = "simple",
+  repeat_calling_algorithm = "simple",
   assay_size_without_repeat = 87,
   repeat_size = 3,
   repeat_length_correction = "none"

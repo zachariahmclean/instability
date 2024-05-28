@@ -45,7 +45,7 @@ test_metadata <- add_metadata(
 
 test_repeats_corrected <- call_repeats(
   fragments_list = test_metadata,
-  repeat_algorithm = "simple",
+  repeat_calling_algorithm = "simple",
   assay_size_without_repeat = 87,
   repeat_size = 3,
   repeat_length_correction = "from_metadata"

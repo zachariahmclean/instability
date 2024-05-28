@@ -7,7 +7,7 @@
 plot_traces(
   fragments_list,
   show_peaks = TRUE,
-  n_facet_col = 2,
+  n_facet_col = 1,
   sample_subset = NULL,
   xlim = NULL,
   ylim = NULL,

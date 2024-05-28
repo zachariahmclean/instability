@@ -23,7 +23,7 @@ testthat::test_that("percentiles", {
   )
 
   test_fragments_repeats_simple <- test_main_peaks$add_repeats(
-    repeat_algorithm = "simple",
+    repeat_calling_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE

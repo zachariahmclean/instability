@@ -56,7 +56,7 @@ deshoulder <- function(peak_table_df, shoulder_window) {
 
 
 
-# np_repeat algorithm -----------------------------------------------------------
+# force whole repeat unit algorithm -----------------------------------------------------------
 np_repeat <- function(size,
                       main_peak_size,
                       main_peak_repeat,
@@ -95,6 +95,195 @@ np_repeat <- function(size,
   }
   return(rev(np_repeat_rev))
 }
+
+
+# fft algo ----------------------------------------------------------------
+
+
+####### fft helpers
+fragments_fft = function(df){
+  Fs <- 1  # Arbitrary sampling frequency
+  Ts <- 1 / Fs  # Arbitrary sampling time
+
+  signal_periodic <- as.vector(pracma::detrend(df$signal))
+
+  n <- length(signal_periodic)
+  xf <- seq(0, 1 / (2 * Ts), length.out = n %/% 2)  # int div in R is % / %
+  yf <- stats::fft(signal_periodic)
+  yf <- (2 / n) * abs(yf[seq(1, n %/% 2)])
+
+  data.frame("xf" = xf,
+             "yf" = yf)
+}
+
+
+find_main_freq = function(fft_df, skip_rows = 3){
+  #skip rows to avoid noise at start
+  df2 <- fft_df[skip_rows+1:nrow(fft_df), ]
+  peaks <- pracma::findpeaks(df2$yf)
+  fund_freq_position <- peaks[which(peaks[,1] == max(peaks[,1], na.rm = TRUE)), 2][1]
+  freq <- df2[fund_freq_position, "xf"] * 3
+
+  return(freq)
+}
+
+find_scan_period <- function(df,
+                             main_peak_scan){
+  fft_df <- fragments_fft(df)
+
+  #detrend signal
+  fft_df$yf <- detrend_signal(fft_df$yf)
+
+  main_freq <- find_main_freq(fft_df)
+  pure_wave <- cos(2 * main_freq * (df$scan - main_peak_scan))
+  cos_max <- pracma::findpeaks(pure_wave, nups = 3)
+  scans_diffs <- diff(df[cos_max[,2], "scan"])
+  peak_scan_peroid <- round(median(scans_diffs))
+
+
+  return(peak_scan_peroid)
+}
+
+find_peaks_by_scan_period <- function(df,
+                                      main_peak_scan,
+                                      peak_scan_period,
+                                      direction,
+                                      window){
+
+  if(direction == 1){
+    df_post_main <- df[which(df$scan > main_peak_scan), ]
+
+  } else{
+    df_post_main <- df[which(df$scan < main_peak_scan), ]
+    df_post_main <- df_post_main[order(df_post_main$scan, decreasing = TRUE), ]
+    peak_scan_period = peak_scan_period * -1
+  }
+
+  called_peaks <- numeric()
+  current_scan_position <- main_peak_scan + peak_scan_period
+  while (TRUE) {
+
+    window_range <- (current_scan_position - window):(current_scan_position + window)
+    window_df <- df_post_main[df_post_main$scan %in% window_range, ]
+
+    if (nrow(window_df) > 0) {
+      tallest_in_window <- window_df[which.max(window_df$signal), "scan"]
+      called_peaks <- c(called_peaks, tallest_in_window)
+
+      # Update current scan position
+      current_scan_position <- tallest_in_window + peak_scan_period
+    } else {
+      # If no more data points, terminate
+      break
+    }
+  }
+
+  return(called_peaks)
+}
+
+
+fft_repeat_caller <- function(fragments_repeat,
+                              scan_peak_window = 3,
+                              fragment_window = 3*5){
+
+  if(is.na(fragments_repeat$allele_1_size)){
+   df <- data.frame("unique_id" = character(),
+                    "scan" = numeric(),
+                    "size" = numeric(),
+                    "signal" = numeric())
+
+    return(df)
+  }
+
+  fragment_window_positions <- which(fragments_repeat$trace_bp_df$size > fragments_repeat$allele_1_size - fragment_window & fragments_repeat$trace_bp_df$size < fragments_repeat$allele_1_size + fragment_window )
+  window_df <- fragments_repeat$trace_bp_df[fragment_window_positions, ]
+  main_peak_scan <- window_df[which(window_df$size == fragments_repeat$allele_1_size), "scan"]
+
+  peak_scan_peroid <- find_scan_period(window_df, main_peak_scan)
+
+  pos_peaks <- find_peaks_by_scan_period(fragments_repeat$trace_bp_df,
+                                         main_peak_scan,
+                                         peak_scan_peroid,
+                                         direction = 1,
+                                         window = scan_peak_window)
+
+  neg_peaks <- find_peaks_by_scan_period(fragments_repeat$trace_bp_df,
+                                         main_peak_scan,
+                                         peak_scan_peroid,
+                                         direction = -1,
+                                         window = scan_peak_window)
+
+  peak_table <- fragments_repeat$trace_bp_df
+  peak_table <- peak_table[which(peak_table$scan %in% c(neg_peaks, main_peak_scan, pos_peaks)), ]
+  peak_table <- peak_table[which(peak_table$size > fragments_repeat$.__enclos_env__$private$min_bp_size & peak_table$size < fragments_repeat$.__enclos_env__$private$max_bp_size), ]
+
+
+  return(peak_table)
+
+
+}
+
+
+
+
+
+
+size_period_repeat_caller <- function(fragments_repeat,
+                                      size_period,
+                                      scan_peak_window = 3,
+                                      fragment_window = 3*5){
+
+  if(is.na(fragments_repeat$allele_1_size)){
+    df <- data.frame("unique_id" = character(),
+                     "scan" = numeric(),
+                     "size" = numeric(),
+                     "signal" = numeric())
+
+    return(df)
+  }
+
+  fragment_window_positions <- which(fragments_repeat$trace_bp_df$size > fragments_repeat$allele_1_size - fragment_window & fragments_repeat$trace_bp_df$size < fragments_repeat$allele_1_size + fragment_window )
+  window_df <- fragments_repeat$trace_bp_df[fragment_window_positions, ]
+  main_peak_scan <- window_df[which(window_df$size == fragments_repeat$allele_1_size), "scan"]
+
+
+  # determine period
+
+  peak_scan_peroid <- round(size_period / median(diff(window_df$size)))
+
+  pos_peaks <- find_peaks_by_scan_period(fragments_repeat$trace_bp_df,
+                                         main_peak_scan,
+                                         peak_scan_peroid,
+                                         direction = 1,
+                                         window = scan_peak_window)
+
+  neg_peaks <- find_peaks_by_scan_period(fragments_repeat$trace_bp_df,
+                                         main_peak_scan,
+                                         peak_scan_peroid,
+                                         direction = -1,
+                                         window = scan_peak_window)
+
+  peak_table <- fragments_repeat$trace_bp_df
+  peak_table <- peak_table[which(peak_table$scan %in% c(neg_peaks, main_peak_scan, pos_peaks)), ]
+  peak_table <- peak_table[which(peak_table$size > fragments_repeat$.__enclos_env__$private$min_bp_size & peak_table$size < fragments_repeat$.__enclos_env__$private$max_bp_size), ]
+
+
+  return(peak_table)
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 # repeat length correction -------------------------------------------------------
 
@@ -242,9 +431,13 @@ model_repeat_length <- function(fragments_list,
 ##################### R6 Class Method Helpers ##################################
 # bp_fragments
 add_repeats_helper <- function(fragments_repeats,
-                               repeat_algorithm,
                                assay_size_without_repeat,
                                repeat_size,
+                               repeat_calling_algorithm,
+                               repeat_calling_algorithm_size_window_around_allele,
+                               repeat_calling_algorithm_peak_assignment_scan_window,
+                               repeat_calling_algorithm_size_period,
+                               force_whole_repeat_units,
                                correct_repeat_length) {
   ##
   ### in this function, need to do the following in the correct order
@@ -279,30 +472,88 @@ add_repeats_helper <- function(fragments_repeats,
       repeats = numeric(),
       off_scale = logical()
     )
+
   } else {
-    repeat_table_df <- data.frame(
-      unique_id = fragments_repeats$peak_table_df$unique_id,
-      size = fragments_repeats$peak_table_df$size,
-      height = fragments_repeats$peak_table_df$height,
-      repeats = (fragments_repeats$peak_table_df$size - assay_size_without_repeat) / repeat_size,
-      off_scale = ifelse(any(colnames(fragments_repeats$peak_table_df) == "off_scale"),
-        fragments_repeats$peak_table_df$off_scale,
-        rep(FALSE, nrow(fragments_repeats$peak_table_df))
+
+
+    # repeat calling algorithm
+    if(repeat_calling_algorithm == "simple"){
+      repeat_table_df <- data.frame(
+        unique_id = fragments_repeats$peak_table_df$unique_id,
+        size = fragments_repeats$peak_table_df$size,
+        height = fragments_repeats$peak_table_df$height,
+        calculated_repeats = (fragments_repeats$peak_table_df$size - assay_size_without_repeat) / repeat_size,
+        repeats = (fragments_repeats$peak_table_df$size - assay_size_without_repeat) / repeat_size,
+        off_scale = ifelse(any(colnames(fragments_repeats$peak_table_df) == "off_scale"),
+                           fragments_repeats$peak_table_df$off_scale,
+                           rep(FALSE, nrow(fragments_repeats$peak_table_df))
+        )
       )
-    )
+
+    } else if(repeat_calling_algorithm == "fft"){
+
+      #check to see that fragments repeats has trace data since that is required.
+      if(is.null(fragments_repeats$trace_bp_df)){
+        stop("fft algorithim requires trace data. Use fsa samples rather than peak table is inputs into the pipeline.",
+             call. = FALSE)
+      }
+
+      fft_peak_df <- fft_repeat_caller(fragments_repeats,
+                        fragment_window = repeat_calling_algorithm_size_window_around_allele,
+                        scan_peak_window = repeat_calling_algorithm_peak_assignment_scan_window)
+
+      repeat_table_df <- data.frame(
+        unique_id = fft_peak_df$unique_id,
+        size = fft_peak_df$size,
+        height = fft_peak_df$signal,
+        calculated_repeats = (fft_peak_df$size - assay_size_without_repeat) / repeat_size,
+        repeats = (fft_peak_df$size - assay_size_without_repeat) / repeat_size,
+        off_scale = fft_peak_df$off_scale
+      )
+
+    }
+    else if(repeat_calling_algorithm == "size_period"){
+
+      #check to see that fragments repeats has trace data since that is required.
+      if(is.null(fragments_repeats$trace_bp_df)){
+        stop("size_period algorithim requires trace data. Use fsa samples rather than peak table is inputs into the pipeline.",
+             call. = FALSE)
+      }
+
+      size_period_df <- size_period_repeat_caller(fragments_repeats,
+                                       size_period = repeat_calling_algorithm_size_period,
+                                       fragment_window = repeat_calling_algorithm_size_window_around_allele,
+                                       scan_peak_window = repeat_calling_algorithm_peak_assignment_scan_window)
+
+      repeat_table_df <- data.frame(
+        unique_id = size_period_df$unique_id,
+        size = size_period_df$size,
+        height = size_period_df$signal,
+        calculated_repeats = (size_period_df$size - assay_size_without_repeat) / repeat_size,
+        repeats = (size_period_df$size - assay_size_without_repeat) / repeat_size,
+        off_scale = size_period_df$off_scale
+      )
+
+    }
+    else{
+      stop(call. = FALSE,
+           "Invalid repeat calling algorithim selected")
+    }
+
 
     # Correct repeat length with positive controls
     if (correct_repeat_length == TRUE) {
       repeat_table_df$plate_id <- rep(fragments_repeats$plate_id, nrow(repeat_table_df))
-      repeat_table_df$repeats <- stats::predict.lm(fragments_repeats$.__enclos_env__$private$correction_mod, repeat_table_df)
+      repeat_table_df$calculated_repeats <- stats::predict.lm(fragments_repeats$.__enclos_env__$private$correction_mod, repeat_table_df)
+      repeat_table_df$repeats <- repeat_table_df$calculated_repeats
     }
 
-    # use different repeat calling algorithm
-    if (repeat_algorithm == "nearest_peak") {
+    # Force the repeat units to be whole numbers
+    if (force_whole_repeat_units == TRUE) {
       repeat_table_df$repeats <- np_repeat(
         size = repeat_table_df$size,
         main_peak_size = fragments_repeats$allele_1_size,
-        main_peak_repeat = repeat_table_df$repeats[which(repeat_table_df$size == fragments_repeats$allele_1_size)],
+        main_peak_repeat = repeat_table_df$calculated_repeats[which(repeat_table_df$size == fragments_repeats$allele_1_size)],
         repeat_size = repeat_size
       )
     }
@@ -311,6 +562,18 @@ add_repeats_helper <- function(fragments_repeats,
     repeat_class$allele_1_repeat <- repeat_table_df$repeats[which(fragments_repeats$peak_table_df$size == fragments_repeats$allele_1_size)]
     repeat_class$allele_2_repeat <- repeat_table_df$repeats[which(fragments_repeats$peak_table_df$size == fragments_repeats$allele_2_size)]
     repeat_class$repeat_table_df <- repeat_table_df
+  }
+
+
+  # also calculate repeat length for the trace-level data if it exists
+  if(!is.null(repeat_class$trace_bp_df)){
+    if(correct_repeat_length == TRUE){
+      repeat_class$trace_bp_df$plate_id <- rep(fragments_repeats$plate_id, nrow(fragments_repeats$trace_bp_df))
+      repeat_class$trace_bp_df$calculated_repeats <- stats::predict.lm(fragments_repeats$.__enclos_env__$private$correction_mod, fragments_repeats$trace_bp_df)
+    }
+    else{
+      repeat_class$trace_bp_df$calculated_repeats <- (fragments_repeats$trace_bp_df$size - assay_size_without_repeat) / repeat_size
+    }
   }
 
   return(repeat_class)

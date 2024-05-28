@@ -102,7 +102,7 @@ testthat::test_that("add_repeats", {
   )
 
   test_fragments_repeats_simple <- test_main_peaks$add_repeats(
-    repeat_algorithm = "simple",
+    repeat_calling_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE
@@ -110,7 +110,7 @@ testthat::test_that("add_repeats", {
 
 
   test_fragments_repeats_np <- test_main_peaks$add_repeats(
-    repeat_algorithm = "nearest_peak",
+    force_whole_repeat_units = TRUE,
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE
@@ -146,7 +146,7 @@ testthat::test_that("add_repeats", {
   )
 
   test_fragments_repeats_simple <- test_main_peaks$add_repeats(
-    repeat_algorithm = "simple",
+    repeat_calling_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE
@@ -192,7 +192,7 @@ testthat::test_that("instability metrics", {
   )
 
   test_fragments_repeats_simple <- test_main_peaks$add_repeats(
-    repeat_algorithm = "simple",
+    repeat_calling_algorithm = "simple",
     assay_size_without_repeat = 87,
     repeat_size = 3,
     correct_repeat_length = FALSE
