@@ -11,6 +11,7 @@ plot_traces(
   sample_subset = NULL,
   xlim = NULL,
   ylim = NULL,
+  x_axis = NULL,
   height_color_threshold = 0.05
 )
 }
@@ -27,6 +28,8 @@ plot_traces(
 
 \item{ylim}{the y limits of the plot. A numeric vector of length two.}
 
+\item{x_axis}{A character indicating what should be plotted on the x-axis, chose between \code{size} or \code{repeats}. If neither is selected, an assumption is made based on if repeats have been called.}
+
 \item{height_color_threshold}{Threshold relative to tallest peak to color the dots (blue above, purple below).}
 }
 \value{
@@ -39,17 +42,29 @@ Plot the raw trace data
 A plot of the raw signal by bp size. Red vertical line indicates the scan was
 flagged as off-scale. This is in any channel, so use your best judgment to determine
 if it's from the sample or ladder channel.
+
+If peaks are called, green is the tallest peak, blue is peaks above the height threshold (default 5\%), purple is below the height threshold. If \code{force_whole_repeat_units} is used within \code{\link[=call_repeats]{call_repeats()}}, the called repeat will be connected to the peak in the trace with a horizontal dashed line.
 }
 \examples{
 
-file_list <- instability::cell_line_fsa_list
+file_list <- instability::cell_line_fsa_list[1]
 
-test_ladders <- find_ladders(file_list,
-  ladder_channel = "DATA.105",
-  signal_channel = "DATA.1"
+test_ladders <- find_ladders(file_list)
+
+fragments_list <- find_fragments(test_ladders,
+  min_bp_size = 300
 )
 
-# Manually inspect the ladders
-plot_traces(test_ladders[1], n_facet_col = 1)
+test_alleles <- find_alleles(
+  fragments_list = fragments_list
+)
+
+# Simple conversion from bp size to repeat size
+test_repeats <- call_repeats(
+  fragments_list = test_alleles
+)
+
+plot_traces(test_repeats[1], xlim = c(105,150))
+
 
 }
