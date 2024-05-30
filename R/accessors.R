@@ -352,8 +352,9 @@ extract_trace_table <- function(fragments_trace_list) {
 #' @details
 #' This function is basically a wrapper around pracma::findpeaks. As mentioned above,
 #' the default arguments arguments of pracma::findpeaks can be changed by passing them
-#' to find_fragments.
+#' to find_fragments with ... .
 #'
+#' If too many and inappropriate peaks are being called, this may also be solved with the different repeat calling algorithms in [call_repeats()].
 #'
 #' @examples
 #' file_list <- instability::cell_line_fsa_list
