@@ -211,7 +211,7 @@ We can view the distribution of repeat sizes and the identified modal
 peak with a plotting function.
 
 ``` r
-plot_fragments(repeats_list[1], n_facet_col = 1)
+plot_traces(repeats_list[1], xlim = c(110, 150))
 ```
 
 <img src="man/figures/README-plot_fragments-1.png" width="100%" />

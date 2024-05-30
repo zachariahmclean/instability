@@ -26,8 +26,8 @@ find_fragments(
 
 \item{...}{pass additional arguments to findpeaks, or change the default arguments
 we set. minimum_peak_signal above is passed to findpeaks as minpeakheight, and
-peakpat has been set to '[+]{6,}\link{0}*[-]{6,}' so that peaks with flat tops are
-still called, #see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks}
+peakpat has been set to '[+]\{6,\}[0]*[-]\{6,\}' so that peaks with flat tops are
+still called, see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks}
 }
 \value{
 a list of fragments_repeats objects, equal length and names to the list input
@@ -39,7 +39,9 @@ class.
 \details{
 This function is basically a wrapper around pracma::findpeaks. As mentioned above,
 the default arguments arguments of pracma::findpeaks can be changed by passing them
-to find_fragments.
+to find_fragments with ... .
+
+If too many and inappropriate peaks are being called, this may also be solved with the different repeat calling algorithms in \code{\link[=call_repeats]{call_repeats()}}.
 }
 \examples{
 file_list <- instability::cell_line_fsa_list
