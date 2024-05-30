@@ -559,8 +559,8 @@ add_repeats_helper <- function(fragments_repeats,
     }
 
     # Finally save main peak repeat length and repeats data
-    repeat_class$allele_1_repeat <- repeat_table_df$repeats[which(fragments_repeats$peak_table_df$size == fragments_repeats$allele_1_size)]
-    repeat_class$allele_2_repeat <- repeat_table_df$repeats[which(fragments_repeats$peak_table_df$size == fragments_repeats$allele_2_size)]
+    repeat_class$allele_1_repeat <- repeat_table_df$repeats[which(repeat_table_df$size == fragments_repeats$allele_1_size)]
+    repeat_class$allele_2_repeat <- repeat_table_df$repeats[which(repeat_table_df$size == fragments_repeats$allele_2_size)]
     repeat_class$repeat_table_df <- repeat_table_df
   }
 
