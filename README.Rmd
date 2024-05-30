@@ -161,7 +161,7 @@ repeats_list <- call_repeats(
 We can view the distribution of repeat sizes and the identified modal peak with a plotting function.
 
 ```{r plot_fragments, warning=FALSE, message=FALSE}
-plot_fragments(repeats_list[1], n_facet_col = 1)
+plot_traces(repeats_list[1], xlim = c(110, 150))
 ```
 
 We can also view the data used to generate the model for calling the repeat size when we indicate size standard samples in the metadata and have `repeat_length_correction = "from_metadata"` in `call_repeats()`.
