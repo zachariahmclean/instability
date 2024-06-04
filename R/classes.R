@@ -190,8 +190,10 @@ fragments_trace <- R6::R6Class(
                            signal_channel = "DATA.1",
                            ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                            spike_location = NULL,
+                           zero_floor = FALSE,
                            scan_subset = NULL,
                            smoothing_window = 21,
+                           minimum_peak_signal = NULL,
                            max_combinations = 2500000,
                            ladder_selection_window = 5,
                            show_progress_bar = TRUE) {
@@ -209,8 +211,10 @@ fragments_trace <- R6::R6Class(
         signal_channel = signal_channel,
         ladder_sizes = ladder_sizes,
         spike_location = spike_location,
+        zero_floor = zero_floor,
         scan_subset = scan_subset,
         smoothing_window = smoothing_window,
+        minimum_peak_signal = minimum_peak_signal,
         max_combinations = max_combinations,
         ladder_selection_window = ladder_selection_window
       )

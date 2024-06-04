@@ -59,10 +59,14 @@ read_fsa <- function(files) {
 #'        there's a big spike right at the start. However, if your ladder peaks
 #'        are taller than the big spike, you will need to set this starting scan
 #'        number manually.
+#' @param zero_floor logical: if set to TRUE, all negative values will be set to zero.
+#'        This can help deal with cases where there are peaks in the negative direction
+#'        that interfere with peak detection.
 #' @param scan_subset numeric vector (length 2): filter the ladder and data signal
 #'        between the selected scans (eg scan_subset = c(3000, 5000)).
 #' @param smoothing_window numeric: ladder signal smoothing window size passed
 #'        to pracma::savgol().
+#' @param minimum_peak_signal numeric: minimum height of peak from smoothed signal.
 #' @param max_combinations numeric: what is the maximum number of ladder
 #'        combinations that should be tested
 #' @param ladder_selection_window numeric: in the ladder assigning algorithm,
@@ -107,8 +111,10 @@ find_ladders <- function(fsa_list,
                          signal_channel = "DATA.1",
                          ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                          spike_location = NULL,
+                         zero_floor = FALSE,
                          scan_subset = NULL,
                          smoothing_window = 21,
+                         minimum_peak_signal = NULL,
                          max_combinations = 2500000,
                          ladder_selection_window = 5,
                          show_progress_bar = TRUE) {
@@ -126,8 +132,10 @@ find_ladders <- function(fsa_list,
       signal_channel = signal_channel,
       ladder_sizes = ladder_sizes,
       spike_location = spike_location,
+      zero_floor = zero_floor,
       scan_subset = scan_subset,
       smoothing_window = smoothing_window,
+      minimum_peak_signal = minimum_peak_signal,
       max_combinations = max_combinations,
       ladder_selection_window = ladder_selection_window
     )

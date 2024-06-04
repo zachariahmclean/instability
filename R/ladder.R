@@ -36,28 +36,48 @@ process_ladder_signal <- function(ladder,
 }
 
 find_ladder_peaks <- function(ladder_df,
-                              n_reference_sizes) {
+                              n_reference_sizes,
+                              minimum_peak_signal,
+                              sample_id) {
   median_signal <- median(ladder_df$smoothed_signal, na.rm = TRUE)
   sd_signal <- stats::sd(ladder_df$smoothed_signal, na.rm = TRUE)
 
   ladder_peaks <- vector("numeric")
   ladder_peak_threshold <- 1
 
-  while (length(ladder_peaks) < n_reference_sizes) {
+  #allow user to set min height
+
+  if(!is.null(minimum_peak_signal)){
     peaks <- pracma::findpeaks(ladder_df$smoothed_signal,
-      peakpat = "[+]{6,}[0]*[-]{6,}", # see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
-      minpeakheight = median_signal + sd_signal * ladder_peak_threshold
+                               peakpat = "[+]{6,}[0]*[-]{6,}", # see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
+                               minpeakheight = minimum_peak_signal
     )
 
     ladder_peaks <- ladder_df$scan[peaks[, 2]]
+  } else {
+    while (length(ladder_peaks) < n_reference_sizes) {
+      peaks <- pracma::findpeaks(ladder_df$smoothed_signal,
+                                 peakpat = "[+]{6,}[0]*[-]{6,}", # see https://stackoverflow.com/questions/47914035/identify-sustained-peaks-using-pracmafindpeaks
+                                 minpeakheight = median_signal + sd_signal * ladder_peak_threshold
+      )
 
-    # lower the threshold for the next cycle
-    ladder_peak_threshold <- ladder_peak_threshold - 0.01
+      ladder_peaks <- ladder_df$scan[peaks[, 2]]
 
-    # provide an exit if there are not enough peaks found
-    if (sd_signal * ladder_peak_threshold <= 0) {
-      break
+      # lower the threshold for the next cycle
+      ladder_peak_threshold <- ladder_peak_threshold - 0.01
+
+      # provide an exit if there are not enough peaks found
+      if (sd_signal * ladder_peak_threshold <= 0) {
+        break
+      }
     }
+  }
+
+  if(length(ladder_peaks) < n_reference_sizes){
+    stop(call. = FALSE,
+         paste0("Fewer ladder peaks than refernce ladder sizes were identified for ",
+                sample_id,
+                ". Adjust settings/ladder sizes to ensure the expected number of peaks are found."))
   }
 
   # go through raw signal and make sure that the identified scan in the smoothed signal is still the highest
@@ -183,7 +203,10 @@ fit_ladder <- function(ladder,
                        scans,
                        ladder_sizes,
                        spike_location,
+                       zero_floor,
                        smoothing_window,
+                       minimum_peak_signal,
+                       sample_id,
                        max_combinations,
                        ladder_selection_window) {
   if (is.null(scans)) {
@@ -192,6 +215,10 @@ fit_ladder <- function(ladder,
 
   if (is.null(spike_location)) {
     spike_location <- which.max(ladder) + 50
+  }
+
+  if(zero_floor){
+    ladder <- pmax(ladder, 0)
   }
 
   # print(paste("Spike scan number:", spike_location))
@@ -205,7 +232,9 @@ fit_ladder <- function(ladder,
 
   ladder_peaks <- find_ladder_peaks(
     ladder_df = ladder_df,
-    n_reference_sizes = length(ladder_sizes)
+    n_reference_sizes = length(ladder_sizes),
+    minimum_peak_signal = minimum_peak_signal,
+    sample_id = sample_id
   )
 
   peaks_fit_df <- ladder_iteration(
@@ -328,8 +357,10 @@ find_ladder_helper <- function(fragments_trace,
                                signal_channel,
                                ladder_sizes,
                                spike_location,
+                               zero_floor,
                                scan_subset,
                                smoothing_window,
+                               minimum_peak_signal,
                                max_combinations,
                                ladder_selection_window) {
 
@@ -349,7 +380,10 @@ find_ladder_helper <- function(fragments_trace,
     scans = fragments_trace$scan,
     ladder_sizes = ladder_sizes,
     spike_location = spike_location,
+    zero_floor = zero_floor,
     smoothing_window = smoothing_window,
+    sample_id = fragments_trace$unique_id,
+    minimum_peak_signal = minimum_peak_signal,
     max_combinations = max_combinations,
     ladder_selection_window = ladder_selection_window
   )
