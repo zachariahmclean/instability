@@ -16,18 +16,22 @@ testthat::test_that("find ladder peaks", {
 
   test_ladder_peaks <- find_ladder_peaks(
     test_processed,
-    length(ladder_sizes)
+    length(ladder_sizes),
+    minimum_peak_signal = NULL,
+    sample_id = names(file_list[1])
   )
 
   testthat::expect_true(length(test_ladder_peaks) >= length(ladder_sizes))
 
 
-  test_ladder_peaks_40 <- find_ladder_peaks(
+  test_ladder_peaks_32 <- find_ladder_peaks(
     test_processed,
-    40
+    n_reference_sizes = 32,
+    minimum_peak_signal = NULL,
+    sample_id = names(file_list[1])
   )
 
-  testthat::expect_true(length(test_ladder_peaks_40) >= 32)
+  testthat::expect_true(length(test_ladder_peaks_32) == 32)
 })
 
 
@@ -81,6 +85,8 @@ test_that("fit ladder", {
     spike_location = NULL,
     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
     smoothing_window = 21,
+    minimum_peak_signal = NULL,
+    zero_floor = FALSE,
     max_combinations = 2500000,
     ladder_selection_window = 5
   )
@@ -107,6 +113,8 @@ test_that("local southern", {
     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
     spike_location = NULL,
     smoothing_window = 21,
+    minimum_peak_signal = NULL,
+    zero_floor = FALSE,
     max_combinations = 2500000,
     ladder_selection_window = 5
   )
