@@ -26,6 +26,8 @@ It goes through each sample and either just returns the same fragments_trace
 if the unique id doesn't match the samples that need the ladder fixed, or if
 it is one to fix, it will use the supplied dataframe in the ladder_df_list
 as the ladder. It then reruns the bp sizing methods on those samples.
+
+This is best used with \code{\link[=fix_ladders_interactive]{fix_ladders_interactive()}} that can generate a \code{ladder_df_list}.
 }
 \examples{
 

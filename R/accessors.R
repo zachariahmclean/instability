@@ -92,7 +92,7 @@ read_fsa <- function(files) {
 #' Each ladder should be manually inspected to make sure that is has been correctly
 #' assigned.
 #'
-#' @seealso [fix_ladders_auto()] and [fix_ladders_manual()] to fix ladders with
+#' @seealso [fix_ladders_auto()] and [fix_ladders_interactive()] to fix ladders with
 #' incorrectly assigned peaks. [plot_ladders()] to plot the assigned ladder
 #' peaks onto the raw ladder signal.
 #'
@@ -236,6 +236,8 @@ fix_ladders_auto <- function(fragments_trace_list,
 #' if the unique id doesn't match the samples that need the ladder fixed, or if
 #' it is one to fix, it will use the supplied dataframe in the ladder_df_list
 #' as the ladder. It then reruns the bp sizing methods on those samples.
+#'
+#' This is best used with [fix_ladders_interactive()] that can generate a `ladder_df_list`.
 #'
 #'
 #' @examples

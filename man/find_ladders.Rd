@@ -91,7 +91,7 @@ plot_ladders(test_ladders[1], n_facet_col = 1)
 
 }
 \seealso{
-\code{\link[=fix_ladders_auto]{fix_ladders_auto()}} and \code{\link[=fix_ladders_manual]{fix_ladders_manual()}} to fix ladders with
+\code{\link[=fix_ladders_auto]{fix_ladders_auto()}} and \code{\link[=fix_ladders_interactive]{fix_ladders_interactive()}} to fix ladders with
 incorrectly assigned peaks. \code{\link[=plot_ladders]{plot_ladders()}} to plot the assigned ladder
 peaks onto the raw ladder signal.
 }
