@@ -49,7 +49,8 @@ fragments <- R6::R6Class("fragments",
                           x_axis = NULL,
                           ylim = NULL,
                           xlim = NULL,
-                          height_color_threshold = 0.05) {
+                          height_color_threshold = 0.05,
+                          plot_title = NULL) {
       if (is.null(self$trace_bp_df)) {
         stop(
           call. = FALSE,
@@ -82,7 +83,7 @@ fragments <- R6::R6Class("fragments",
 
       plot(data$x,
         data$signal,
-        main = self$unique_id,
+        main = ifelse(is.null(plot_title), self$unique_id, plot_title),
         type = "l",
         xlab = x_axis_label,
         ylab = "Signal",
@@ -257,11 +258,12 @@ fragments_trace <- R6::R6Class(
 
       return(fixed_fragments_trace)
     },
-    plot_ladder = function(xlim = NULL, ylim = NULL) {
+    plot_ladder = function(xlim = NULL, ylim = NULL,
+                           plot_title = NULL) {
       # Scatter plot
       plot(self$trace_bp_df$scan, self$trace_bp_df$ladder_signal,
         xlab = "Scan", ylab = "Ladder Signal",
-        main = self$unique_id,
+        main = ifelse(is.null(plot_title), self$unique_id, plot_title),
         pch = 16,
         xlim = xlim,
         ylim = ylim
@@ -388,7 +390,8 @@ fragments_repeats <- R6::R6Class(
     },
     plot_fragments = function( # show_peak_regions = FALSE,
                               ylim = NULL,
-                              xlim = NULL) {
+                              xlim = NULL,
+                              plot_title = NULL) {
       if (is.null(self$repeat_table_df)) {
         data <- self$peak_table_df
         data$x <- data$size
@@ -431,7 +434,7 @@ fragments_repeats <- R6::R6Class(
       barplot(
         names.arg = all_x_values,
         height = y_values,
-        main = self$unique_id,
+        main = ifelse(is.null(plot_title), self$unique_id, plot_title),
         xlab = ifelse(is.null(self$repeat_table_df), "Size", "Repeat"),
         ylab = "Signal",
         ylim = ylim,
