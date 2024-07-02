@@ -1,0 +1,188 @@
+---
+title: "Mouse instability"
+format: html
+---
+
+# Setup
+
+```{r}
+library(instability)
+
+```
+
+
+## Settings
+
+```{r}
+
+#fill out these settings
+
+fsa_folder_to_process <- ""
+metadata_table <- #read.csv("")
+
+#name of the columns in metadata
+trace_id_column_name <- "" 
+plate_id_column_name <- ""
+animal_id_column_name <- ""
+metrics_baseline_control_column_name <- ""
+size_standard_column_name <- ""
+size_standard_repeat_length_column_name <- ""
+sample_name_column_name <- ""
+
+```
+
+
+
+## Create Output Folders
+
+```{r}
+#creates separate output folders for the different plate ids
+
+dir.create("outputs")
+if (!dir.exists("outputs")) {
+  dir.create(folder_path)
+}
+
+plate_id_names <- unique(metadata_table$plate_id)
+for (i in seq_along(plate_id_names)) {
+  output_folder_path <- paste("outputs/",plate_id_names[i],"_outputs",sep="")
+  if (!dir.exists(output_folder_path)) dir.create(output_folder_path)
+}
+
+```
+
+# Assign Ladders
+
+```{r}
+fsa_raw <- read_fsa(list.files(fsa_folder, full.names = TRUE))
+
+ladder_list <- find_ladders(fsa_raw,
+                            ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                            show_progress_bar = FALSE)
+```
+
+
+# Find peaks
+
+```{r}
+peak_list <- find_fragments(ladder_list,
+                            min_bp_size = 300
+)
+```
+
+# Add metadata
+
+```{r}
+
+  metadata_added_list <- add_metadata(
+   fragments_list = peak_list,
+   metadata_data.frame = metadata_table,
+   unique_id = trace_id_column_name,
+   group_id = animal_id_column_name,
+   metrics_baseline_control = metrics_baseline_control_column_name,
+   plate_id = plate_id_column_name,
+   size_standard = size_standard_column_name,
+   size_standard_repeat_length = size_standard_repeat_length_column_name
+ )
+
+```
+
+# Find alleles
+
+```{r}
+allele_list <- find_alleles(metadata_added_list)
+```
+
+# Find repeats
+
+```{r}
+repeats_list <- call_repeats(
+  fragments_list = allele_list,
+  force_whole_repeat_units = TRUE,
+  repeat_length_correction = "from_metadata"
+)
+
+```
+
+
+# Calculate instability metrics
+
+```{r}
+metrics_grouped_df <- calculate_instability_metrics(
+  fragments_list = repeats_list,
+  grouped = TRUE,
+  peak_threshold = 0.05
+)
+```
+
+
+
+# save outputs
+
+
+## ladder traces
+
+
+```{r}
+
+metadata_split <- split(metadata_table, metadata_table$plate_id)
+
+lapply(metadata_split, function(meta){
+  output_name_ladders <-paste0("outputs/",unique(meta$plate_id),"_outputs/",
+                               unique(meta$plate_id), "_ladders.pdf")
+  
+  ladder_list_subset <- ladder_list[meta[[trace_id_column_name]]]
+
+  pdf(output_name_ladders, height = 5, width = 10)
+  for (i in seq_along(ladder_list_subset)) {
+    plot_ladders(ladder_list_subset[i])
+  }
+  dev.off()
+})
+
+
+
+```
+
+## sample traces
+
+```{r}
+
+lapply(metadata_split, function(meta){
+  output_name_traces <-paste0("outputs/",unique(meta$plate_id),"_outputs/",
+                               unique(meta$plate_id), "_traces.pdf")
+  
+  repeats_list_subset <- repeats_list[meta[[trace_id_column_name]]]
+
+  pdf(output_name_traces, height = 5, width = 10)
+  for (i in seq_along(repeats_list_subset)) {
+    
+    sample_name_i <- metadata_table[which(metadata_table$unique_id == repeats_list[[i]]$unique_id), "sample_name"]
+    
+      repeats_list[[i]]$plot_trace(
+        plot_title = paste0(repeats_list[[i]]$unique_id, "\n", sample_name_i), 
+        xlim = c(80, 250)
+        )
+      abline(v = repeats_list[[i]]$index_repeat, col = "red", lty = 3, lwd = 2)
+  }
+  dev.off()
+})
+
+
+```
+
+## processed repeats object as RDS file
+
+```{r}
+
+saveRDS(repeats_list,
+        file = "outputs/processed_repeats_list.rds")
+```
+
+## instability metrics
+
+```{r}
+write.table(metrics_grouped_df, "outputs/instability_metrics_grouped.txt",
+            row.names=FALSE, sep="\t")
+```
+

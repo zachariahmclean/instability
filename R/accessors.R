@@ -1447,3 +1447,59 @@ plot_repeat_correction_model <- function(fragments_list) {
     graphics::abline(lm_model, col = "blue")
   }
 }
+
+
+
+
+# qmd templates -----------------------------------------------------------
+
+
+#' instability_quarto_template
+#'
+#' @param file_name Name of file to create
+#' @param template Type of template to produce. Chose from: "mouse"
+#'
+#' @return A Quarto template file
+#' @export
+#'
+#' @examples
+#'
+#' #instability_quarto_template("test", "mouse")
+#'
+instability_quarto_template <- function(
+    file_name = NULL,
+    template = "mouse") {
+
+  if (is.null(file_name)) {
+    stop("You must provide a valid file_name")
+  }
+
+  # check for available extensions
+  stopifnot("Template not in package. Check spelling." = template %in% c("mouse"))
+
+  source_file <- system.file(paste0("extdata/_extensions/", template, "/template.qmd"), package = "instability")
+
+  # Check if the source file exists
+  if (!file.exists(source_file)) {
+    stop(paste("Source file does not exist:", source_file))
+  }
+
+    print(source_file)
+  # copy from internals
+  file.copy(
+    from = source_file,
+    to = paste0(file_name, ".qmd"),
+    overwrite = TRUE
+  )
+
+  # open the new file in the editor
+  file.edit(paste0(file_name, ".qmd"))
+
+}
+
+
+
+
+
+
+
