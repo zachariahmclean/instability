@@ -104,6 +104,11 @@ repeat_table_subset <- function(repeat_table_df,
   repeat_table_df$peak_percent <- repeat_table_df$height / allele_1_height
   height_filtered_df <- repeat_table_df[which(repeat_table_df$peak_percent > peak_threshold), ]
 
+  # Ensure window_around_main_peak is exactly length 2
+  if (length(window_around_main_peak) != 2) {
+    stop("window_around_main_peak must be a vector of length 2")
+  }
+
   # Filter to include only peaks of a certain size
   lower_lim <- ifelse(is.na(window_around_main_peak[1]),
     min(height_filtered_df$repeats),
@@ -193,7 +198,7 @@ compute_metrics <- function(fragments_repeats,
     max_delta_pos = max(size_filtered_df$repeat_delta_index_peak),
     modal_repeat_delta = fragments_repeats$allele_1_repeat - fragments_repeats$index_repeat,
     average_repeat_gain = weighted.mean(size_filtered_df$repeats, size_filtered_df$height) - fragments_repeats$index_weighted_mean_repeat,
-    instabity_index_jml = instability_index(
+    instability_index = instability_index(
       repeats = size_filtered_df$repeats,
       heights = size_filtered_df$height,
       index_peak_height = fragments_repeats$allele_1_height,
@@ -201,7 +206,7 @@ compute_metrics <- function(fragments_repeats,
       peak_threshold = peak_threshold,
       abs_sum = FALSE
     ),
-    abs_index = instability_index(
+    instability_index_abs = instability_index(
       repeats = size_filtered_df$repeats,
       heights = size_filtered_df$height,
       index_peak_height = fragments_repeats$allele_1_height,
@@ -217,9 +222,7 @@ compute_metrics <- function(fragments_repeats,
       peak_threshold = peak_threshold,
       abs_sum = FALSE
     ),
-    pps_index = sum(expansion_filtered$peak_percent) - 1, # remove the main peak from the pps by subracting 1
-    som_mos_index = (sum(expansion_filtered$height) - fragments_repeats$allele_1_height) / fragments_repeats$allele_1_height,
-    contration_index = instability_index(
+    contraction_index = instability_index(
       repeats = contraction_filtered$repeats,
       heights = contraction_filtered$height,
       index_peak_height = fragments_repeats$allele_1_height,
@@ -227,6 +230,8 @@ compute_metrics <- function(fragments_repeats,
       peak_threshold = peak_threshold,
       abs_sum = FALSE
     ),
+    expansion_ratio = sum(expansion_filtered$peak_percent) - 1, # remove the main peak by subtracting 1
+    contraction_ratio = sum(contraction_filtered$peak_percent) - 1,
     skewness = fishers_skewness(size_filtered_df$repeats, size_filtered_df$height),
     kurtosis = fishers_kurtosis(size_filtered_df$repeats, size_filtered_df$height)
   )
@@ -250,6 +255,8 @@ compute_metrics <- function(fragments_repeats,
   )
 
   metrics <- cbind(metrics, expansion_percentile)
+  metrics <- cbind(metrics, expansion_repeat)
+
 
   return(metrics)
 }

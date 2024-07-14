@@ -16,18 +16,22 @@ testthat::test_that("find ladder peaks", {
 
   test_ladder_peaks <- find_ladder_peaks(
     test_processed,
-    length(ladder_sizes)
+    length(ladder_sizes),
+    minimum_peak_signal = NULL,
+    sample_id = names(file_list[1])
   )
 
   testthat::expect_true(length(test_ladder_peaks) >= length(ladder_sizes))
 
 
-  test_ladder_peaks_40 <- find_ladder_peaks(
+  test_ladder_peaks_32 <- find_ladder_peaks(
     test_processed,
-    40
+    n_reference_sizes = 32,
+    minimum_peak_signal = NULL,
+    sample_id = names(file_list[1])
   )
 
-  testthat::expect_true(length(test_ladder_peaks_40) >= 32)
+  testthat::expect_true(length(test_ladder_peaks_32) == 32)
 })
 
 
@@ -81,6 +85,8 @@ test_that("fit ladder", {
     spike_location = NULL,
     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
     smoothing_window = 21,
+    minimum_peak_signal = NULL,
+    zero_floor = FALSE,
     max_combinations = 2500000,
     ladder_selection_window = 5
   )
@@ -107,6 +113,8 @@ test_that("local southern", {
     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
     spike_location = NULL,
     smoothing_window = 21,
+    minimum_peak_signal = NULL,
+    zero_floor = FALSE,
     max_combinations = 2500000,
     ladder_selection_window = 5
   )
@@ -177,6 +185,53 @@ test_that("find ladders scan subset", {
 
 
   testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(2525, 2828, 3161, 3408, 3470, 3792, 4085)))
+})
+
+
+
+
+
+test_that("ladder minium height", {
+  file_list <- instability::cell_line_fsa_list
+
+
+
+    test_ladders <- find_ladders(file_list["20230413_B03.fsa"],
+                                 ladder_channel = "DATA.105",
+                                 signal_channel = "DATA.1",
+                                 ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                                 max_combinations = 2500000,
+                                 ladder_selection_window = 8,
+                                 show_progress_bar = FALSE,
+                                 minimum_peak_signal = 100
+    )
+
+
+
+
+  testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1633, 1783, 1927, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
+})
+
+
+test_that("ladder zero baseline", {
+  file_list <- instability::cell_line_fsa_list
+
+
+
+  test_ladders <- find_ladders(file_list["20230413_B03.fsa"],
+                               ladder_channel = "DATA.105",
+                               signal_channel = "DATA.1",
+                               ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+                               max_combinations = 2500000,
+                               ladder_selection_window = 8,
+                               show_progress_bar = FALSE,
+                               zero_floor = TRUE
+  )
+
+
+
+
+  testthat::expect_true(all(test_ladders$`20230413_B03.fsa`$ladder_df$scan == c(1555, 1633, 1783, 1927, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792, 4085, 4322, 4370)))
 })
 
 

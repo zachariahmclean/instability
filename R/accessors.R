@@ -59,10 +59,14 @@ read_fsa <- function(files) {
 #'        there's a big spike right at the start. However, if your ladder peaks
 #'        are taller than the big spike, you will need to set this starting scan
 #'        number manually.
+#' @param zero_floor logical: if set to TRUE, all negative values will be set to zero.
+#'        This can help deal with cases where there are peaks in the negative direction
+#'        that interfere with peak detection.
 #' @param scan_subset numeric vector (length 2): filter the ladder and data signal
 #'        between the selected scans (eg scan_subset = c(3000, 5000)).
 #' @param smoothing_window numeric: ladder signal smoothing window size passed
 #'        to pracma::savgol().
+#' @param minimum_peak_signal numeric: minimum height of peak from smoothed signal.
 #' @param max_combinations numeric: what is the maximum number of ladder
 #'        combinations that should be tested
 #' @param ladder_selection_window numeric: in the ladder assigning algorithm,
@@ -88,7 +92,7 @@ read_fsa <- function(files) {
 #' Each ladder should be manually inspected to make sure that is has been correctly
 #' assigned.
 #'
-#' @seealso [fix_ladders_auto()] and [fix_ladders_manual()] to fix ladders with
+#' @seealso [fix_ladders_auto()] and [fix_ladders_interactive()] to fix ladders with
 #' incorrectly assigned peaks. [plot_ladders()] to plot the assigned ladder
 #' peaks onto the raw ladder signal.
 #'
@@ -107,8 +111,10 @@ find_ladders <- function(fsa_list,
                          signal_channel = "DATA.1",
                          ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                          spike_location = NULL,
+                         zero_floor = FALSE,
                          scan_subset = NULL,
                          smoothing_window = 21,
+                         minimum_peak_signal = NULL,
                          max_combinations = 2500000,
                          ladder_selection_window = 5,
                          show_progress_bar = TRUE) {
@@ -126,8 +132,10 @@ find_ladders <- function(fsa_list,
       signal_channel = signal_channel,
       ladder_sizes = ladder_sizes,
       spike_location = spike_location,
+      zero_floor = zero_floor,
       scan_subset = scan_subset,
       smoothing_window = smoothing_window,
+      minimum_peak_signal = minimum_peak_signal,
       max_combinations = max_combinations,
       ladder_selection_window = ladder_selection_window
     )
@@ -228,6 +236,8 @@ fix_ladders_auto <- function(fragments_trace_list,
 #' if the unique id doesn't match the samples that need the ladder fixed, or if
 #' it is one to fix, it will use the supplied dataframe in the ladder_df_list
 #' as the ladder. It then reruns the bp sizing methods on those samples.
+#'
+#' This is best used with [fix_ladders_interactive()] that can generate a `ladder_df_list`.
 #'
 #'
 #' @examples
@@ -901,12 +911,56 @@ call_repeats <- function(fragments_list,
 #' @param fragments_list A list of "fragments_repeats" class objects representing fragment data.
 #' @param grouped Logical value indicating whether samples should be grouped to share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{add_metadata()}.
 #' @param peak_threshold The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.
-#' @param window_around_main_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140.
+#' @param window_around_main_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140. The sign of the numbers does not matter (The absolute value is found).
 #' @param percentile_range A numeric vector of percentiles to compute (e.g., c(0.5, 0.75, 0.9, 0.95)).
 #' @param repeat_range A numeric vector specifying ranges of repeats for the inverse quantile computation.
-#' @param index_override_dataframe A data.frame to manually set index peaks. Column 1: unique sample IDs, Column 2: desired index peaks. Closest peak in each sample is selected.
+#' @param index_override_dataframe A data.frame to manually set index peaks. Column 1: unique sample IDs, Column 2: desired index peaks (the order of the columns is important since the information is pulled by column position rather than column name). Closest peak in each sample is selected.
 #'
 #' @return A data.frame with calculated instability metrics for each sample.
+#' @details
+#' Each of the columns in the supplied dataframe are explained below:
+#'
+#' ## General Information
+#' - `unique_id`: A unique identifier for the sample (usually the fsa file name).
+#'
+#' ## Quality Control
+#' - `QC_comments`: Quality control comments.
+#' - `QC_modal_peak_height`: Quality control status based on the modal peak height (Low < 500, very low < 100).
+#' - `QC_peak_number`: Quality control status based on the number of peaks (Low < 20, very low < 10).
+#' - `QC_off_scale`: Quality control comments for off-scale peaks. Potential peaks that are off-scale are given. However, a caveat is that this could be from any of the channels (ie it could be from the ladder channel but is the same scan as the given repeat).
+#'
+#' ## General sample metrics
+#' - `modal_peak_repeat`: The repeat size of the modal peak.
+#' - `modal_peak_height`: The height of the modal peak.
+#' - `index_peak_repeat`: The repeat size of the index peak (the repeat value closest to the modal peak of the index sample).
+#' - `index_peak_height`: The height of the index peak.
+#' - `index_weighted_mean_repeat`: The weighted mean repeat size (weighted on the height of the peaks) of the index sample.
+#' - `n_peaks_total`: The total number of peaks in the repeat table.
+#' - `n_peaks_analysis_subset`: The number of peaks in the analysis subset.
+#' - `n_peaks_analysis_subset_expansions`: The number of expansion peaks in the analysis subset.
+#' - `min_repeat`: The minimum repeat size in the analysis subset.
+#' - `max_repeat`: The maximum repeat size in the analysis subset.
+#' - `mean_repeat`: The mean repeat size in the analysis subset.
+#' - `weighted_mean_repeat`: The weighted mean repeat size (weight on peak height) in the analysis subset.
+#' - `median_repeat`: The median repeat size in the analysis subset.
+#' - `max_height`: The maximum peak height in the analysis subset.
+#' - `max_delta_neg`: The maximum negative delta to the index peak.
+#' - `max_delta_pos`: The maximum positive delta to the index peak.
+#'
+#' ## Repeat instability metrics
+#' - `modal_repeat_delta`: The delta between the modal peak repeat and the index peak repeat.
+#' - `average_repeat_gain`: The average repeat gain, weighted by peak height.
+#' - `instability_index`: The instability index based on peak height and distance to the index peak. (See Lee et al., 2010, https://doi.org/10.1186/1752-0509-4-29).
+#' - `instability_index_abs`: The absolute instability index. The absolute value is taken for the "Change from the main allele".
+#' - `expansion_index`: The instability index for expansion peaks only.
+#' - `contraction_index`: The instability index for contraction peaks only.
+#' - `expansion_ratio`: The ratio of expansion peaks' heights to the main peak height. Also known as "peak proportional sum" (https://doi.org/10.1016/j.cell.2019.06.036).
+#' - `contraction_ratio`: The ratio of contraction peaks' heights to the main peak height.
+#' - `skewness`: The skewness of the repeat size distribution.
+#' - `kurtosis`: The kurtosis of the repeat size distribution.
+#' - `expansion_percentile_*`: The repeat size at specified percentiles of the cumulative distribution of expansion peaks.
+#' - `expansion_percentile_for_repeat_*`: The percentile rank of specified repeat sizes in the distribution of expansion peaks.
+
 #'
 #' @export
 #'
