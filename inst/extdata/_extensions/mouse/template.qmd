@@ -15,41 +15,34 @@ library(instability)
 
 ```{r}
 
-#fill out these settings
+#fill out these paths
 
 fsa_folder_to_process <- ""
-metadata_table <- #read.csv("")
+metadata_table <- read.csv("")
 
-#name of the columns in metadata
-trace_id_column_name <- "" 
-plate_id_column_name <- ""
-animal_id_column_name <- ""
-metrics_baseline_control_column_name <- ""
-size_standard_column_name <- ""
-size_standard_repeat_length_column_name <- ""
-sample_name_column_name <- ""
-
-```
+#Provide the appropriate metadata below by replacing the placeholders 
+## (eg replace metadata$unique_id with the appropriate column in metadata_table giving the unique id), see ?add_metadata for all the metadata info
+metadata_table$sample_file_name <- metadata$unique_id
+metadata_table$plate_id <- metadata$plate_id
+metadata_table$group_id <- metadata$cell_line
+metadata_table$metrics_baseline_control <- metadata$metrics_baseline_control_TF
+metadata_table$size_standard <- metadata$repeat_positive_control_TF
+metadata_table$size_standard_repeat_length <- metadata$repeat_positive_control_length
 
 
+# for exporting traces we can give the samples a useful identifying name for a subtitle
+metadata_table$sample_name <- paste(
+  metadata$cell_line, 
+  metadata$day,
+  metadata$treatment, 
+  metadata$genotype, 
+  sep = ", ")
 
-## Create Output Folders
 
-```{r}
-#creates separate output folders for the different plate ids
-
-dir.create("outputs")
-if (!dir.exists("outputs")) {
-  dir.create(folder_path)
-}
-
-plate_id_names <- unique(metadata_table$plate_id)
-for (i in seq_along(plate_id_names)) {
-  output_folder_path <- paste("outputs/",plate_id_names[i],"_outputs",sep="")
-  if (!dir.exists(output_folder_path)) dir.create(output_folder_path)
-}
 
 ```
+
+
 
 # Assign Ladders
 
@@ -76,13 +69,7 @@ peak_list <- find_fragments(ladder_list,
 
   metadata_added_list <- add_metadata(
    fragments_list = peak_list,
-   metadata_data.frame = metadata_table,
-   unique_id = trace_id_column_name,
-   group_id = animal_id_column_name,
-   metrics_baseline_control = metrics_baseline_control_column_name,
-   plate_id = plate_id_column_name,
-   size_standard = size_standard_column_name,
-   size_standard_repeat_length = size_standard_repeat_length_column_name
+   metadata_data.frame = metadata_table
  )
 
 ```
@@ -108,6 +95,15 @@ repeats_list <- call_repeats(
 # Calculate instability metrics
 
 ```{r}
+metrics_ungrouped_df <- calculate_instability_metrics(
+  fragments_list = repeats_list,
+  grouped = FALSE,
+  peak_threshold = 0.05
+)
+```
+
+
+```{r}
 metrics_grouped_df <- calculate_instability_metrics(
   fragments_list = repeats_list,
   grouped = TRUE,
@@ -119,8 +115,26 @@ metrics_grouped_df <- calculate_instability_metrics(
 
 # save outputs
 
+## Create Output Folders
 
-## ladder traces
+creates separate output folders for the different plate ids
+
+```{r}
+
+if (!dir.exists("outputs")) {
+  dir.create("outputs")
+}
+
+plate_id_names <- unique(metadata_table$plate_id)
+for (i in seq_along(plate_id_names)) {
+  output_folder_path <- paste("outputs/",plate_id_names[i],"_outputs",sep="")
+  if (!dir.exists(output_folder_path)) dir.create(output_folder_path)
+}
+
+```
+
+
+## ladders
 
 
 ```{r}
@@ -131,11 +145,19 @@ lapply(metadata_split, function(meta){
   output_name_ladders <-paste0("outputs/",unique(meta$plate_id),"_outputs/",
                                unique(meta$plate_id), "_ladders.pdf")
   
-  ladder_list_subset <- ladder_list[meta[[trace_id_column_name]]]
+  ladder_list_subset <- ladder_list[meta$sample_file_name]
 
   pdf(output_name_ladders, height = 5, width = 10)
   for (i in seq_along(ladder_list_subset)) {
-    plot_ladders(ladder_list_subset[i])
+    
+    ladder_list_subset[[i]]$plot_ladder(
+      plot_title = paste0(
+        ladder_list_subset[[i]]$unique_id, "\n",
+        instability:::ladder_rsq_warning_helper(ladder_list_subset[[i]],
+                                                rsq_threshold = 0.998)
+      )
+      #xlim and ylim can be added here
+    )
   }
   dev.off()
 })
@@ -146,13 +168,15 @@ lapply(metadata_split, function(meta){
 
 ## sample traces
 
+This code below adds the "index peak" (see ?calculate_instability_metrics) as a vertical dotted line and adds the modal repeat length as text
+
 ```{r}
 
 lapply(metadata_split, function(meta){
   output_name_traces <-paste0("outputs/",unique(meta$plate_id),"_outputs/",
                                unique(meta$plate_id), "_traces.pdf")
   
-  repeats_list_subset <- repeats_list[meta[[trace_id_column_name]]]
+  repeats_list_subset <- repeats_list[meta$sample_file_name]
 
   pdf(output_name_traces, height = 5, width = 10)
   for (i in seq_along(repeats_list_subset)) {
@@ -160,10 +184,15 @@ lapply(metadata_split, function(meta){
     sample_name_i <- metadata_table[which(metadata_table$unique_id == repeats_list[[i]]$unique_id), "sample_name"]
     
       repeats_list[[i]]$plot_trace(
-        plot_title = paste0(repeats_list[[i]]$unique_id, "\n", sample_name_i), 
+        plot_title = paste0(repeats_list[[i]]$unique_id, "\n", sample_name_i),
+        #xlim and ylim can be added here
         xlim = c(80, 250)
         )
       abline(v = repeats_list[[i]]$index_repeat, col = "red", lty = 3, lwd = 2)
+      text(x=repeats_list[[i]]$allele_1_repeat, 
+           y=repeats_list[[i]]$allele_1_height * 1.02, 
+           labels=round(repeats_list[[i]]$allele_1_repeat))
+
   }
   dev.off()
 })
@@ -172,6 +201,7 @@ lapply(metadata_split, function(meta){
 ```
 
 ## processed repeats object as RDS file
+This can be useful for downstream aggregation of experiments. For example, we could read in the repeats_list back into R in another script to calculate instability metrics.
 
 ```{r}
 
@@ -182,7 +212,11 @@ saveRDS(repeats_list,
 ## instability metrics
 
 ```{r}
+write.table(metrics_ungrouped_df, "outputs/instability_metrics_ungrouped.txt",
+            row.names=FALSE, sep="\t")
+
 write.table(metrics_grouped_df, "outputs/instability_metrics_grouped.txt",
             row.names=FALSE, sep="\t")
+
 ```
 

@@ -1501,7 +1501,7 @@ plot_repeat_correction_model <- function(fragments_list) {
 #' instability_quarto_template
 #'
 #' @param file_name Name of file to create
-#' @param template Type of template to produce. Chose from: "mouse"
+#' @param template Type of template to produce. At the moment there is only one mouse template to chose from.
 #'
 #' @return A Quarto template file
 #' @export
