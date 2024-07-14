@@ -104,6 +104,11 @@ repeat_table_subset <- function(repeat_table_df,
   repeat_table_df$peak_percent <- repeat_table_df$height / allele_1_height
   height_filtered_df <- repeat_table_df[which(repeat_table_df$peak_percent > peak_threshold), ]
 
+  # Ensure window_around_main_peak is exactly length 2
+  if (length(window_around_main_peak) != 2) {
+    stop("window_around_main_peak must be a vector of length 2")
+  }
+
   # Filter to include only peaks of a certain size
   lower_lim <- ifelse(is.na(window_around_main_peak[1]),
     min(height_filtered_df$repeats),
