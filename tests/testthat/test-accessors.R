@@ -145,7 +145,23 @@ testthat::test_that("add_metadata", {
 
   testthat::expect_true(test_fragments_repeat_sizing_value[repeat_sizing_samples[1]] == 113 & test_fragments_repeat_sizing_value[repeat_sizing_samples[2]] == 115)
   testthat::expect_true(all(is.na(test_fragments_repeat_sizing_value[which(!seq_along(test_fragments_repeat_sizing_value) %in% repeat_sizing_samples)])))
-})
+
+
+  # skip columns
+  test_metadata_skip <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = NA,
+    group_id = NA,
+    metrics_baseline_control = NA,
+    size_standard = NA,
+    size_standard_repeat_length = NA
+  )
+
+
+
+  })
 
 
 
