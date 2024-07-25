@@ -1041,9 +1041,8 @@ calculate_instability_metrics <- function(fragments_list,
       peak_threshold = peak_threshold,
       window_around_main_peak = window_around_main_peak
     )
-  } else if (is.null(index_override_dataframe)) {
+  } else {
     # this is to make sure that we use the modal peak as the index peak
-    # fixes cases where index peak has been assigned previously and we need to make sure it's the modal peak
     fragments_list <- lapply(fragments_list, function(x) {
       x$index_repeat <- x$allele_1_repeat
       x$index_height <- x$allele_1_height

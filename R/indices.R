@@ -351,12 +351,20 @@ metrics_grouping_helper <- function(fragments_list,
 # metrics_override_helper ---------------------------------------------------------
 metrics_override_helper <- function(fragments_list,
                                     index_override_dataframe) {
+
+  if(!any(index_override_dataframe[, 1] %in% names(fragments_list))){
+    missing_unique_ids <- which(!index_override_dataframe[, 1] %in% names(fragments_list))
+
+    warning(call. = FALSE,
+            paste0("The following unique ids from the index override data frame are not in the repeats list:",
+                   paste0(index_override_dataframe[, 1], collapse = ", ")
+                   )
+            )
+  }
+
   lapply(fragments_list, function(x) {
     # if there is nothing to override, then just return the existing index values
-    if (!any(index_override_dataframe$unique_id == x$unique_id)) {
-      x$index_repeat <- x$index_repeat
-      x$index_height <- x$index_height
-    } else if (any(index_override_dataframe[, 1] == x$unique_id)) {
+    if (any(index_override_dataframe[, 1] == x$unique_id)) {
       index_delta <- x$repeat_table_df$repeats - index_override_dataframe[which(index_override_dataframe[, 1] == x$unique_id), 2]
 
       closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
@@ -369,5 +377,6 @@ metrics_override_helper <- function(fragments_list,
         x$index_height <- x$repeat_table_df$height[tallest_candidate]
       }
     }
+    return(x)
   })
 }
