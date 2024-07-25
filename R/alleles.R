@@ -35,43 +35,76 @@ find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_regio
 
     for (i in seq_along(smoothed_height)) {
       # Calculate the gap to the next peak
-      if (i == length(size)) {
-        lead_gap <- 0
+      if (i < length(size)) {
+        lead_gap <- size[i + 1] - size[i]
       } else {
-        lead_gap <- size[[i + 1]] - size[[i]]
+        lead_gap <- 0
       }
 
       # Determine peak regions
-      if (smoothed_height[[i]] < mean_heights | i == 1 | i == length(smoothed_height)) {
-        peak_regions[[i]] <- NA_real_
-      } else if (smoothed_height[[i - 1]] < mean_heights & smoothed_height[[i + 1]] < mean_heights) {
-        peak_regions[[i]] <- NA_real_
-      } else if (all(is.na(peak_regions))) {
-        peak_regions[[i]] <- 1
-      } else if (any(!is.na(peak_regions[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))) {
-        unique_regions <- unique(na.omit(peak_regions[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))
-        peak_regions[[i]] <- unique_regions[length(unique_regions)]
-      } else if (any(is.na(peak_regions[which(size < size[[i]] & size > size[[i]] - size_gap_threshold)]))) {
-        above_threshold <- na.omit(peak_regions)
-        peak_regions[[i]] <- above_threshold[length(above_threshold)] + 1
+      if (smoothed_height[i] < mean_heights || i == 1 || i == length(smoothed_height)) {
+        peak_regions[i] <- NA_real_
+      } else if (smoothed_height[i - 1] < mean_heights && smoothed_height[i + 1] < mean_heights) {
+        peak_regions[i] <- NA_real_
       } else {
-        peak_regions[[i]] <- NA_real_
+        current_size <- size[i]
+        valid_regions <- which(size < current_size & size > current_size - size_gap_threshold)
+
+        if (length(valid_regions) > 0) {
+          unique_regions <- unique(na.omit(peak_regions[valid_regions]))
+
+          if (length(unique_regions) > 0) {
+            peak_regions[i] <- unique_regions[length(unique_regions)]
+          } else {
+            peak_regions[i] <- 1
+          }
+        } else {
+          above_threshold <- na.omit(peak_regions)
+          if (length(above_threshold) > 0) {
+            peak_regions[i] <- above_threshold[length(above_threshold)] + 1
+          } else {
+            peak_regions[i] <- 1
+          }
+        }
       }
     }
+
+    # Add a buffer to each region
+    unique_regions <- unique(na.omit(peak_regions))
+
+    for (i in seq_along(unique_regions)) {
+      region_positions <- which(peak_regions == i)
+
+      if (length(region_positions) > 0) {
+        # Handle boundary cases
+        if (region_positions[1] == 1) {
+          region_positions <- c(region_positions, region_positions[length(region_positions)] + 1)
+        } else if (region_positions[length(region_positions)] == length(smoothed_height)) {
+          region_positions <- c(region_positions[1] - 1, region_positions)
+        } else {
+          region_positions <- c(region_positions[1] - 1, region_positions, region_positions[length(region_positions)] + 1)
+        }
+
+        # Ensure we are not accessing out of bounds
+        region_positions <- region_positions[region_positions > 0 & region_positions <= length(smoothed_height)]
+        peak_regions[region_positions] <- i
+      }
+    }
+
     return(peak_regions)
   }
 
-  # Function to add buffer positions to peak regions
-  add_position_buffer <- function(region_positions, full_vector_length) {
-    if (region_positions[1] == 1) {
-      region_positions <- c(region_positions, region_positions[length(region_positions)] + 1)
-    } else if (region_positions[length(region_positions)] == full_vector_length) {
-      region_positions <- c(region_positions[1] - 1, region_positions)
-    } else {
-      region_positions <- c(region_positions[1] - 1, region_positions, region_positions[length(region_positions)] + 1)
-    }
-    return(region_positions)
-  }
+  # # Function to add buffer positions to peak regions
+  # add_position_buffer <- function(region_positions, full_vector_length) {
+  #   if (region_positions[1] == 1) {
+  #     region_positions <- c(region_positions, region_positions[length(region_positions)] + 1)
+  #   } else if (region_positions[length(region_positions)] == full_vector_length) {
+  #     region_positions <- c(region_positions[1] - 1, region_positions)
+  #   } else {
+  #     region_positions <- c(region_positions[1] - 1, region_positions, region_positions[length(region_positions)] + 1)
+  #   }
+  #   return(region_positions)
+  # }
 
   # Function to find position of the tallest peak
   find_tallest_peak_position <- function(heights, positions) {
@@ -97,8 +130,8 @@ find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_regio
   for (i in seq_along(unique_regions)) {
     region_positions <- which(peak_regions == i)
 
-    # Add buffer positions to the region for finding maxima
-    region_positions <- add_position_buffer(region_positions, length(peak_regions))
+    # # Add buffer positions to the region for finding maxima
+    # region_positions <- add_position_buffer(region_positions, length(peak_regions))
 
     # Find maxima positions within the region
     maxima_positions <- find_maxima_positions(heights[region_positions], region_positions)
@@ -133,6 +166,9 @@ find_candidate_peaks <- function(heights,
   # this is to identify alleles close in size and homozygous
 
 
+  #Too do
+  ##if using findpeaks, need to remove find maxima call down here. might help simplify matters
+
   if (length(output$top_regional_peaks) == 1 &
     number_of_peaks_to_return == 2) {
     region_positions <- which(output$peak_regions == 1)
@@ -147,14 +183,12 @@ find_candidate_peaks <- function(heights,
         sig_maxima_heights[order(sig_maxima_heights, decreasing = TRUE)][2]
       top_peaks <-
         region_positions[which(region_heights[significant_maxima] >= second_tallest_height)][1:2]
-    } # deal with case where the peak after the wt peak is pretty high, perhaps indicating heterozygous +1
-    else if (region_heights[significant_maxima + 1] / region_heights[significant_maxima] > 0.5) {
-      top_peaks <-
-        region_positions[c(significant_maxima, significant_maxima + 1)]
+    }# deal with case where the peak after the wt peak is pretty high, perhaps indicating heterozygous +1
+    else if (heights[output$top_regional_peaks[[1]] + 1] / heights[output$top_regional_peaks[[1]]] > 0.5) {
+      top_peaks <- c(output$top_regional_peaks[[1]], output$top_regional_peaks[[1]] + 1)
     } # homozygous
     else {
-      top_peaks <-
-        c(region_positions[significant_maxima], region_positions[significant_maxima])
+      top_peaks <- c(output$top_regional_peaks[[1]], output$top_regional_peaks[[1]])
     }
   } else {
     top_peaks <- output$top_regional_peaks
@@ -186,6 +220,7 @@ find_main_peaks_helper <- function(fragments_repeats_class,
   # this abstraction doesn't work because the peak data is hard coded below
   # change it so the peak data is passed as an argument
 
+  #first select if working off repeat size or bp size
   fragment_heights <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$height else fragments_repeats_class$repeat_table_df$height
   fragment_sizes <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$size else fragments_repeats_class$repeat_table_df$repeats
 
