@@ -13,6 +13,75 @@ find_maxima <- function(x) {
   return(maxima)
 }
 
+
+
+# find peak regions -------------------------------------------------------
+
+find_peak_regions <- function(height, size, size_gap_threshold, region_height_threshold_multiplier) {
+  peak_regions <- rep(NA_real_, length(height))
+  mean_heights <- mean(height) * region_height_threshold_multiplier
+
+  for (i in seq_along(height)) {
+    if (height[i] < mean_heights || i == 1 || i == length(height)) {
+      peak_regions[i] <- NA_real_
+    } else if (height[i - 1] < mean_heights && height[i + 1] < mean_heights) {
+      peak_regions[i] <- NA_real_
+    } else {
+      # check to see if peaks before it are within the size threshold
+      current_size <- size[i]
+      valid_lower_peaks <- which(size < current_size & size > current_size - size_gap_threshold)
+      unique_regions <- unique(na.omit(peak_regions))
+
+      #broke code around here
+      #need to check if valid lower peaks are already in a region. How did I used to do that?
+
+
+
+      if (length(valid_lower_peaks) > 0) {
+        browser()
+        if (length(unique_regions) > 0) {
+          peak_regions[i] <- unique_regions[length(unique_regions)]
+        } else {
+          peak_regions[i] <- 1
+        }
+      } else {
+        if (length(unique_regions) > 0) {
+          peak_regions[i] <- unique_regions[length(unique_regions)] + 1
+        } else {
+          peak_regions[i] <- 1
+        }
+      }
+    }
+  }
+
+
+
+  # Add a buffer to each region
+  unique_regions <- unique(na.omit(peak_regions))
+
+  for (i in seq_along(unique_regions)) {
+    region_positions <- which(peak_regions == i)
+
+    if (length(region_positions) > 0) {
+      # Handle boundary cases
+      if (region_positions[1] == 1) {
+        region_positions <- c(region_positions, region_positions[length(region_positions)] + 1)
+      } else if (region_positions[length(region_positions)] == length(smoothed_height)) {
+        region_positions <- c(region_positions[1] - 1, region_positions)
+      } else {
+        region_positions <- c(region_positions[1] - 1, region_positions, region_positions[length(region_positions)] + 1)
+      }
+
+      # Ensure we are not accessing out of bounds
+      region_positions <- region_positions[region_positions > 0 & region_positions <= length(smoothed_height)]
+      peak_regions[region_positions] <- i
+    }
+  }
+
+  return(peak_regions)
+}
+
+
 # find peaks ------------------------------------------------------------------
 find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_region_height_threshold_multiplier) {
   # Function to find positions of local maxima
@@ -28,83 +97,7 @@ find_peaks <- function(heights, size, peak_region_size_gap_threshold, peak_regio
   }
 
   # Function to identify peak regions based on height and size
-  find_peak_regions <- function(height, size, size_gap_threshold, region_height_threshold_multiplier) {
-    smoothed_height <- as.vector(smooth(height))
-    peak_regions <- rep(NA_real_, length(smoothed_height))
-    mean_heights <- mean(smoothed_height) * region_height_threshold_multiplier
 
-    for (i in seq_along(smoothed_height)) {
-      # Calculate the gap to the next peak
-      if (i < length(size)) {
-        lead_gap <- size[i + 1] - size[i]
-      } else {
-        lead_gap <- 0
-      }
-
-      # Determine peak regions
-      if (smoothed_height[i] < mean_heights || i == 1 || i == length(smoothed_height)) {
-        peak_regions[i] <- NA_real_
-      } else if (smoothed_height[i - 1] < mean_heights && smoothed_height[i + 1] < mean_heights) {
-        peak_regions[i] <- NA_real_
-      } else {
-        current_size <- size[i]
-        valid_regions <- which(size < current_size & size > current_size - size_gap_threshold)
-
-        if (length(valid_regions) > 0) {
-          unique_regions <- unique(na.omit(peak_regions[valid_regions]))
-
-          if (length(unique_regions) > 0) {
-            peak_regions[i] <- unique_regions[length(unique_regions)]
-          } else {
-            peak_regions[i] <- 1
-          }
-        } else {
-          above_threshold <- na.omit(peak_regions)
-          if (length(above_threshold) > 0) {
-            peak_regions[i] <- above_threshold[length(above_threshold)] + 1
-          } else {
-            peak_regions[i] <- 1
-          }
-        }
-      }
-    }
-
-    # Add a buffer to each region
-    unique_regions <- unique(na.omit(peak_regions))
-
-    for (i in seq_along(unique_regions)) {
-      region_positions <- which(peak_regions == i)
-
-      if (length(region_positions) > 0) {
-        # Handle boundary cases
-        if (region_positions[1] == 1) {
-          region_positions <- c(region_positions, region_positions[length(region_positions)] + 1)
-        } else if (region_positions[length(region_positions)] == length(smoothed_height)) {
-          region_positions <- c(region_positions[1] - 1, region_positions)
-        } else {
-          region_positions <- c(region_positions[1] - 1, region_positions, region_positions[length(region_positions)] + 1)
-        }
-
-        # Ensure we are not accessing out of bounds
-        region_positions <- region_positions[region_positions > 0 & region_positions <= length(smoothed_height)]
-        peak_regions[region_positions] <- i
-      }
-    }
-
-    return(peak_regions)
-  }
-
-  # # Function to add buffer positions to peak regions
-  # add_position_buffer <- function(region_positions, full_vector_length) {
-  #   if (region_positions[1] == 1) {
-  #     region_positions <- c(region_positions, region_positions[length(region_positions)] + 1)
-  #   } else if (region_positions[length(region_positions)] == full_vector_length) {
-  #     region_positions <- c(region_positions[1] - 1, region_positions)
-  #   } else {
-  #     region_positions <- c(region_positions[1] - 1, region_positions, region_positions[length(region_positions)] + 1)
-  #   }
-  #   return(region_positions)
-  # }
 
   # Function to find position of the tallest peak
   find_tallest_peak_position <- function(heights, positions) {
@@ -152,14 +145,32 @@ find_candidate_peaks <- function(heights,
                                  peak_region_size_gap_threshold,
                                  peak_region_height_threshold_multiplier,
                                  number_of_peaks_to_return) {
-  # find peaks
 
-  output <- find_peaks(
-    heights = heights,
-    size = size,
-    peak_region_size_gap_threshold = peak_region_size_gap_threshold,
-    peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier
-  )
+
+  # Find peak regions
+  peak_regions <- find_peak_regions(heights, size, peak_region_size_gap_threshold,
+                                    peak_region_height_threshold_multiplier)
+
+  #find all possible peaks
+  all_peaks <- pracma::findpeaks(heights, peakpat = "[+]{1,}[0]*[-]{1,}")
+
+
+  # Find unique peak regions
+  unique_regions <- unique(na.omit(peak_regions))
+  top_peaks <- numeric(length(unique_regions))
+
+  # Find the tallest peak within each peak region
+  for (i in seq_along(unique_regions)) {
+    region_positions <- which(peak_regions == i)
+
+    # Find the position of the tallest peak within the maxima positions
+    peak_subset <- all_peaks[which(all_peaks[,2] %in% region_positions), ]
+    tallest_peak_position <- all_peaks[which.max(peak_subset[,1]), 2]
+
+    top_peaks[i] <- tallest_peak_position
+  }
+
+
 
   # do a first pass and if only one significant peak region found when we expect two,
   # see if there are two significant maxima in the region
