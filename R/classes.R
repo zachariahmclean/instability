@@ -97,6 +97,7 @@ fragments <- R6::R6Class("fragments",
         abline(v = data[which(data$off_scale), "x"], col = adjustcolor("red", alpha = 0.3), lwd = 2.5)
       }
 
+      # add points onto plot showing peaks
       if (!is.null(self$peak_table_df) && show_peaks) {
         if (is.null(x_axis) && is.null(self$repeat_table_df)) {
           peak_table <- self$peak_table_df
@@ -112,7 +113,7 @@ fragments <- R6::R6Class("fragments",
           peak_table$x <- peak_table$repeats
         }
 
-        #exit eary if the peaktable is empty
+        #exit early if the peak table is empty
         if(nrow(peak_table) == 0){
           return()
         }
@@ -121,14 +122,24 @@ fragments <- R6::R6Class("fragments",
           peak_table <- peak_table[which(peak_table$x < xlim[2] & peak_table$x > xlim[1]), ]
         }
 
-        tallest_peak_height <- max(peak_table$height)[1]
+        tallest_peak_height <- peak_table[which(peak_table$height == max(peak_table$height)), "height"]
+        tallest_peak_x <- peak_table[which(peak_table$height == tallest_peak_height), "x"]
         if (!is.null(self$allele_1_height) && !is.na(self$allele_1_height)) {
           tallest_peak_height <- self$allele_1_height
+          #find the tallest peak x axis position
+          if (is.null(x_axis) && is.na(self$allele_1_repeat)) {
+            tallest_peak_x <- self$allele_1_size
+          } else if (is.null(x_axis) && !is.na(self$allele_1_repeat)) {
+            tallest_peak_x <- self$allele_1_repeat
+          } else if (x_axis == "size") {
+            tallest_peak_x <- self$allele_1_size
+          } else {
+            tallest_peak_x <- self$allele_1_repeat
+          }
         }
 
         peaks_above <- peak_table[which(peak_table$height > tallest_peak_height * height_color_threshold), ]
         peaks_below <- peak_table[which(peak_table$height < tallest_peak_height * height_color_threshold), ]
-        tallest_peak_df <- peak_table[which(peak_table$height == tallest_peak_height), ]
 
         # Adding peaks
         points(peaks_above$x,
@@ -139,8 +150,8 @@ fragments <- R6::R6Class("fragments",
           peaks_below$height,
           col = "purple"
         )
-        points(tallest_peak_df$x,
-               tallest_peak_df$height,
+        points(tallest_peak_x,
+               tallest_peak_height,
                col = "green")
 
         # Draw horizontal dotted lines to connect repeats to their actual place on the plot

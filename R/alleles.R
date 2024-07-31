@@ -89,6 +89,9 @@ find_candidate_peaks <- function(height,
       top_regional_peaks <- c(top_regional_peaks[1], top_regional_peaks[1])
     }
   } else {
+
+    #otherwise pick out the desired number of peaks based on height
+
     top_regional_peaks <-
       top_regional_peaks[order(height[top_regional_peaks], decreasing = TRUE)][1:number_of_peaks_to_return]
   }
