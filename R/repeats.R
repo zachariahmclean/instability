@@ -570,8 +570,8 @@ add_repeats_helper <- function(fragments_repeats,
   if(!is.null(repeat_class$trace_bp_df)){
     if(correct_repeat_length == TRUE){
 
-      repeat_class$trace_bp_df$plate_id <- rep(fragments_repeats$plate_id, nrow(fragments_repeats$trace_bp_df))
-      repeat_class$trace_bp_df$calculated_repeats <- stats::predict.lm(fragments_repeats$.__enclos_env__$private$correction_mod, repeat_class$trace_bp_df)
+      fragments_repeats$trace_bp_df$plate_id <- rep(fragments_repeats$plate_id, nrow(fragments_repeats$trace_bp_df))
+      repeat_class$trace_bp_df$calculated_repeats <- stats::predict.lm(fragments_repeats$.__enclos_env__$private$correction_mod, fragments_repeats$trace_bp_df)
     }
     else{
       repeat_class$trace_bp_df$calculated_repeats <- (fragments_repeats$trace_bp_df$size - assay_size_without_repeat) / repeat_size
