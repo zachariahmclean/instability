@@ -338,9 +338,9 @@ testthat::test_that("calculate metrics", {
   )
 
 
-  testthat::expect_true(round(mean(test_metrics_grouped$expansion_index, na.rm = TRUE), 3) == 6.673)
-  testthat::expect_true(round(mean(test_metrics_grouped$average_repeat_gain, na.rm = TRUE), 3) == 4.238)
-  testthat::expect_true(round(mean(test_metrics_grouped$skewness, na.rm = TRUE), 5) == -0.01007)
+  testthat::expect_true(round(mean(test_metrics_grouped$expansion_index, na.rm = TRUE), 3) == 6.727)
+  testthat::expect_true(round(mean(test_metrics_grouped$average_repeat_gain, na.rm = TRUE), 3) == 4.14)
+  testthat::expect_true(round(mean(test_metrics_grouped$skewness, na.rm = TRUE), 5) == -0.00905)
 
   # ungrouped
 
@@ -395,9 +395,9 @@ testthat::test_that("calculate metrics", {
 
 
 
-  testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index, na.rm = TRUE), 3) == 4.899)
+  testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index, na.rm = TRUE), 3) == 4.956)
   testthat::expect_true(all(is.na(test_metrics_ungrouped$average_repeat_gain)))
-  testthat::expect_true(round(mean(test_metrics_ungrouped$skewness, na.rm = TRUE), 5) == -0.01007)
+  testthat::expect_true(round(mean(test_metrics_ungrouped$skewness, na.rm = TRUE), 5) == -0.00905)
   testthat::expect_true(test_repeats[[1]]$allele_1_repeat != test_repeats[[1]]$index_repeat)
   testthat::expect_true(test_repeats[[2]]$allele_1_repeat == test_repeats[[2]]$index_repeat)
 })

@@ -11,12 +11,12 @@ find_ladders(
   ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490,
     500),
   spike_location = NULL,
+  minimum_peak_signal = NULL,
   zero_floor = FALSE,
   scan_subset = NULL,
-  smoothing_window = 21,
-  minimum_peak_signal = NULL,
-  max_combinations = 2500000,
   ladder_selection_window = 5,
+  max_combinations = 2500000,
+  smoothing_window = 21,
   show_progress_bar = TRUE
 )
 }
@@ -38,26 +38,24 @@ there's a big spike right at the start. However, if your ladder peaks
 are taller than the big spike, you will need to set this starting scan
 number manually.}
 
+\item{minimum_peak_signal}{numeric: minimum height of peak from smoothed signal.}
+
 \item{zero_floor}{logical: if set to TRUE, all negative values will be set to zero.
 This can help deal with cases where there are peaks in the negative direction
 that interfere with peak detection.}
 
 \item{scan_subset}{numeric vector (length 2): filter the ladder and data signal
-between the selected scans (eg scan_subset = c(3000, 5000)).}
-
-\item{smoothing_window}{numeric: ladder signal smoothing window size passed
+between the selected scans (eg scan_subset = c(3000, 5000)).
 to pracma::savgol().}
 
-\item{minimum_peak_signal}{numeric: minimum height of peak from smoothed signal.}
+\item{ladder_selection_window}{numeric: in the ladder assigning algorithm,
+the we iterate through the scans in blocks and test their linear fit ( We can assume that the ladder is linear over a short distance)
+This value defines how large that block of peaks should be.}
 
 \item{max_combinations}{numeric: what is the maximum number of ladder
 combinations that should be tested}
 
-\item{ladder_selection_window}{numeric: in the ladder assigning algorithm,
-the we iterate through the scans in blocks and test their linear fit.
-We can assume that the ladder is linear over a short distance. This value
-defines how large that block of peaks should be. Make sure that this is
-shorter than your size standard.}
+\item{smoothing_window}{numeric: ladder signal smoothing window size passed}
 
 \item{show_progress_bar}{show progress bar}
 }

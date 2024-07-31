@@ -70,21 +70,21 @@ Each of the columns in the supplied dataframe are explained below:
 \item \code{max_height}: The maximum peak height in the analysis subset.
 \item \code{max_delta_neg}: The maximum negative delta to the index peak.
 \item \code{max_delta_pos}: The maximum positive delta to the index peak.
+\item \code{skewness}: The skewness of the repeat size distribution.
+\item \code{kurtosis}: The kurtosis of the repeat size distribution.
 }
 }
 
 \subsection{Repeat instability metrics}{
 \itemize{
 \item \code{modal_repeat_delta}: The delta between the modal peak repeat and the index peak repeat.
-\item \code{average_repeat_gain}: The average repeat gain, weighted by peak height.
+\item \code{average_repeat_gain}: The average repeat change: The weighted mean of the sample (weighted by peak height) subtracted by the weighted mean repeat of the index sample.
 \item \code{instability_index}: The instability index based on peak height and distance to the index peak. (See Lee et al., 2010, https://doi.org/10.1186/1752-0509-4-29).
 \item \code{instability_index_abs}: The absolute instability index. The absolute value is taken for the "Change from the main allele".
 \item \code{expansion_index}: The instability index for expansion peaks only.
 \item \code{contraction_index}: The instability index for contraction peaks only.
 \item \code{expansion_ratio}: The ratio of expansion peaks' heights to the main peak height. Also known as "peak proportional sum" (https://doi.org/10.1016/j.cell.2019.06.036).
 \item \code{contraction_ratio}: The ratio of contraction peaks' heights to the main peak height.
-\item \code{skewness}: The skewness of the repeat size distribution.
-\item \code{kurtosis}: The kurtosis of the repeat size distribution.
 \item \verb{expansion_percentile_*}: The repeat size at specified percentiles of the cumulative distribution of expansion peaks.
 \item \verb{expansion_percentile_for_repeat_*}: The percentile rank of specified repeat sizes in the distribution of expansion peaks.
 }
