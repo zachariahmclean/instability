@@ -352,6 +352,9 @@ metrics_grouping_helper <- function(fragments_list,
 metrics_override_helper <- function(fragments_list,
                                     index_override_dataframe) {
 
+
+  index_override_dataframe <- as.data.frame(index_override_dataframe)
+
   if(!any(index_override_dataframe[, 1] %in% names(fragments_list))){
     missing_unique_ids <- which(!index_override_dataframe[, 1] %in% names(fragments_list))
 
