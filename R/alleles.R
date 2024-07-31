@@ -2,23 +2,18 @@
 
 find_peak_regions <- function(height, size, size_gap_threshold, region_height_threshold_multiplier) {
   peak_regions <- rep(NA_real_, length(height))
-  mean_heights <- mean(height) * region_height_threshold_multiplier
-
+  mean_height <- mean(height) * region_height_threshold_multiplier
+  # loop over each fragment and check to see if it's within the thresholds
   for (i in seq_along(height)) {
-    if (height[i] < mean_heights || i == 1 || i == length(height)) {
+    if (height[i] < mean_height || i == 1 || i == length(height)) {
       peak_regions[i] <- NA_real_
-    } else if (height[i - 1] < mean_heights && height[i + 1] < mean_heights) {
+    } else if (height[i - 1] < mean_height && height[i + 1] < mean_height) {
       peak_regions[i] <- NA_real_
     } else {
       # check to see if peaks before it are within the size threshold
       current_size <- size[i]
-      valid_lower_peaks <- which(size < current_size & size > current_size - size_gap_threshold & height > mean_heights)
+      valid_lower_peaks <- which(size < current_size & size > current_size - size_gap_threshold & height > mean_height)
       unique_regions <- unique(na.omit(peak_regions))
-      #broke code around here
-      #need to check if valid lower peaks are already in a region. How did I used to do that?
-
-
-
       if (length(valid_lower_peaks) > 0) {
         if (length(unique_regions) > 0) {
           peak_regions[i] <- unique_regions[length(unique_regions)]
@@ -39,7 +34,7 @@ find_peak_regions <- function(height, size, size_gap_threshold, region_height_th
 }
 
 # candidate alleles ------------------------------------------------------------
-find_candidate_peaks <- function(heights,
+find_candidate_peaks <- function(height,
                                  size,
                                  peak_region_size_gap_threshold,
                                  peak_region_height_threshold_multiplier,
@@ -48,8 +43,7 @@ find_candidate_peaks <- function(heights,
 
 
   #find all possible peaks
-  all_peaks <- pracma::findpeaks(heights, peakpat = "[+]{1,}[0]*[-]{1,}")
-
+  all_peaks <- pracma::findpeaks(height, peakpat = "[+]{1,}[0]*[-]{1,}")
 
   # Find unique peak regions
   unique_regions <- unique(na.omit(peak_regions))
@@ -66,30 +60,29 @@ find_candidate_peaks <- function(heights,
     } else{
       #just pick the tallest if somehow the peak region doesn't have a peak called
       #not sure if this will happen, just dealing with a possible case
-      top_regional_peaks[i] <- region_positions[which.max(heights[region_positions])][1]
+      top_regional_peaks[i] <- region_positions[which.max(height[region_positions])][1]
     }
   }
 
   # Now we need to pick the alleles
-  # do a first pass and if only one significant peak region found when we expect two,
-  # see if there are two significant maxima in the region
-  # this is to identify alleles close in size and homozygous alleles
+  # do a first pass and if only one significant peak region found when we expect two, see if there are two significant maxima in the region
+  # this is for human patient data and to identify alleles close in size and homozygous alleles
 
   if (length(top_regional_peaks) == 1 &
     number_of_peaks_to_return == 2) {
     region_positions <- which(peak_regions == 1)
     region_maxima <- all_peaks[which(all_peaks[,2] %in% region_positions), 2]
     significant_maxima <-
-      region_maxima[which(heights[region_maxima] > max(heights[region_positions]) * 0.5)]
+      region_maxima[which(height[region_maxima] > max(height[region_positions]) * 0.5)]
     # chose the two tallest maxima if more than one peak has now been found
     if (length(significant_maxima) > 1) {
-      sig_maxima_heights <- heights[significant_maxima]
+      sig_maxima_height <- height[significant_maxima]
       second_tallest_height <-
-        sig_maxima_heights[order(sig_maxima_heights, decreasing = TRUE)][2]
+        sig_maxima_height[order(sig_maxima_height, decreasing = TRUE)][2]
       top_regional_peaks <-
-        significant_maxima[which(heights[significant_maxima] >= second_tallest_height)][1:2]
+        significant_maxima[which(height[significant_maxima] >= second_tallest_height)][1:2]
     }# deal with case where the peak after the wt peak is pretty high, perhaps indicating heterozygous +1
-    else if (heights[top_regional_peaks[1] + 1] / heights[top_regional_peaks[1]] > 0.5) {
+    else if (height[top_regional_peaks[1] + 1] / height[top_regional_peaks[1]] > 0.5) {
       top_regional_peaks <- c(top_regional_peaks[1], top_regional_peaks[1] + 1)
     } # homozygous
     else {
@@ -97,7 +90,7 @@ find_candidate_peaks <- function(heights,
     }
   } else {
     top_regional_peaks <-
-      top_regional_peaks[order(heights[top_regional_peaks], decreasing = TRUE)][1:number_of_peaks_to_return]
+      top_regional_peaks[order(height[top_regional_peaks], decreasing = TRUE)][1:number_of_peaks_to_return]
   }
 
 
@@ -110,6 +103,10 @@ find_main_peaks_helper <- function(fragments_repeats_class,
                                    number_of_peaks_to_return,
                                    peak_region_size_gap_threshold,
                                    peak_region_height_threshold_multiplier) {
+
+  # the main idea here is that PCR generates clusters of peaks around the main alleles.
+  # find the cluster of peaks and pick the tallest within
+
   # do some checks
   if (!number_of_peaks_to_return %in% c(1, 2)) {
     stop("number_of_peaks_to_return must be 1 or 2",
@@ -118,17 +115,17 @@ find_main_peaks_helper <- function(fragments_repeats_class,
   }
 
   #first select if working off repeat size or bp size
-  fragment_heights <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$height else fragments_repeats_class$repeat_table_df$height
+  fragment_height <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$height else fragments_repeats_class$repeat_table_df$height
   fragment_sizes <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$size else fragments_repeats_class$repeat_table_df$repeats
 
 
 
   # Find peak regions
-  peak_regions <- find_peak_regions(fragment_heights, fragment_sizes, peak_region_size_gap_threshold,
+  peak_regions <- find_peak_regions(fragment_height, fragment_sizes, peak_region_size_gap_threshold,
                                     peak_region_height_threshold_multiplier)
 
   top_regional_peaks <- find_candidate_peaks(
-    fragment_heights,
+    fragment_height,
     fragment_sizes,
     number_of_peaks_to_return = number_of_peaks_to_return,
     peak_region_size_gap_threshold = peak_region_size_gap_threshold,
@@ -149,7 +146,7 @@ find_main_peaks_helper <- function(fragments_repeats_class,
     } else {
       fragments_repeats_class$allele_2_repeat <- fragment_sizes[top_regional_peaks[1]]
     }
-    fragments_repeats_class$allele_2_height <- fragment_heights[top_regional_peaks[1]]
+    fragments_repeats_class$allele_2_height <- fragment_height[top_regional_peaks[1]]
 
     # longer repeat allele
     if (is.null(fragments_repeats_class$repeat_table_df)) {
@@ -157,7 +154,7 @@ find_main_peaks_helper <- function(fragments_repeats_class,
     } else {
       fragments_repeats_class$allele_1_repeat <- fragment_sizes[top_regional_peaks[2]]
     }
-    fragments_repeats_class$allele_1_height <- fragment_heights[top_regional_peaks[2]]
+    fragments_repeats_class$allele_1_height <- fragment_height[top_regional_peaks[2]]
   } else if (number_of_peaks_to_return == 1) {
     # shorter repeat allele doesn't exist
     fragments_repeats_class$allele_2_size <- NA_real_
@@ -170,12 +167,11 @@ find_main_peaks_helper <- function(fragments_repeats_class,
     } else {
       fragments_repeats_class$allele_1_repeat <- fragment_sizes[top_regional_peaks[1]]
     }
-    fragments_repeats_class$allele_1_height <- fragment_heights[top_regional_peaks[1]]
+    fragments_repeats_class$allele_1_height <- fragment_height[top_regional_peaks[1]]
   }
 
   # peak_regions
-  fragments_repeats_class$.__enclos_env__$private$peak_regions <-
-    peak_regions
+  fragments_repeats_class$.__enclos_env__$private$peak_regions <- peak_regions
 
   return(fragments_repeats_class)
 }
