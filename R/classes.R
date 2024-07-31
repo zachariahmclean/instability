@@ -166,7 +166,8 @@ fragments <- R6::R6Class("fragments",
     validated_peaks_df = NULL,
     correction_mod = NULL,
     controls_repeats_df = NULL,
-    peak_regions = NA_real_
+    peak_regions = NA_real_,
+    index_samples = NULL
   )
 )
 

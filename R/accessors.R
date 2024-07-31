@@ -917,6 +917,53 @@ call_repeats <- function(fragments_list,
 
 
 
+
+
+
+assign_index_peaks <- function(fragments_list,
+                               grouped = FALSE,
+                               index_override_dataframe = NULL){
+
+
+  # major issue here is that what do you do with the weighted mean repeat?
+  #to calculate that, you need the height and the window thresholdholds.
+  # that means you can't assign it until you need to calculate that, which is in the calculate metrics step
+  # one solution could be to provide a list of dataframes and index peaks (because there might be more than one) for each of the index samples
+  # then that can be calculated after the fact
+
+
+
+
+
+
+  # is it grouped and the index peak needs to be determined from another sample?
+  if (grouped == TRUE) {
+    fragments_list <- metrics_grouping_helper(
+      fragments_list = fragments_list,
+      peak_threshold = peak_threshold,
+      window_around_main_peak = window_around_main_peak
+    )
+  } else {
+    # this is to make sure that we use the modal peak as the index peak
+    fragments_list <- lapply(fragments_list, function(x) {
+      x$index_repeat <- x$allele_1_repeat
+      x$index_height <- x$allele_1_height
+      x$index_weighted_mean_repeat <- NA_real_
+      return(x)
+    })
+  }
+
+  # override index peak with manually supplied values
+  if (!is.null(index_override_dataframe)) {
+    fragments_list <- metrics_override_helper(
+      fragments_list = fragments_list,
+      index_override_dataframe = index_override_dataframe
+    )
+  }
+}
+
+
+
 # Calculate metrics -------------------------------------------------------
 
 #' Calculate Repeat Instability Metrics
@@ -1027,38 +1074,10 @@ call_repeats <- function(fragments_list,
 #'   repeat_range = c(2, 5, 10, 20)
 #' )
 calculate_instability_metrics <- function(fragments_list,
-                                          grouped = FALSE,
                                           peak_threshold = 0.05,
-                                          # note the lower lim should be a negative value
                                           window_around_main_peak = c(NA, NA),
                                           percentile_range = c(0.5, 0.75, 0.9, 0.95),
-                                          repeat_range = c(2, 5, 10, 20),
-                                          index_override_dataframe = NULL) {
-  # is it grouped and the index peak needs to be determined from another sample?
-  if (grouped == TRUE) {
-    fragments_list <- metrics_grouping_helper(
-      fragments_list = fragments_list,
-      peak_threshold = peak_threshold,
-      window_around_main_peak = window_around_main_peak
-    )
-  } else {
-    # this is to make sure that we use the modal peak as the index peak
-    fragments_list <- lapply(fragments_list, function(x) {
-      x$index_repeat <- x$allele_1_repeat
-      x$index_height <- x$allele_1_height
-      x$index_weighted_mean_repeat <- NA_real_
-      return(x)
-    })
-  }
-
-  # override index peak with manually supplied values
-  if (!is.null(index_override_dataframe)) {
-    fragments_list <- metrics_override_helper(
-      fragments_list = fragments_list,
-      index_override_dataframe = index_override_dataframe
-    )
-  }
-
+                                          repeat_range = c(2, 5, 10, 20)) {
   # calculate metrics
   metrics_list <- lapply(fragments_list, function(x) {
     x$instability_metrics(
