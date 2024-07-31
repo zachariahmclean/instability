@@ -91,6 +91,8 @@ add_metadata_helper <- function(
     size_standard,
     size_standard_repeat_length,
     metrics_baseline_control) {
+
+  metadata_data.frame <- as.data.frame(metadata_data.frame)
   # filter for the row of the sample
   sample_metadata <- metadata_data.frame[which(metadata_data.frame[unique_id] == fragment$unique_id), , drop = FALSE]
 

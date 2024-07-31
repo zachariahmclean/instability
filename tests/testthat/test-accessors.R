@@ -145,7 +145,23 @@ testthat::test_that("add_metadata", {
 
   testthat::expect_true(test_fragments_repeat_sizing_value[repeat_sizing_samples[1]] == 113 & test_fragments_repeat_sizing_value[repeat_sizing_samples[2]] == 115)
   testthat::expect_true(all(is.na(test_fragments_repeat_sizing_value[which(!seq_along(test_fragments_repeat_sizing_value) %in% repeat_sizing_samples)])))
-})
+
+
+  # skip columns
+  test_metadata_skip <- add_metadata(
+    fragments_list = test_fragments,
+    metadata_data.frame = metadata,
+    unique_id = "unique_id",
+    plate_id = NA,
+    group_id = NA,
+    metrics_baseline_control = NA,
+    size_standard = NA,
+    size_standard_repeat_length = NA
+  )
+
+
+
+  })
 
 
 
@@ -322,9 +338,9 @@ testthat::test_that("calculate metrics", {
   )
 
 
-  testthat::expect_true(round(mean(test_metrics_grouped$expansion_index, na.rm = TRUE), 3) == 6.673)
-  testthat::expect_true(round(mean(test_metrics_grouped$average_repeat_gain, na.rm = TRUE), 3) == 4.238)
-  testthat::expect_true(round(mean(test_metrics_grouped$skewness, na.rm = TRUE), 5) == -0.01007)
+  testthat::expect_true(round(mean(test_metrics_grouped$expansion_index, na.rm = TRUE), 3) == 6.727)
+  testthat::expect_true(round(mean(test_metrics_grouped$average_repeat_gain, na.rm = TRUE), 3) == 4.14)
+  testthat::expect_true(round(mean(test_metrics_grouped$skewness, na.rm = TRUE), 5) == -0.00905)
 
   # ungrouped
 
@@ -354,9 +370,36 @@ testthat::test_that("calculate metrics", {
   )
 
 
-  testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index, na.rm = TRUE), 3) == 4.899)
+  mock_override_df <- data.frame(
+    unique_id = names(test_repeats)[1],
+    override = c(120)
+
+  )
+
+  #test override
+
+
+  suppressMessages(
+    test_metrics_ungrouped_override <- calculate_instability_metrics(
+      fragments_list = test_repeats,
+      grouped = FALSE,
+      peak_threshold = 0.05,
+      # note the lower lim should be a negative value
+      window_around_main_peak = c(-40, 40),
+      percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
+      repeat_range = c(1, 2, 3, 4, seq(6, 20, 2)),
+      index_override_dataframe = mock_override_df
+    )
+  )
+
+
+
+
+  testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index, na.rm = TRUE), 3) == 4.956)
   testthat::expect_true(all(is.na(test_metrics_ungrouped$average_repeat_gain)))
-  testthat::expect_true(round(mean(test_metrics_ungrouped$skewness, na.rm = TRUE), 5) == -0.01007)
+  testthat::expect_true(round(mean(test_metrics_ungrouped$skewness, na.rm = TRUE), 5) == -0.00905)
+  testthat::expect_true(test_repeats[[1]]$allele_1_repeat != test_repeats[[1]]$index_repeat)
+  testthat::expect_true(test_repeats[[2]]$allele_1_repeat == test_repeats[[2]]$index_repeat)
 })
 
 

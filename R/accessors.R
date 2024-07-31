@@ -59,21 +59,19 @@ read_fsa <- function(files) {
 #'        there's a big spike right at the start. However, if your ladder peaks
 #'        are taller than the big spike, you will need to set this starting scan
 #'        number manually.
+#' @param minimum_peak_signal numeric: minimum height of peak from smoothed signal.
 #' @param zero_floor logical: if set to TRUE, all negative values will be set to zero.
 #'        This can help deal with cases where there are peaks in the negative direction
 #'        that interfere with peak detection.
 #' @param scan_subset numeric vector (length 2): filter the ladder and data signal
 #'        between the selected scans (eg scan_subset = c(3000, 5000)).
-#' @param smoothing_window numeric: ladder signal smoothing window size passed
 #'        to pracma::savgol().
-#' @param minimum_peak_signal numeric: minimum height of peak from smoothed signal.
 #' @param max_combinations numeric: what is the maximum number of ladder
 #'        combinations that should be tested
 #' @param ladder_selection_window numeric: in the ladder assigning algorithm,
-#'        the we iterate through the scans in blocks and test their linear fit.
-#'        We can assume that the ladder is linear over a short distance. This value
-#'        defines how large that block of peaks should be. Make sure that this is
-#'        shorter than your size standard.
+#'        the we iterate through the scans in blocks and test their linear fit ( We can assume that the ladder is linear over a short distance)
+#'        This value defines how large that block of peaks should be.
+#' @param smoothing_window numeric: ladder signal smoothing window size passed
 #' @param show_progress_bar show progress bar
 #'
 #' @return list of fragments_trace objects
@@ -111,12 +109,12 @@ find_ladders <- function(fsa_list,
                          signal_channel = "DATA.1",
                          ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                          spike_location = NULL,
+                         minimum_peak_signal = NULL,
                          zero_floor = FALSE,
                          scan_subset = NULL,
-                         smoothing_window = 21,
-                         minimum_peak_signal = NULL,
-                         max_combinations = 2500000,
                          ladder_selection_window = 5,
+                         max_combinations = 2500000,
+                         smoothing_window = 21,
                          show_progress_bar = TRUE) {
   ladder_list <- vector("list", length(fsa_list))
   for (i in seq_along(fsa_list)) {
@@ -581,17 +579,18 @@ repeat_table_to_repeats <- function(df,
 #'
 #' @param fragments_list A list of fragment objects to which metadata will be added.
 #' @param metadata_data.frame A data frame containing the metadata information.
-#' @param unique_id A character string indicating the column name for unique sample identifiers in the metadata.
-#' @param plate_id A character string indicating the column name for plate identifiers in the metadata.
-#' @param group_id A character string indicating the column name for sample group identifiers in the metadata.
-#' @param metrics_baseline_control A character string indicating the column name for baseline control indicators in the metadata.
-#' @param size_standard A character string indicating the column name for repeat positive control indicators in the metadata.
-#' @param size_standard_repeat_length A character string indicating the column name for repeat positive control lengths in the metadata.
+#' @param unique_id (required) A character string indicating the column name for unique sample identifiers in the metadata.
+#' @param plate_id (optional) A character string indicating the column name for plate identifiers in the metadata.  To skip, provide NA.
+#' @param group_id (optional) A character string indicating the column name for sample group identifiers in the metadata. To skip, provide NA.
+#' @param metrics_baseline_control (optional) A character string indicating the column name for baseline control indicators in the metadata. To skip, provide NA.
+#' @param size_standard (optional) A character string indicating the column name for repeat positive control indicators in the metadata. To skip, provide NA.
+#' @param size_standard_repeat_length (optional) A character string indicating the column name for repeat positive control lengths in the metadata. To skip, provide NA.
 #'
 #' @return A modified list of fragment objects with added metadata.
 #'
 #' @details This function adds specified metadata attributes to each fragment in the list.
 #' It matches the unique sample identifiers from the fragments list with those in the metadata data frame.
+#' To skip any of the optional columns, make parameter NA.
 #'
 #' @export
 #'
@@ -615,6 +614,22 @@ repeat_table_to_repeats <- function(df,
 #'   size_standard = "repeat_positive_control_TF",
 #'   size_standard_repeat_length = "repeat_positive_control_length"
 #' )
+#'
+#' test_metadata_skipped <- add_metadata(
+#'   fragments_list = test_fragments,
+#'   metadata_data.frame = metadata,
+#'   unique_id = "unique_id",
+#'   plate_id = "plate_id",
+#'   group_id = "cell_line",
+#'   metrics_baseline_control = "metrics_baseline_control_TF",
+#'   size_standard = NA,
+#'   size_standard_repeat_length = NA
+#' )
+#'
+#'
+#'
+#'
+#'
 add_metadata <- function(fragments_list,
                          metadata_data.frame,
                          unique_id = "sample_file_name",
@@ -946,18 +961,18 @@ call_repeats <- function(fragments_list,
 #' - `max_height`: The maximum peak height in the analysis subset.
 #' - `max_delta_neg`: The maximum negative delta to the index peak.
 #' - `max_delta_pos`: The maximum positive delta to the index peak.
+#' - `skewness`: The skewness of the repeat size distribution.
+#' - `kurtosis`: The kurtosis of the repeat size distribution.
 #'
 #' ## Repeat instability metrics
 #' - `modal_repeat_delta`: The delta between the modal peak repeat and the index peak repeat.
-#' - `average_repeat_gain`: The average repeat gain, weighted by peak height.
+#' - `average_repeat_gain`: The average repeat change: The weighted mean of the sample (weighted by peak height) subtracted by the weighted mean repeat of the index sample.
 #' - `instability_index`: The instability index based on peak height and distance to the index peak. (See Lee et al., 2010, https://doi.org/10.1186/1752-0509-4-29).
 #' - `instability_index_abs`: The absolute instability index. The absolute value is taken for the "Change from the main allele".
 #' - `expansion_index`: The instability index for expansion peaks only.
 #' - `contraction_index`: The instability index for contraction peaks only.
 #' - `expansion_ratio`: The ratio of expansion peaks' heights to the main peak height. Also known as "peak proportional sum" (https://doi.org/10.1016/j.cell.2019.06.036).
 #' - `contraction_ratio`: The ratio of contraction peaks' heights to the main peak height.
-#' - `skewness`: The skewness of the repeat size distribution.
-#' - `kurtosis`: The kurtosis of the repeat size distribution.
 #' - `expansion_percentile_*`: The repeat size at specified percentiles of the cumulative distribution of expansion peaks.
 #' - `expansion_percentile_for_repeat_*`: The percentile rank of specified repeat sizes in the distribution of expansion peaks.
 
@@ -1026,9 +1041,8 @@ calculate_instability_metrics <- function(fragments_list,
       peak_threshold = peak_threshold,
       window_around_main_peak = window_around_main_peak
     )
-  } else if (is.null(index_override_dataframe)) {
+  } else {
     # this is to make sure that we use the modal peak as the index peak
-    # fixes cases where index peak has been assigned previously and we need to make sure it's the modal peak
     fragments_list <- lapply(fragments_list, function(x) {
       x$index_repeat <- x$allele_1_repeat
       x$index_height <- x$allele_1_height

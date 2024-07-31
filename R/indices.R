@@ -196,6 +196,8 @@ compute_metrics <- function(fragments_repeats,
     max_height = max(size_filtered_df$height),
     max_delta_neg = min(size_filtered_df$repeat_delta_index_peak),
     max_delta_pos = max(size_filtered_df$repeat_delta_index_peak),
+    skewness = fishers_skewness(size_filtered_df$repeats, size_filtered_df$height),
+    kurtosis = fishers_kurtosis(size_filtered_df$repeats, size_filtered_df$height),
     modal_repeat_delta = fragments_repeats$allele_1_repeat - fragments_repeats$index_repeat,
     average_repeat_gain = weighted.mean(size_filtered_df$repeats, size_filtered_df$height) - fragments_repeats$index_weighted_mean_repeat,
     instability_index = instability_index(
@@ -231,9 +233,7 @@ compute_metrics <- function(fragments_repeats,
       abs_sum = FALSE
     ),
     expansion_ratio = sum(expansion_filtered$peak_percent) - 1, # remove the main peak by subtracting 1
-    contraction_ratio = sum(contraction_filtered$peak_percent) - 1,
-    skewness = fishers_skewness(size_filtered_df$repeats, size_filtered_df$height),
-    kurtosis = fishers_kurtosis(size_filtered_df$repeats, size_filtered_df$height)
+    contraction_ratio = sum(contraction_filtered$peak_percent) - 1
   )
 
   expansion_percentile <- find_percentiles(
@@ -351,12 +351,23 @@ metrics_grouping_helper <- function(fragments_list,
 # metrics_override_helper ---------------------------------------------------------
 metrics_override_helper <- function(fragments_list,
                                     index_override_dataframe) {
+
+
+  index_override_dataframe <- as.data.frame(index_override_dataframe)
+
+  if(!any(index_override_dataframe[, 1] %in% names(fragments_list))){
+    missing_unique_ids <- which(!index_override_dataframe[, 1] %in% names(fragments_list))
+
+    warning(call. = FALSE,
+            paste0("The following unique ids from the index override data frame are not in the repeats list:",
+                   paste0(index_override_dataframe[, 1], collapse = ", ")
+                   )
+            )
+  }
+
   lapply(fragments_list, function(x) {
     # if there is nothing to override, then just return the existing index values
-    if (!any(index_override_dataframe$unique_id == x$unique_id)) {
-      x$index_repeat <- x$index_repeat
-      x$index_height <- x$index_height
-    } else if (any(index_override_dataframe[, 1] == x$unique_id)) {
+    if (any(index_override_dataframe[, 1] == x$unique_id)) {
       index_delta <- x$repeat_table_df$repeats - index_override_dataframe[which(index_override_dataframe[, 1] == x$unique_id), 2]
 
       closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
@@ -369,5 +380,6 @@ metrics_override_helper <- function(fragments_list,
         x$index_height <- x$repeat_table_df$height[tallest_candidate]
       }
     }
+    return(x)
   })
 }

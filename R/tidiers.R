@@ -7,6 +7,7 @@ clean_genemapper5 <- function(df,
                               dye_col,
                               dye_channel,
                               allele_col) {
+  df <- as.data.frame(df)
   # rename cols based on used supplied name
   names(df)[names(df) == peak_size_col] <- "size"
   names(df)[names(df) == peak_height_col] <- "height"
@@ -33,6 +34,7 @@ clean_generic <- function(df,
                           peak_size_col,
                           peak_height_col,
                           unique_id) {
+  df <- as.data.frame(df)
   # rename cols based on used supplied name
   names(df)[names(df) == peak_size_col] <- "size"
   names(df)[names(df) == peak_height_col] <- "height"
