@@ -258,6 +258,7 @@ cell line
 
 ``` r
 library(dplyr)
+#> Warning: package 'dplyr' was built under R version 4.4.1
 #> 
 #> Attaching package: 'dplyr'
 #> The following objects are masked from 'package:stats':
@@ -266,9 +267,6 @@ library(dplyr)
 #> The following objects are masked from 'package:base':
 #> 
 #>     intersect, setdiff, setequal, union
-```
-
-``` r
 
 
 plot_data <- metrics_grouped_df |>
@@ -288,6 +286,7 @@ Then we can plot the instability metrics
 
 ``` r
 library(ggplot2)
+#> Warning: package 'ggplot2' was built under R version 4.4.1
 
 ggplot(
   plot_data,
