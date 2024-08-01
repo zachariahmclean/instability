@@ -22,23 +22,16 @@ fragments <- R6::R6Class("fragments",
       # clone the class so that it doesn't modify in place
       self2 <- self$clone()
 
-      # filter for row of sample
-      sample_metadata <- metadata_data.frame[which(metadata_data.frame[unique_id] == self2$unique_id), , drop = FALSE]
-
-      # add metadata to slots, checking if parameters are NA
-      self2$plate_id <- if (!is.na(plate_id)) as.character(sample_metadata[[plate_id]]) else NA_character_
-      self2$group_id <- if (!is.na(group_id)) as.character(sample_metadata[[group_id]]) else NA_character_
-      self2$size_standard <- if (!is.na(size_standard)) {
-        ifelse(is.na(sample_metadata[[size_standard]]) || !as.logical(sample_metadata[[size_standard]]), FALSE, TRUE)
-      } else {
-        FALSE
-      }
-      self2$size_standard_repeat_length <- if (!is.na(size_standard_repeat_length)) as.double(sample_metadata[[size_standard_repeat_length]]) else NA_real_
-      self2$metrics_baseline_control <- if (!is.na(metrics_baseline_control)) {
-        ifelse(is.na(sample_metadata[[metrics_baseline_control]]) || !as.logical(sample_metadata[[metrics_baseline_control]]), FALSE, TRUE)
-      } else {
-        FALSE
-      }
+      self2 <- add_metadata_helper(
+        fragments = self2,
+        metadata_data.frame = metadata_data.frame,
+        unique_id = unique_id,
+        plate_id = plate_id,
+        group_id = group_id,
+        size_standard = size_standard,
+        size_standard_repeat_length = size_standard_repeat_length,
+        metrics_baseline_control = metrics_baseline_control
+      )
 
       return(self2)
     },
