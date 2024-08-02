@@ -311,7 +311,6 @@ fragments_repeats <- R6::R6Class(
     repeat_table_df = NULL,
     index_repeat = NA_real_,
     index_height = NA_real_,
-    index_weighted_mean_repeat = NA_real_,
     find_main_peaks = function(number_of_peaks_to_return = 1,
                                peak_region_size_gap_threshold = 6,
                                peak_region_height_threshold_multiplier = 1) {

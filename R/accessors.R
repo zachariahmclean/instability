@@ -926,22 +926,16 @@ assign_index_peaks <- function(fragments_list,
 
 
   # major issue here is that what do you do with the weighted mean repeat?
-  #to calculate that, you need the height and the window thresholdholds.
+  # to calculate that, you need the height and the window thresholds.
   # that means you can't assign it until you need to calculate that, which is in the calculate metrics step
   # one solution could be to provide a list of dataframes and index peaks (because there might be more than one) for each of the index samples
   # then that can be calculated after the fact
 
 
-
-
-
-
   # is it grouped and the index peak needs to be determined from another sample?
   if (grouped == TRUE) {
     fragments_list <- metrics_grouping_helper(
-      fragments_list = fragments_list,
-      peak_threshold = peak_threshold,
-      window_around_main_peak = window_around_main_peak
+      fragments_list = fragments_list
     )
   } else {
     # this is to make sure that we use the modal peak as the index peak
@@ -960,6 +954,9 @@ assign_index_peaks <- function(fragments_list,
       index_override_dataframe = index_override_dataframe
     )
   }
+
+  return(fragments_list)
+
 }
 
 

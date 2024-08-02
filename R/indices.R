@@ -142,6 +142,28 @@ compute_metrics <- function(fragments_repeats,
     window_around_main_peak = window_around_main_peak
   )
 
+  if(!is.null(fragments_repeats$.__enclos_env__$private$index_samples)){
+
+    control_weighted_mean_repeat <- sapply(fragments_repeats$.__enclos_env__$private$index_samples, function(x){
+      control_filtered_df <- repeat_table_subset(
+        repeat_table_df = x[[2]],
+        allele_1_height = x[[2]][which(x[[2]]$repeats == x[[1]]), "height"],
+        index_repeat = x[[1]],
+        peak_threshold = peak_threshold,
+        window_around_main_peak = window_around_main_peak
+      )
+
+      weighted.mean(control_filtered_df$repeats, control_filtered_df$height)
+    })
+
+    index_weighted_mean_repeat <- median(control_weighted_mean_repeat, na.rm = TRUE)
+  } else{
+    index_weighted_mean_repeat <- NA
+  }
+
+
+
+
   # first subset to make some dataframe that are just for contractions or expansions
   size_filtered_df$repeat_delta_index_peak <- size_filtered_df$repeats - fragments_repeats$index_repeat
   expansion_filtered <- size_filtered_df[which(size_filtered_df$repeat_delta_index_peak >= 0), ]
@@ -184,7 +206,7 @@ compute_metrics <- function(fragments_repeats,
     modal_peak_height = fragments_repeats$allele_1_height,
     index_peak_repeat = fragments_repeats$index_repeat,
     index_peak_height = fragments_repeats$index_height,
-    index_weighted_mean_repeat = fragments_repeats$index_weighted_mean_repeat,
+    index_weighted_mean_repeat = index_weighted_mean_repeat,
     n_peaks_total = nrow(fragments_repeats$repeat_table_df),
     n_peaks_analysis_subset = nrow(size_filtered_df),
     n_peaks_analysis_subset_expansions = nrow(expansion_filtered),
@@ -199,7 +221,7 @@ compute_metrics <- function(fragments_repeats,
     skewness = fishers_skewness(size_filtered_df$repeats, size_filtered_df$height),
     kurtosis = fishers_kurtosis(size_filtered_df$repeats, size_filtered_df$height),
     modal_repeat_delta = fragments_repeats$allele_1_repeat - fragments_repeats$index_repeat,
-    average_repeat_gain = weighted.mean(size_filtered_df$repeats, size_filtered_df$height) - fragments_repeats$index_weighted_mean_repeat,
+    average_repeat_gain = weighted.mean(size_filtered_df$repeats, size_filtered_df$height) - index_weighted_mean_repeat,
     instability_index = instability_index(
       repeats = size_filtered_df$repeats,
       heights = size_filtered_df$height,
