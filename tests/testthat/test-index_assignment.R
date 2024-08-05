@@ -58,16 +58,14 @@ test_that("index assignment", {
     )
   )
 
-
-tictoc::tic()
-
-test_assignment <- assign_index_peaks(
-  test_repeats,
-  grouped = TRUE
-)
-
-
-
+  suppressMessages(
+    suppressWarnings(
+      test_assignment <- assign_index_peaks(
+        test_repeats,
+        grouped = TRUE
+      )
+    )
+  )
 
   # plot_traces(test_repeats[1:9], n_facet_col = 3,
   #             xlim = c(400, 550),
@@ -80,17 +78,14 @@ test_assignment <- assign_index_peaks(
   suppressMessages(
     suppressWarnings(
       test_metrics_grouped <- calculate_instability_metrics(
-        fragments_list = test_repeats,
+        fragments_list = test_assignment,
         peak_threshold = 0.05,
         window_around_main_peak = c(-40, 40)
       )
     )
   )
 
-
-
-  tictoc::toc()
-
+testthat::expect_true(all(sapply(test_assignment, function(x) x$.__enclos_env__$private$assigned_index_peak_used)))
 
 
 

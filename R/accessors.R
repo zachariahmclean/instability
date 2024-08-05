@@ -920,17 +920,36 @@ call_repeats <- function(fragments_list,
 
 
 
+#' Assign index peaks
+#'
+#' Assign index peaks in preparation for calculation of instability metrics
+#'
+#' @param fragments_list A list of "fragments_repeats" class objects representing
+#' fragment data.
+#' @param grouped Logical value indicating whether samples should be grouped to
+#' share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{link{add_metadata()}}.
+#' @param index_override_dataframe A data.frame to manually set index peaks.
+#' Column 1: unique sample IDs, Column 2: desired index peaks (the order of the
+#' columns is important since the information is pulled by column position rather
+#' than column name). Closest peak in each sample is selected.
+#'
+#' @return
+#' @details
+#' A key part of several instability metrics is the index peak which is the repeat
+#' length used as the reference peak for the instability index calculation.
+#' This function groups the samples by their group_id and uses the samples set as
+#' metrics_baseline_control to set the index peak. Use \code{link{add_metadata()}}
+#' to set these variables.
+#'
+#' `index_override_dataframe` can be used to manually override these assigned index
+#' repeat values (irrespective of whether `grouped` is TRUE or FALSE).
+#'
+#' @export A list of \code{"fragments_repeats"} objects with index_repeat and index_height added.
+#'
+#' @examples
 assign_index_peaks <- function(fragments_list,
                                grouped = FALSE,
                                index_override_dataframe = NULL){
-
-
-  # major issue here is that what do you do with the weighted mean repeat?
-  # to calculate that, you need the height and the window thresholds.
-  # that means you can't assign it until you need to calculate that, which is in the calculate metrics step
-  # one solution could be to provide a list of dataframes and index peaks (because there might be more than one) for each of the index samples
-  # then that can be calculated after the fact
-
 
   # is it grouped and the index peak needs to be determined from another sample?
   if (grouped == TRUE) {
@@ -938,11 +957,12 @@ assign_index_peaks <- function(fragments_list,
       fragments_list = fragments_list
     )
   } else {
-    # this is to make sure that we use the modal peak as the index peak
+    # otherwise just use the modal peak as the index peak
     fragments_list <- lapply(fragments_list, function(x) {
+      x <- x$clone()
       x$index_repeat <- x$allele_1_repeat
       x$index_height <- x$allele_1_height
-      x$index_weighted_mean_repeat <- NA_real_
+      x$.__enclos_env__$private$assigned_index_peak_used <- TRUE
       return(x)
     })
   }
@@ -967,13 +987,13 @@ assign_index_peaks <- function(fragments_list,
 #'
 #' This function computes instability metrics from a list of fragments_repeats data objects.
 #'
-#' @param fragments_list A list of "fragments_repeats" class objects representing fragment data.
-#' @param grouped Logical value indicating whether samples should be grouped to share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{add_metadata()}.
+#' @param fragments_list A list of "fragments_repeats" objects representing fragment data.
 #' @param peak_threshold The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.
 #' @param window_around_main_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140. The sign of the numbers does not matter (The absolute value is found).
 #' @param percentile_range A numeric vector of percentiles to compute (e.g., c(0.5, 0.75, 0.9, 0.95)).
 #' @param repeat_range A numeric vector specifying ranges of repeats for the inverse quantile computation.
-#' @param index_override_dataframe A data.frame to manually set index peaks. Column 1: unique sample IDs, Column 2: desired index peaks (the order of the columns is important since the information is pulled by column position rather than column name). Closest peak in each sample is selected.
+#' @param grouped This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.
+#' @param index_override_dataframe This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.
 #'
 #' @return A data.frame with calculated instability metrics for each sample.
 #' @details
@@ -1074,7 +1094,25 @@ calculate_instability_metrics <- function(fragments_list,
                                           peak_threshold = 0.05,
                                           window_around_main_peak = c(NA, NA),
                                           percentile_range = c(0.5, 0.75, 0.9, 0.95),
-                                          repeat_range = c(2, 5, 10, 20)) {
+                                          repeat_range = c(2, 5, 10, 20),
+                                          grouped = NA,
+                                          index_override_dataframe = NA
+                                          ) {
+  # this section is in here for backwards compatibility since the functionality of assign_index_peaks() used to happen in here but was later separated
+  if(!is.na(grouped) || is.data.frame(index_override_dataframe)){
+
+    fragments_list <- assign_index_peaks(
+      fragments_list = fragments_list,
+      grouped = ifelse(!is.na(grouped), grouped, FALSE),
+      index_override_dataframe = if(is.data.frame(index_override_dataframe)){
+                                    index_override_dataframe
+                                  } else{
+                                    NULL
+                                  }
+    )
+  }
+
+
   # calculate metrics
   metrics_list <- lapply(fragments_list, function(x) {
     x$instability_metrics(

@@ -56,24 +56,35 @@ metrics_grouping_helper <- function(fragments_list,
 
   #loop over each sample and put data inside
   for(i in seq_along(fragments_list)){
+    fragments_list[[i]] <- fragments_list[[i]]$clone()
+
     fragments_list[[i]]$.__enclos_env__$private$index_samples <- baseline_control_list[[fragments_list[[i]]$group_id]]
 
     control_index_median_repeat <- median(sapply(baseline_control_list[[fragments_list[[i]]$group_id]], function(x) x[[1]]))
 
 
-    # since the repeat size may not be an integer, need t find what the closest peak is to the control sample
-    # delta between repeat of index sample and all repeats of sample
-    index_delta <- fragments_list[[i]]$repeat_table_df$repeats - control_index_median_repeat
-    closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
+    # since the repeat size may not be an integer, need to find what the closest peak is to the control sample
+    # delta between repeat of index sample and all repeats of sample.
 
-    if (length(closest_peak) == 1) {
-      fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[closest_peak]
-      fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[closest_peak]
-    } else {
-      tallest_candidate <- closest_peak[which(fragments_list[[i]]$repeat_table_df$height[closest_peak] == max(fragments_list[[i]]$repeat_table_df$height[closest_peak]))]
-      fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[tallest_candidate]
-      fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[tallest_candidate]
+    # skip samples with no data
+
+    if(nrow(fragments_list[[i]]$repeat_table_df) > 0){
+
+      index_delta <- fragments_list[[i]]$repeat_table_df$repeats - control_index_median_repeat
+      closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
+
+      if (length(closest_peak) == 1) {
+        fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[closest_peak]
+        fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[closest_peak]
+      } else {
+        tallest_candidate <- closest_peak[which(fragments_list[[i]]$repeat_table_df$height[closest_peak] == max(fragments_list[[i]]$repeat_table_df$height[closest_peak]))]
+        fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[tallest_candidate]
+        fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[tallest_candidate]
+      }
     }
+
+    # confirm that the index was set in the class so it can be used for calculate instability metrics
+    fragments_list[[i]]$.__enclos_env__$private$assigned_index_peak_used <- TRUE
 
   }
 
