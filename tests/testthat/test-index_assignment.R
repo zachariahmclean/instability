@@ -58,6 +58,13 @@ test_that("index assignment", {
     )
   )
 
+  plot_traces(test_repeats[1:9], n_facet_col = 3,
+              xlim = c(100, 150),
+              ylim = c(0,2000))
+
+
+
+
   suppressMessages(
     suppressWarnings(
       test_assignment <- assign_index_peaks(
@@ -66,10 +73,10 @@ test_that("index assignment", {
       )
     )
   )
+  plot_traces(test_assignment[1:9], n_facet_col = 3,
+              xlim = c(100, 150),
+              ylim = c(0,2000))
 
-  # plot_traces(test_repeats[1:9], n_facet_col = 3,
-  #             xlim = c(400, 550),
-  #             ylim = c(0,2000))
 
 
   # plot_fragments(test_repeats[1:4])

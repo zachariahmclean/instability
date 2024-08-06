@@ -156,6 +156,11 @@ fragments <- R6::R6Class("fragments",
 
       }
 
+
+      if(!is.null(self$index_repeat) && !is.na(self$index_repeat)){
+        abline(v = self$index_repeat, col = "black", lwd = 2, lty = 3)
+      }
+
     }
   ),
   private = list(

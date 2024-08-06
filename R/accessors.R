@@ -1375,6 +1375,8 @@ plot_ladders <- function(fragments_trace_list,
 #'
 #' If peaks are called, green is the tallest peak, blue is peaks above the height threshold (default 5%), purple is below the height threshold. If `force_whole_repeat_units` is used within [call_repeats()], the called repeat will be connected to the peak in the trace with a horizontal dashed line.
 #'
+#' The index peak will be plotted as a vertical dashed line when it has been set using `assign_index_peaks()`.
+#'
 #'
 #' @examples
 #'
