@@ -6,18 +6,16 @@
 \usage{
 calculate_instability_metrics(
   fragments_list,
-  grouped = FALSE,
   peak_threshold = 0.05,
   window_around_main_peak = c(NA, NA),
   percentile_range = c(0.5, 0.75, 0.9, 0.95),
   repeat_range = c(2, 5, 10, 20),
-  index_override_dataframe = NULL
+  grouped = NA,
+  index_override_dataframe = NA
 )
 }
 \arguments{
-\item{fragments_list}{A list of "fragments_repeats" class objects representing fragment data.}
-
-\item{grouped}{Logical value indicating whether samples should be grouped to share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{add_metadata()}.}
+\item{fragments_list}{A list of "fragments_repeats" objects representing fragment data.}
 
 \item{peak_threshold}{The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.}
 
@@ -27,7 +25,9 @@ calculate_instability_metrics(
 
 \item{repeat_range}{A numeric vector specifying ranges of repeats for the inverse quantile computation.}
 
-\item{index_override_dataframe}{A data.frame to manually set index peaks. Column 1: unique sample IDs, Column 2: desired index peaks (the order of the columns is important since the information is pulled by column position rather than column name). Closest peak in each sample is selected.}
+\item{grouped}{This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.}
+
+\item{index_override_dataframe}{This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.}
 }
 \value{
 A data.frame with calculated instability metrics for each sample.

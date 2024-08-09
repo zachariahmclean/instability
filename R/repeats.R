@@ -447,11 +447,11 @@ add_repeats_helper <- function(fragments_repeats,
 
   # check to make sure all the required inputs for the function have been given
   if (fragments_repeats$.__enclos_env__$private$find_main_peaks_used == FALSE) {
-    stop(paste0(fragments_repeats$unique_id, " requires main alleles to be identified before repeats can be called. Find alleles using 'find_main_peaks()' whitin the class, or use the 'find_alleles()' accesesor to find the main peaks across a list of 'HTT_fragments' objects"),
+    stop(paste0(fragments_repeats$unique_id, " requires main alleles to be identified before repeats can be called. Find alleles using 'find_main_peaks()' whitin the class, or use the 'find_alleles()' accesesor to find the main peaks across a list of 'fragments_repeats' objects"),
       call. = FALSE
     )
   } else if (correct_repeat_length == TRUE & is.null(fragments_repeats$.__enclos_env__$private$correction_mod)) {
-    stop("Correcting the repeat length requires a model based on positive controls, so 'correct_repeat_length' & 'correction_mod' inputs are not meant for users to directly use. To correct the repeat length, you need to work on the 'HTT_fragments' objects in a list format and use accessor functions. On a list of 'HTT_fragments' objects, i) use 'add_metadata()' to indicate which samples are positive controls, and ii) use 'find_alleles()' accesesor function to call and correct repeat lengths across all samples",
+    stop("Correcting the repeat length requires a model based on positive controls, so 'correct_repeat_length' & 'correction_mod' inputs are not meant for users to directly use. To correct the repeat length, you need to work on the 'fragments_repeats' objects in a list format and use accessor functions. On a list of 'fragments_repeats' objects, i) use 'add_metadata()' to indicate which samples are positive controls, and ii) use 'find_alleles()' accesesor function to call and correct repeat lengths across all samples",
       call. = FALSE
     )
   }

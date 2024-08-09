@@ -160,17 +160,24 @@ fragments <- R6::R6Class("fragments",
 
       }
 
+
+      if(!is.null(self$index_repeat) && !is.na(self$index_repeat)){
+        abline(v = self$index_repeat, col = "black", lwd = 2, lty = 3)
+      }
+
     }
   ),
   private = list(
     min_bp_size = NULL,
     max_bp_size = NULL,
     find_main_peaks_used = FALSE,
+    peak_regions = NA_real_,
     repeats_not_called_reason = NA_character_,
     validated_peaks_df = NULL,
     correction_mod = NULL,
     controls_repeats_df = NULL,
-    peak_regions = NA_real_
+    assigned_index_peak_used = FALSE,
+    index_samples = NULL
   )
 )
 
@@ -314,7 +321,6 @@ fragments_repeats <- R6::R6Class(
     repeat_table_df = NULL,
     index_repeat = NA_real_,
     index_height = NA_real_,
-    index_weighted_mean_repeat = NA_real_,
     find_main_peaks = function(number_of_peaks_to_return = 1,
                                peak_region_size_gap_threshold = 6,
                                peak_region_height_threshold_multiplier = 1) {
@@ -368,11 +374,11 @@ fragments_repeats <- R6::R6Class(
                                      1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20
                                    )) {
       # check to make sure all the required inputs for the function have been given
-      if (private$find_main_peaks_used == FALSE) {
-        stop(paste0(self$unique_id, " requires main alleles to be identified before repeats can be called. Find alleles using 'find_main_peaks()' whitin the class, or use the 'find_alleles()' accesesor to find the main peaks across a list of 'HTT_fragments' objects"),
-          call. = FALSE
+      if(private$assigned_index_peak_used == FALSE){
+        stop(paste0(self$unique_id, " requires an index peak to calculate repeat instability metrics. Use 'assign_index_peaks' to set the index peaks."),
+             call. = FALSE
         )
-      } else if (is.na(self$allele_1_repeat)) {
+      }else if (is.na(self$allele_1_repeat)) {
         message(paste0(self$unique_id, ": metrics not calculated (no main peaks in sample)"))
         return(NULL)
       }

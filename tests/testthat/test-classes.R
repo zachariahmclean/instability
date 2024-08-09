@@ -198,6 +198,13 @@ testthat::test_that("instability metrics", {
     correct_repeat_length = FALSE
   )
 
+
+  test_fragments_repeats_simple$index_repeat <- test_fragments_repeats_simple$allele_1_repeat
+  test_fragments_repeats_simple$index_height <- test_fragments_repeats_simple$allele_1_height
+  test_fragments_repeats_simple$.__enclos_env__$private$assigned_index_peak_used <- TRUE
+
+
+
   test_metrics <- test_fragments_repeats_simple$instability_metrics(
     peak_threshold = 0.05,
     window_around_main_peak = c(-40, 40), # note the lower lim should be a negative value
