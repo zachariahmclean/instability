@@ -950,6 +950,44 @@ call_repeats <- function(fragments_list,
 #' @export
 #'
 #' @examples
+#'
+#'
+#' file_list <- instability::cell_line_fsa_list
+#'
+#' ladder_list <- find_ladders(file_list)
+#'
+#' fragments_list <- find_fragments(ladder_list,
+#'   min_bp_size = 300
+#' )
+#'
+#' allele_list <- find_alleles(
+#'   fragments_list = fragments_list
+#' )
+#' repeats_list <- call_repeats(
+#'   fragments_list = allele_list
+#' )
+#'
+#' metadata_added_list <- add_metadata(
+#'   fragments_list = repeats_list,
+#'   metadata_data.frame = instability::metadata,
+#'   unique_id = "unique_id",
+#'   plate_id = "plate_id",
+#'   group_id = "cell_line",
+#'   metrics_baseline_control = "metrics_baseline_control_TF",
+#'   size_standard = "repeat_positive_control_TF",
+#'   size_standard_repeat_length = "repeat_positive_control_length"
+#' )
+#'
+#'index_assigned <- assign_index_peaks(metadata_added_list,
+#'                                     grouped = TRUE)
+#'
+#' plot_traces(index_assigned[1], xlim = c(100,150))
+#'
+#'
+#'
+#'
+#'
+#'
 assign_index_peaks <- function(fragments_list,
                                grouped = FALSE,
                                index_override_dataframe = NULL){

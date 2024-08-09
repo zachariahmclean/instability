@@ -228,22 +228,55 @@ tallest peak used for the repeat size standards. If the wrong peak was
 selected for one of the samples, the dots would be shifted across 3 bp
 and no longer overlapping.
 
+# Assign index peaks
+
+A key part of several instability metrics is the index peak. This is the
+repeat length used as the reference for relative instability metrics
+calculations, like expansion index or average repeat gain. In the
+metadata, samples are grouped by a `group_id` and a subset of the
+samples are set as `metrics_baseline_control`, meaning they are the
+samples taken at day 0 in this experiment. This allows us to set
+`grouped = TRUE` and set the index peak for the expansion index and
+other metrics. For mice, if just a few samples have the inherited repeat
+height shorter than the expanded population, you could not worry about
+this and instead use the `index_override_dataframe` in
+`calculate_instability_metrics()`.
+
+``` r
+
+index_list <- assign_index_peaks(
+  repeats_list,
+  grouped = TRUE
+)
+#> Group 'CC4' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
+#> Group 'CC5' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
+#> Group 'CC6' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
+#> Group 'P3' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
+#> Group 'P6' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
+#> Group 'P14' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
+```
+
+We can validate that the index peaks were assigned correctly with a
+dotted vertical line added to the trace. This is perhaps more useful in
+the context of mice where you can visually see when the inherited repeat
+length should be in the bimodal distribution.
+
+``` r
+plot_traces(index_list[1], xlim = c(110, 150))
+```
+
+<img src="man/figures/README-unnamed-chunk-3-1.png" width="100%" />
+
 # Calculate instability metrics
 
-Finally, the repeat instability metrics can be calculated. In the
-metadata, a subset of the samples are set as ‘metrics_baseline_control’,
-meaning they are the samples taken at day 0 in this experiment. This
-allows us to set `grouped = TRUE` and set the index peak (the modal
-repeat size at the start of the experiment, or inherited repeat length
-in the case of mice) for the expansion index and other metrics. For
-mice, if just a few samples have the inherited repeat height shorter
-than the expanded population, you could not worry about this and instead
-use the `index_override_dataframe` in `calculate_instability_metrics()`.
+All of the information we need to calculate the repeat instability
+metrics has now been identified. We can finally use
+`calculate_instability_metrics` to generate a dataframe of per-sample
+metrics.
 
 ``` r
 metrics_grouped_df <- calculate_instability_metrics(
-  fragments_list = repeats_list,
-  grouped = TRUE,
+  fragments_list = index_list,
   peak_threshold = 0.05
 )
 ```
