@@ -927,24 +927,27 @@ call_repeats <- function(fragments_list,
 #' @param fragments_list A list of "fragments_repeats" class objects representing
 #' fragment data.
 #' @param grouped Logical value indicating whether samples should be grouped to
-#' share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{link{add_metadata()}}.
+#' share a common index peak. `FALSE` will assign the sample's own modal allele as the index peak. `TRUE` will use metadata to assign the index peak based on the modal peak of another sample. This is useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{link{add_metadata()}}.
 #' @param index_override_dataframe A data.frame to manually set index peaks.
 #' Column 1: unique sample IDs, Column 2: desired index peaks (the order of the
 #' columns is important since the information is pulled by column position rather
 #' than column name). Closest peak in each sample is selected.
 #'
-#' @return
+#' @return A list of \code{"fragments_repeats"} objects with index_repeat and index_height added.
 #' @details
-#' A key part of several instability metrics is the index peak which is the repeat
-#' length used as the reference peak for the instability index calculation.
-#' This function groups the samples by their group_id and uses the samples set as
+#' A key part of several instability metrics is the index peak. This is the repeat
+#' length used as the reference peak for relative instability metrics calculations, like expansion index or average repeat gain.
+#' For example, this is the the inherited repeat length of a mouse, or the modal repeat length for the cell line at a starting time point.
+#'
+#'
+#' If `grouped` is set to `TRUE`, this function groups the samples by their group_id and uses the samples set as
 #' metrics_baseline_control to set the index peak. Use \code{link{add_metadata()}}
 #' to set these variables.
 #'
 #' `index_override_dataframe` can be used to manually override these assigned index
 #' repeat values (irrespective of whether `grouped` is TRUE or FALSE).
 #'
-#' @export A list of \code{"fragments_repeats"} objects with index_repeat and index_height added.
+#' @export
 #'
 #' @examples
 assign_index_peaks <- function(fragments_list,
@@ -1100,6 +1103,9 @@ calculate_instability_metrics <- function(fragments_list,
                                           ) {
   # this section is in here for backwards compatibility since the functionality of assign_index_peaks() used to happen in here but was later separated
   if(!is.na(grouped) || is.data.frame(index_override_dataframe)){
+
+    # give the user a message to tell them to use the other function
+    message("The functionalty of assigning index peaks was separated into the assign_index_peaks() function, with the parameters 'grouped' and 'index_override_dataframe' kept here for backwards compatibility. We recomend using the assign_index_peaks() function seperatly instead of whitin this function. This allows you to validate that the correct index peak was assigned before moving forward with calculation of instability metrics.")
 
     fragments_list <- assign_index_peaks(
       fragments_list = fragments_list,
