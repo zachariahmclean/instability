@@ -11,9 +11,10 @@ metrics_grouping_helper <- function(fragments_list,
   # each sample will then have the data for their appropriate control inserted inside
   # that can then be used in the calculation of instability metrics
 
+  # we need to insert the whole peak table of the control because the calculation of the weighted mean
+  # looks at a specific subset of the table, which is not set until the calculate metrics function
 
-
-  # make a list of dataframes and alleles
+  # make a list of dataframes and alleles for each of the controls for the groups
   group_ids <- sapply(fragments_list, function(x) x$group_id)
   unique_group_ids <- unique(group_ids)
 
@@ -42,7 +43,7 @@ metrics_grouping_helper <- function(fragments_list,
     controls_missing_allele <- all(sapply(baseline_control_list[[fragments_list[[i]]$group_id]], function(x) is.na(x[[1]])))
 
     if (length(baseline_control_list[[i]]) == 0) {
-      stop(paste0("Group '", names(baseline_control_list)[[i]], "' has no 'metrics_baseline_control'"),
+      stop(paste0("Group '", names(baseline_control_list)[[i]], "' has no 'metrics_baseline_control'. Go back to metadata to check that each group has a baseline control, or remove samples from the list for analysis with 'remove_fragments()' if it doesn't make sense to include them beyond this point (eg size standards or no template controls)"),
            call. = FALSE
       )
     } else if (controls_missing_allele == TRUE) {
