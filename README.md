@@ -3,7 +3,7 @@
 
 This package provides a pipeline for short tandem repeat instability
 analysis from fragment analysis data. The inputs are fsa files or peak
-tables (eg Genemapper5 software output), and a user supplied metadata
+tables (eg Genemapper 5 software output), and a user supplied metadata
 data-frame. The functions identify ladders, calls peaks, and calculates
 repeat instability metrics (ie expansion index or average repeat gain).
 
@@ -27,29 +27,35 @@ can be accessed with “\$”.
 There are several important factors to a successful repeat instability
 experiment and things to consider when using this package:
 
-- Each sample has a unique id, usually the file name
+- (required) Each sample has a unique id, usually the file name
 
-- Use of an appropriate baseline control for your experiment. For
-  example, the tail of a mouse or a sample at the start of a time-course
-  experiment. This is indicated with a `TRUE` in the
-  `metrics_baseline_control` column of the metadata.
+- (optional) Baseline control for your experiment. For example,
+  specifying a sample where the modal allele is the inherited repeat
+  length (eg a mouse tail sample) or a sample at the start of a
+  time-course experiment. This is indicated with a `TRUE` in the
+  `metrics_baseline_control` column of the metadata. For mice, if just a
+  few samples have the inherited repeat height shorter than the expanded
+  population, you could not worry about this and instead use the
+  `index_override_dataframe` in `calculate_instability_metrics()`
 
-- Use of samples of known repeat length to correct across fragment
-  analysis runs. There are slight fluctuations of repeat length size
-  across runs, so if samples are to be analyzed for different runs you
-  must correct the repeat length so they are comparable. This is usually
-  achieved by running running positive control samples with a known
-  validated repeat size of the modal peak in each fragment analysis run.
-  These samples are then indicated `TRUE` in the column `size_standard`
-  in the metadata, and the known repeat length of the modal peak given
-  in the `size_standard_repeat_length` column.
+- (optional) Using a common sample of known repeat length to correct
+  repeat size across fragment analysis runs. There are slight
+  fluctuations of repeat length size across runs, so if samples are to
+  be analyzed for different runs, you must correct the repeat length so
+  they are comparable. This is usually achieved by running running
+  positive control samples with a known validated repeat size of the
+  modal peak in each fragment analysis run. These samples are then
+  indicated `TRUE` in the column `size_standard` in the metadata, and
+  the known repeat length of the modal peak given in the
+  `size_standard_repeat_length` column.
 
 - If starting from fsa files, the GeneScan™ 1200 LIZ™ dye Size Standard
   ladder assignment may not work very well. The ladder identification
   algorithm is optimized for GeneScan™ 500 LIZ™ or GeneScan™ 600 LIZ™.
-  The 1200 LIZ™ ladder has an extremely challenging pattern of ladder
-  peaks to automatically assign. However, these ladders can be fixed
-  manually with the `fix_ladders_interactive()` app.
+  The 1200 LIZ™ ladder has a challenging pattern of ladder peaks to
+  automatically assign. However, these ladders can be fixed by playing
+  with the various parameters or manually with the built-in
+  fix_ladders_interactive()\` app.
 
 # Installation
 
@@ -70,9 +76,8 @@ library(instability)
 # Import data
 
 First, we read in the raw data. In this case we will used example data
-within this package, but usually this would be either be fsa files that
-are read in using instability::read_fsa(), raw genemapper output or a
-peak table from another source (e.g. the Fragman R package)
+within this package, but usually this would be fsa files that are read
+in using `read_fsa()`.
 
 ``` r
 fsa_raw <- instability::cell_line_fsa_list
@@ -92,28 +97,22 @@ and the predicted sizes are averaged.
 
 ``` r
 ladder_list <- find_ladders(cell_line_fsa_list,
-  ladder_channel = "DATA.105",
-  signal_channel = "DATA.1"
+  show_progress_bar = FALSE
 )
-#>   |                                                                              |                                                                      |   0%  |                                                                              |=                                                                     |   1%  |                                                                              |                                                                      |   0%  |                                                                              |==                                                                    |   2%  |                                                                              |                                                                      |   0%  |                                                                              |==                                                                    |   3%  |                                                                              |                                                                      |   0%  |                                                                              |===                                                                   |   4%  |                                                                              |                                                                      |   0%  |                                                                              |====                                                                  |   5%  |                                                                              |                                                                      |   0%  |                                                                              |=====                                                                 |   7%  |                                                                              |                                                                      |   0%  |                                                                              |=====                                                                 |   8%  |                                                                              |                                                                      |   0%  |                                                                              |======                                                                |   9%  |                                                                              |                                                                      |   0%  |                                                                              |=======                                                               |  10%  |                                                                              |                                                                      |   0%  |                                                                              |========                                                              |  11%  |                                                                              |                                                                      |   0%  |                                                                              |========                                                              |  12%  |                                                                              |                                                                      |   0%  |                                                                              |=========                                                             |  13%  |                                                                              |                                                                      |   0%  |                                                                              |==========                                                            |  14%  |                                                                              |                                                                      |   0%  |                                                                              |===========                                                           |  15%  |                                                                              |                                                                      |   0%  |                                                                              |===========                                                           |  16%  |                                                                              |                                                                      |   0%  |                                                                              |============                                                          |  17%  |                                                                              |                                                                      |   0%  |                                                                              |=============                                                         |  18%  |                                                                              |                                                                      |   0%  |                                                                              |==============                                                        |  20%  |                                                                              |                                                                      |   0%  |                                                                              |==============                                                        |  21%  |                                                                              |                                                                      |   0%  |                                                                              |===============                                                       |  22%  |                                                                              |                                                                      |   0%  |                                                                              |================                                                      |  23%  |                                                                              |                                                                      |   0%  |                                                                              |=================                                                     |  24%  |                                                                              |                                                                      |   0%  |                                                                              |==================                                                    |  25%  |                                                                              |                                                                      |   0%  |                                                                              |==================                                                    |  26%  |                                                                              |                                                                      |   0%  |                                                                              |===================                                                   |  27%  |                                                                              |                                                                      |   0%  |                                                                              |====================                                                  |  28%  |                                                                              |                                                                      |   0%  |                                                                              |=====================                                                 |  29%  |                                                                              |                                                                      |   0%  |                                                                              |=====================                                                 |  30%  |                                                                              |                                                                      |   0%  |                                                                              |======================                                                |  32%  |                                                                              |                                                                      |   0%  |                                                                              |=======================                                               |  33%  |                                                                              |                                                                      |   0%  |                                                                              |========================                                              |  34%  |                                                                              |                                                                      |   0%  |                                                                              |========================                                              |  35%  |                                                                              |                                                                      |   0%  |                                                                              |=========================                                             |  36%  |                                                                              |                                                                      |   0%  |                                                                              |==========================                                            |  37%  |                                                                              |                                                                      |   0%  |                                                                              |===========================                                           |  38%  |                                                                              |                                                                      |   0%  |                                                                              |===========================                                           |  39%  |                                                                              |                                                                      |   0%  |                                                                              |============================                                          |  40%  |                                                                              |                                                                      |   0%  |                                                                              |=============================                                         |  41%  |                                                                              |                                                                      |   0%  |                                                                              |==============================                                        |  42%  |                                                                              |                                                                      |   0%  |                                                                              |==============================                                        |  43%  |                                                                              |                                                                      |   0%  |                                                                              |===============================                                       |  45%  |                                                                              |                                                                      |   0%  |                                                                              |================================                                      |  46%  |                                                                              |                                                                      |   0%  |                                                                              |=================================                                     |  47%  |                                                                              |                                                                      |   0%  |                                                                              |=================================                                     |  48%  |                                                                              |                                                                      |   0%  |                                                                              |==================================                                    |  49%  |                                                                              |                                                                      |   0%  |                                                                              |===================================                                   |  50%  |                                                                              |                                                                      |   0%  |                                                                              |====================================                                  |  51%  |                                                                              |                                                                      |   0%  |                                                                              |=====================================                                 |  52%  |                                                                              |                                                                      |   0%  |                                                                              |=====================================                                 |  53%  |                                                                              |                                                                      |   0%  |                                                                              |======================================                                |  54%  |                                                                              |                                                                      |   0%  |                                                                              |=======================================                               |  55%  |                                                                              |                                                                      |   0%  |                                                                              |========================================                              |  57%  |                                                                              |                                                                      |   0%  |                                                                              |========================================                              |  58%  |                                                                              |                                                                      |   0%  |                                                                              |=========================================                             |  59%  |                                                                              |                                                                      |   0%  |                                                                              |==========================================                            |  60%  |                                                                              |                                                                      |   0%  |                                                                              |===========================================                           |  61%  |                                                                              |                                                                      |   0%  |                                                                              |===========================================                           |  62%  |                                                                              |                                                                      |   0%  |                                                                              |============================================                          |  63%  |                                                                              |                                                                      |   0%  |                                                                              |=============================================                         |  64%  |                                                                              |                                                                      |   0%  |                                                                              |==============================================                        |  65%  |                                                                              |                                                                      |   0%  |                                                                              |==============================================                        |  66%  |                                                                              |                                                                      |   0%  |                                                                              |===============================================                       |  67%  |                                                                              |                                                                      |   0%  |                                                                              |================================================                      |  68%  |                                                                              |                                                                      |   0%  |                                                                              |=================================================                     |  70%  |                                                                              |                                                                      |   0%  |                                                                              |=================================================                     |  71%  |                                                                              |                                                                      |   0%  |                                                                              |==================================================                    |  72%  |                                                                              |                                                                      |   0%  |                                                                              |===================================================                   |  73%  |                                                                              |                                                                      |   0%  |                                                                              |====================================================                  |  74%  |                                                                              |                                                                      |   0%  |                                                                              |====================================================                  |  75%  |                                                                              |                                                                      |   0%  |                                                                              |=====================================================                 |  76%  |                                                                              |                                                                      |   0%  |                                                                              |======================================================                |  77%  |                                                                              |                                                                      |   0%  |                                                                              |=======================================================               |  78%  |                                                                              |                                                                      |   0%  |                                                                              |========================================================              |  79%  |                                                                              |                                                                      |   0%  |                                                                              |========================================================              |  80%  |                                                                              |                                                                      |   0%  |                                                                              |=========================================================             |  82%  |                                                                              |                                                                      |   0%  |                                                                              |==========================================================            |  83%  |                                                                              |                                                                      |   0%  |                                                                              |===========================================================           |  84%  |                                                                              |                                                                      |   0%  |                                                                              |===========================================================           |  85%  |                                                                              |                                                                      |   0%  |                                                                              |============================================================          |  86%  |                                                                              |                                                                      |   0%  |                                                                              |=============================================================         |  87%  |                                                                              |                                                                      |   0%  |                                                                              |==============================================================        |  88%  |                                                                              |                                                                      |   0%  |                                                                              |==============================================================        |  89%  |                                                                              |                                                                      |   0%  |                                                                              |===============================================================       |  90%  |                                                                              |                                                                      |   0%  |                                                                              |================================================================      |  91%  |                                                                              |                                                                      |   0%  |                                                                              |=================================================================     |  92%  |                                                                              |                                                                      |   0%  |                                                                              |=================================================================     |  93%  |                                                                              |                                                                      |   0%  |                                                                              |==================================================================    |  95%  |                                                                              |                                                                      |   0%  |                                                                              |===================================================================   |  96%  |                                                                              |                                                                      |   0%  |                                                                              |====================================================================  |  97%  |                                                                              |                                                                      |   0%  |                                                                              |====================================================================  |  98%  |                                                                              |                                                                      |   0%  |                                                                              |===================================================================== |  99%  |                                                                              |                                                                      |   0%  |                                                                              |======================================================================| 100%
 ```
 
 visually inspect each ladder to make sure that the ladders were
 correctly assigned
 
 ``` r
-plot_ladders(ladder_list[1],
-  n_facet_col = 1,
-  xlim = c(1000, 4800),
-  ylim = c(0, 15000)
-)
+plot_ladders(ladder_list[1])
 ```
 
 <img src="man/figures/README-plot_ladders-1.png" width="100%" />
 
 If the ladders are are not assigned correctly, you can either try
 fix_ladders_auto() (optimal for when just a single ladder peak is
-wrong), or manually using the fix_ladders_interactive() app.
+wrong), or manually using the built-in fix_ladders_interactive() app.
 
 ![](man/figures/ladder_fixing.gif)
 
@@ -132,7 +131,6 @@ correctly assigned.
 
 ``` r
 plot_traces(peak_list[1],
-  n_facet_col = 1,
   xlim = c(400, 550),
   ylim = c(0, 1200)
 )
@@ -175,11 +173,10 @@ need to match up which column name belongs to which metadata category
 | size_standard_repeat_length | This is related to size_standard. If the sample is a size standard, provide a numeric value of the modal repeat length.                                                                                                                                                                                         |
 
 ``` r
-metadata <- instability::metadata
 
 metadata_added_list <- add_metadata(
   fragments_list = peak_list,
-  metadata_data.frame = metadata,
+  metadata_data.frame = instability::metadata,
   unique_id = "unique_id",
   group_id = "cell_line",
   metrics_baseline_control = "metrics_baseline_control_TF",
@@ -196,8 +193,7 @@ base pair fragments to repeats with `call_repeats(`).
 
 ``` r
 alleles_list <- find_alleles(
-  fragments_list = metadata_added_list,
-  number_of_peaks_to_return = 1
+  fragments_list = metadata_added_list
 )
 
 
@@ -232,19 +228,49 @@ tallest peak used for the repeat size standards. If the wrong peak was
 selected for one of the samples, the dots would be shifted across 3 bp
 and no longer overlapping.
 
+# Assign index peaks
+
+A key part of several instability metrics is the index peak. This is the
+repeat length used as the reference for relative instability metrics
+calculations, like expansion index or average repeat gain. In the
+metadata, samples are grouped by a `group_id` and a subset of the
+samples are set as `metrics_baseline_control`, meaning they are the
+samples taken at day 0 in this experiment. This allows us to set
+`grouped = TRUE` and set the index peak for the expansion index and
+other metrics. For mice, if just a few samples have the inherited repeat
+height shorter than the expanded population, you could not worry about
+this and instead use the `index_override_dataframe` in
+`calculate_instability_metrics()`.
+
+``` r
+
+index_list <- assign_index_peaks(
+  repeats_list,
+  grouped = TRUE
+)
+```
+
+We can validate that the index peaks were assigned correctly with a
+dotted vertical line added to the trace. This is perhaps more useful in
+the context of mice where you can visually see when the inherited repeat
+length should be in the bimodal distribution.
+
+``` r
+plot_traces(index_list[1], xlim = c(110, 150))
+```
+
+<img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
+
 # Calculate instability metrics
 
-Finally, the repeat instability metrics can be calculated. In the
-metadata, a subset of the samples are set as ‘metrics_baseline_control’,
-meaning they are the samples taken at day 0 in this experiment. This
-allows us to set `grouped = TRUE` and set the index peak (the modal
-repeat size at the start of the experiment, or inherited repeat length
-in the case of mice) for the expansion index and other metrics.
+All of the information we need to calculate the repeat instability
+metrics has now been identified. We can finally use
+`calculate_instability_metrics` to generate a dataframe of per-sample
+metrics.
 
 ``` r
 metrics_grouped_df <- calculate_instability_metrics(
-  fragments_list = repeats_list,
-  grouped = TRUE,
+  fragments_list = index_list,
   peak_threshold = 0.05
 )
 ```
@@ -259,14 +285,6 @@ cell line
 
 ``` r
 library(dplyr)
-#> 
-#> Attaching package: 'dplyr'
-#> The following objects are masked from 'package:stats':
-#> 
-#>     filter, lag
-#> The following objects are masked from 'package:base':
-#> 
-#>     intersect, setdiff, setequal, union
 
 
 plot_data <- metrics_grouped_df |>
@@ -286,6 +304,7 @@ Then we can plot the instability metrics
 
 ``` r
 library(ggplot2)
+#> Warning: package 'ggplot2' was built under R version 4.4.1
 
 ggplot(
   plot_data,

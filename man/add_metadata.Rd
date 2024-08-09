@@ -20,17 +20,17 @@ add_metadata(
 
 \item{metadata_data.frame}{A data frame containing the metadata information.}
 
-\item{unique_id}{A character string indicating the column name for unique sample identifiers in the metadata.}
+\item{unique_id}{(required) A character string indicating the column name for unique sample identifiers in the metadata.}
 
-\item{plate_id}{A character string indicating the column name for plate identifiers in the metadata.}
+\item{plate_id}{(optional) A character string indicating the column name for plate identifiers in the metadata.  To skip, provide NA.}
 
-\item{group_id}{A character string indicating the column name for sample group identifiers in the metadata.}
+\item{group_id}{(optional) A character string indicating the column name for sample group identifiers in the metadata. To skip, provide NA.}
 
-\item{metrics_baseline_control}{A character string indicating the column name for baseline control indicators in the metadata.}
+\item{metrics_baseline_control}{(optional) A character string indicating the column name for baseline control indicators in the metadata. To skip, provide NA.}
 
-\item{size_standard}{A character string indicating the column name for repeat positive control indicators in the metadata.}
+\item{size_standard}{(optional) A character string indicating the column name for repeat positive control indicators in the metadata. To skip, provide NA.}
 
-\item{size_standard_repeat_length}{A character string indicating the column name for repeat positive control lengths in the metadata.}
+\item{size_standard_repeat_length}{(optional) A character string indicating the column name for repeat positive control lengths in the metadata. To skip, provide NA.}
 }
 \value{
 A modified list of fragment objects with added metadata.
@@ -41,6 +41,7 @@ This function adds metadata information to a list of fragments.
 \details{
 This function adds specified metadata attributes to each fragment in the list.
 It matches the unique sample identifiers from the fragments list with those in the metadata data frame.
+To skip any of the optional columns, make parameter NA.
 }
 \examples{
 
@@ -62,4 +63,20 @@ test_metadata <- add_metadata(
   size_standard = "repeat_positive_control_TF",
   size_standard_repeat_length = "repeat_positive_control_length"
 )
+
+test_metadata_skipped <- add_metadata(
+  fragments_list = test_fragments,
+  metadata_data.frame = metadata,
+  unique_id = "unique_id",
+  plate_id = "plate_id",
+  group_id = "cell_line",
+  metrics_baseline_control = "metrics_baseline_control_TF",
+  size_standard = NA,
+  size_standard_repeat_length = NA
+)
+
+
+
+
+
 }

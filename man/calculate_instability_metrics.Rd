@@ -6,18 +6,16 @@
 \usage{
 calculate_instability_metrics(
   fragments_list,
-  grouped = FALSE,
   peak_threshold = 0.05,
   window_around_main_peak = c(NA, NA),
   percentile_range = c(0.5, 0.75, 0.9, 0.95),
   repeat_range = c(2, 5, 10, 20),
-  index_override_dataframe = NULL
+  grouped = NA,
+  index_override_dataframe = NA
 )
 }
 \arguments{
-\item{fragments_list}{A list of "fragments_repeats" class objects representing fragment data.}
-
-\item{grouped}{Logical value indicating whether samples should be grouped to share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{add_metadata()}.}
+\item{fragments_list}{A list of "fragments_repeats" objects representing fragment data.}
 
 \item{peak_threshold}{The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.}
 
@@ -27,7 +25,9 @@ calculate_instability_metrics(
 
 \item{repeat_range}{A numeric vector specifying ranges of repeats for the inverse quantile computation.}
 
-\item{index_override_dataframe}{A data.frame to manually set index peaks. Column 1: unique sample IDs, Column 2: desired index peaks (the order of the columns is important since the information is pulled by column position rather than column name). Closest peak in each sample is selected.}
+\item{grouped}{This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.}
+
+\item{index_override_dataframe}{This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.}
 }
 \value{
 A data.frame with calculated instability metrics for each sample.
@@ -70,21 +70,21 @@ Each of the columns in the supplied dataframe are explained below:
 \item \code{max_height}: The maximum peak height in the analysis subset.
 \item \code{max_delta_neg}: The maximum negative delta to the index peak.
 \item \code{max_delta_pos}: The maximum positive delta to the index peak.
+\item \code{skewness}: The skewness of the repeat size distribution.
+\item \code{kurtosis}: The kurtosis of the repeat size distribution.
 }
 }
 
 \subsection{Repeat instability metrics}{
 \itemize{
 \item \code{modal_repeat_delta}: The delta between the modal peak repeat and the index peak repeat.
-\item \code{average_repeat_gain}: The average repeat gain, weighted by peak height.
+\item \code{average_repeat_gain}: The average repeat change: The weighted mean of the sample (weighted by peak height) subtracted by the weighted mean repeat of the index sample.
 \item \code{instability_index}: The instability index based on peak height and distance to the index peak. (See Lee et al., 2010, https://doi.org/10.1186/1752-0509-4-29).
 \item \code{instability_index_abs}: The absolute instability index. The absolute value is taken for the "Change from the main allele".
 \item \code{expansion_index}: The instability index for expansion peaks only.
 \item \code{contraction_index}: The instability index for contraction peaks only.
 \item \code{expansion_ratio}: The ratio of expansion peaks' heights to the main peak height. Also known as "peak proportional sum" (https://doi.org/10.1016/j.cell.2019.06.036).
 \item \code{contraction_ratio}: The ratio of contraction peaks' heights to the main peak height.
-\item \code{skewness}: The skewness of the repeat size distribution.
-\item \code{kurtosis}: The kurtosis of the repeat size distribution.
 \item \verb{expansion_percentile_*}: The repeat size at specified percentiles of the cumulative distribution of expansion peaks.
 \item \verb{expansion_percentile_for_repeat_*}: The percentile rank of specified repeat sizes in the distribution of expansion peaks.
 }

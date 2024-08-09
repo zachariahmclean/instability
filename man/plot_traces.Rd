@@ -44,6 +44,8 @@ flagged as off-scale. This is in any channel, so use your best judgment to deter
 if it's from the sample or ladder channel.
 
 If peaks are called, green is the tallest peak, blue is peaks above the height threshold (default 5\%), purple is below the height threshold. If \code{force_whole_repeat_units} is used within \code{\link[=call_repeats]{call_repeats()}}, the called repeat will be connected to the peak in the trace with a horizontal dashed line.
+
+The index peak will be plotted as a vertical dashed line when it has been set using \code{assign_index_peaks()}.
 }
 \examples{
 

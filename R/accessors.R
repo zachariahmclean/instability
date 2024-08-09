@@ -59,21 +59,19 @@ read_fsa <- function(files) {
 #'        there's a big spike right at the start. However, if your ladder peaks
 #'        are taller than the big spike, you will need to set this starting scan
 #'        number manually.
+#' @param minimum_peak_signal numeric: minimum height of peak from smoothed signal.
 #' @param zero_floor logical: if set to TRUE, all negative values will be set to zero.
 #'        This can help deal with cases where there are peaks in the negative direction
 #'        that interfere with peak detection.
 #' @param scan_subset numeric vector (length 2): filter the ladder and data signal
 #'        between the selected scans (eg scan_subset = c(3000, 5000)).
-#' @param smoothing_window numeric: ladder signal smoothing window size passed
 #'        to pracma::savgol().
-#' @param minimum_peak_signal numeric: minimum height of peak from smoothed signal.
 #' @param max_combinations numeric: what is the maximum number of ladder
 #'        combinations that should be tested
 #' @param ladder_selection_window numeric: in the ladder assigning algorithm,
-#'        the we iterate through the scans in blocks and test their linear fit.
-#'        We can assume that the ladder is linear over a short distance. This value
-#'        defines how large that block of peaks should be. Make sure that this is
-#'        shorter than your size standard.
+#'        the we iterate through the scans in blocks and test their linear fit ( We can assume that the ladder is linear over a short distance)
+#'        This value defines how large that block of peaks should be.
+#' @param smoothing_window numeric: ladder signal smoothing window size passed
 #' @param show_progress_bar show progress bar
 #'
 #' @return list of fragments_trace objects
@@ -111,12 +109,12 @@ find_ladders <- function(fsa_list,
                          signal_channel = "DATA.1",
                          ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                          spike_location = NULL,
+                         minimum_peak_signal = NULL,
                          zero_floor = FALSE,
                          scan_subset = NULL,
-                         smoothing_window = 21,
-                         minimum_peak_signal = NULL,
-                         max_combinations = 2500000,
                          ladder_selection_window = 5,
+                         max_combinations = 2500000,
+                         smoothing_window = 21,
                          show_progress_bar = TRUE) {
   ladder_list <- vector("list", length(fsa_list))
   for (i in seq_along(fsa_list)) {
@@ -581,17 +579,18 @@ repeat_table_to_repeats <- function(df,
 #'
 #' @param fragments_list A list of fragment objects to which metadata will be added.
 #' @param metadata_data.frame A data frame containing the metadata information.
-#' @param unique_id A character string indicating the column name for unique sample identifiers in the metadata.
-#' @param plate_id A character string indicating the column name for plate identifiers in the metadata.
-#' @param group_id A character string indicating the column name for sample group identifiers in the metadata.
-#' @param metrics_baseline_control A character string indicating the column name for baseline control indicators in the metadata.
-#' @param size_standard A character string indicating the column name for repeat positive control indicators in the metadata.
-#' @param size_standard_repeat_length A character string indicating the column name for repeat positive control lengths in the metadata.
+#' @param unique_id (required) A character string indicating the column name for unique sample identifiers in the metadata.
+#' @param plate_id (optional) A character string indicating the column name for plate identifiers in the metadata.  To skip, provide NA.
+#' @param group_id (optional) A character string indicating the column name for sample group identifiers in the metadata. To skip, provide NA.
+#' @param metrics_baseline_control (optional) A character string indicating the column name for baseline control indicators in the metadata. To skip, provide NA.
+#' @param size_standard (optional) A character string indicating the column name for repeat positive control indicators in the metadata. To skip, provide NA.
+#' @param size_standard_repeat_length (optional) A character string indicating the column name for repeat positive control lengths in the metadata. To skip, provide NA.
 #'
 #' @return A modified list of fragment objects with added metadata.
 #'
 #' @details This function adds specified metadata attributes to each fragment in the list.
 #' It matches the unique sample identifiers from the fragments list with those in the metadata data frame.
+#' To skip any of the optional columns, make parameter NA.
 #'
 #' @export
 #'
@@ -615,6 +614,22 @@ repeat_table_to_repeats <- function(df,
 #'   size_standard = "repeat_positive_control_TF",
 #'   size_standard_repeat_length = "repeat_positive_control_length"
 #' )
+#'
+#' test_metadata_skipped <- add_metadata(
+#'   fragments_list = test_fragments,
+#'   metadata_data.frame = metadata,
+#'   unique_id = "unique_id",
+#'   plate_id = "plate_id",
+#'   group_id = "cell_line",
+#'   metrics_baseline_control = "metrics_baseline_control_TF",
+#'   size_standard = NA,
+#'   size_standard_repeat_length = NA
+#' )
+#'
+#'
+#'
+#'
+#'
 add_metadata <- function(fragments_list,
                          metadata_data.frame,
                          unique_id = "sample_file_name",
@@ -902,19 +917,124 @@ call_repeats <- function(fragments_list,
 
 
 
+
+
+
+#' Assign index peaks
+#'
+#' Assign index peaks in preparation for calculation of instability metrics
+#'
+#' @param fragments_list A list of "fragments_repeats" class objects representing
+#' fragment data.
+#' @param grouped Logical value indicating whether samples should be grouped to
+#' share a common index peak. `FALSE` will assign the sample's own modal allele as the index peak. `TRUE` will use metadata to assign the index peak based on the modal peak of another sample. This is useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{link{add_metadata()}}.
+#' @param index_override_dataframe A data.frame to manually set index peaks.
+#' Column 1: unique sample IDs, Column 2: desired index peaks (the order of the
+#' columns is important since the information is pulled by column position rather
+#' than column name). Closest peak in each sample is selected.
+#'
+#' @return A list of \code{"fragments_repeats"} objects with index_repeat and index_height added.
+#' @details
+#' A key part of several instability metrics is the index peak. This is the repeat
+#' length used as the reference peak for relative instability metrics calculations, like expansion index or average repeat gain.
+#' For example, this is the the inherited repeat length of a mouse, or the modal repeat length for the cell line at a starting time point.
+#'
+#'
+#' If `grouped` is set to `TRUE`, this function groups the samples by their group_id and uses the samples set as
+#' metrics_baseline_control to set the index peak. Use \code{link{add_metadata()}}
+#' to set these variables.
+#'
+#' `index_override_dataframe` can be used to manually override these assigned index
+#' repeat values (irrespective of whether `grouped` is TRUE or FALSE).
+#'
+#' @export
+#'
+#' @examples
+#'
+#'
+#' file_list <- instability::cell_line_fsa_list
+#'
+#' ladder_list <- find_ladders(file_list)
+#'
+#' fragments_list <- find_fragments(ladder_list,
+#'   min_bp_size = 300
+#' )
+#'
+#' allele_list <- find_alleles(
+#'   fragments_list = fragments_list
+#' )
+#' repeats_list <- call_repeats(
+#'   fragments_list = allele_list
+#' )
+#'
+#' metadata_added_list <- add_metadata(
+#'   fragments_list = repeats_list,
+#'   metadata_data.frame = instability::metadata,
+#'   unique_id = "unique_id",
+#'   plate_id = "plate_id",
+#'   group_id = "cell_line",
+#'   metrics_baseline_control = "metrics_baseline_control_TF",
+#'   size_standard = "repeat_positive_control_TF",
+#'   size_standard_repeat_length = "repeat_positive_control_length"
+#' )
+#'
+#'index_assigned <- assign_index_peaks(metadata_added_list,
+#'                                     grouped = TRUE)
+#'
+#' plot_traces(index_assigned[1], xlim = c(100,150))
+#'
+#'
+#'
+#'
+#'
+#'
+assign_index_peaks <- function(fragments_list,
+                               grouped = FALSE,
+                               index_override_dataframe = NULL){
+
+  # is it grouped and the index peak needs to be determined from another sample?
+  if (grouped == TRUE) {
+    fragments_list <- metrics_grouping_helper(
+      fragments_list = fragments_list
+    )
+  } else {
+    # otherwise just use the modal peak as the index peak
+    fragments_list <- lapply(fragments_list, function(x) {
+      x <- x$clone()
+      x$index_repeat <- x$allele_1_repeat
+      x$index_height <- x$allele_1_height
+      x$.__enclos_env__$private$assigned_index_peak_used <- TRUE
+      return(x)
+    })
+  }
+
+  # override index peak with manually supplied values
+  if (!is.null(index_override_dataframe)) {
+    fragments_list <- metrics_override_helper(
+      fragments_list = fragments_list,
+      index_override_dataframe = index_override_dataframe
+    )
+  }
+
+  return(fragments_list)
+
+}
+
+
+
 # Calculate metrics -------------------------------------------------------
 
 #' Calculate Repeat Instability Metrics
 #'
 #' This function computes instability metrics from a list of fragments_repeats data objects.
 #'
-#' @param fragments_list A list of "fragments_repeats" class objects representing fragment data.
-#' @param grouped Logical value indicating whether samples should be grouped to share a common index peak. Useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{add_metadata()}.
+#' @param fragments_list A list of "fragments_repeats" objects representing fragment data.
 #' @param peak_threshold The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.
 #' @param window_around_main_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140. The sign of the numbers does not matter (The absolute value is found).
 #' @param percentile_range A numeric vector of percentiles to compute (e.g., c(0.5, 0.75, 0.9, 0.95)).
 #' @param repeat_range A numeric vector specifying ranges of repeats for the inverse quantile computation.
-#' @param index_override_dataframe A data.frame to manually set index peaks. Column 1: unique sample IDs, Column 2: desired index peaks (the order of the columns is important since the information is pulled by column position rather than column name). Closest peak in each sample is selected.
+#' @param grouped This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.
+#' @param index_override_dataframe This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.
 #'
 #' @return A data.frame with calculated instability metrics for each sample.
 #' @details
@@ -946,18 +1066,18 @@ call_repeats <- function(fragments_list,
 #' - `max_height`: The maximum peak height in the analysis subset.
 #' - `max_delta_neg`: The maximum negative delta to the index peak.
 #' - `max_delta_pos`: The maximum positive delta to the index peak.
+#' - `skewness`: The skewness of the repeat size distribution.
+#' - `kurtosis`: The kurtosis of the repeat size distribution.
 #'
 #' ## Repeat instability metrics
 #' - `modal_repeat_delta`: The delta between the modal peak repeat and the index peak repeat.
-#' - `average_repeat_gain`: The average repeat gain, weighted by peak height.
+#' - `average_repeat_gain`: The average repeat change: The weighted mean of the sample (weighted by peak height) subtracted by the weighted mean repeat of the index sample.
 #' - `instability_index`: The instability index based on peak height and distance to the index peak. (See Lee et al., 2010, https://doi.org/10.1186/1752-0509-4-29).
 #' - `instability_index_abs`: The absolute instability index. The absolute value is taken for the "Change from the main allele".
 #' - `expansion_index`: The instability index for expansion peaks only.
 #' - `contraction_index`: The instability index for contraction peaks only.
 #' - `expansion_ratio`: The ratio of expansion peaks' heights to the main peak height. Also known as "peak proportional sum" (https://doi.org/10.1016/j.cell.2019.06.036).
 #' - `contraction_ratio`: The ratio of contraction peaks' heights to the main peak height.
-#' - `skewness`: The skewness of the repeat size distribution.
-#' - `kurtosis`: The kurtosis of the repeat size distribution.
 #' - `expansion_percentile_*`: The repeat size at specified percentiles of the cumulative distribution of expansion peaks.
 #' - `expansion_percentile_for_repeat_*`: The percentile rank of specified repeat sizes in the distribution of expansion peaks.
 
@@ -1012,38 +1132,30 @@ call_repeats <- function(fragments_list,
 #'   repeat_range = c(2, 5, 10, 20)
 #' )
 calculate_instability_metrics <- function(fragments_list,
-                                          grouped = FALSE,
                                           peak_threshold = 0.05,
-                                          # note the lower lim should be a negative value
                                           window_around_main_peak = c(NA, NA),
                                           percentile_range = c(0.5, 0.75, 0.9, 0.95),
                                           repeat_range = c(2, 5, 10, 20),
-                                          index_override_dataframe = NULL) {
-  # is it grouped and the index peak needs to be determined from another sample?
-  if (grouped == TRUE) {
-    fragments_list <- metrics_grouping_helper(
+                                          grouped = NA,
+                                          index_override_dataframe = NA
+                                          ) {
+  # this section is in here for backwards compatibility since the functionality of assign_index_peaks() used to happen in here but was later separated
+  if(!is.na(grouped) || is.data.frame(index_override_dataframe)){
+
+    # give the user a message to tell them to use the other function
+    message("The functionalty of assigning index peaks was separated into the assign_index_peaks() function, with the parameters 'grouped' and 'index_override_dataframe' kept here for backwards compatibility. We recomend using the assign_index_peaks() function seperatly instead of whitin this function. This allows you to validate that the correct index peak was assigned before moving forward with calculation of instability metrics.")
+
+    fragments_list <- assign_index_peaks(
       fragments_list = fragments_list,
-      peak_threshold = peak_threshold,
-      window_around_main_peak = window_around_main_peak
+      grouped = ifelse(!is.na(grouped), grouped, FALSE),
+      index_override_dataframe = if(is.data.frame(index_override_dataframe)){
+                                    index_override_dataframe
+                                  } else{
+                                    NULL
+                                  }
     )
-  } else if (is.null(index_override_dataframe)) {
-    # this is to make sure that we use the modal peak as the index peak
-    # fixes cases where index peak has been assigned previously and we need to make sure it's the modal peak
-    fragments_list <- lapply(fragments_list, function(x) {
-      x$index_repeat <- x$allele_1_repeat
-      x$index_height <- x$allele_1_height
-      x$index_weighted_mean_repeat <- NA_real_
-      return(x)
-    })
   }
 
-  # override index peak with manually supplied values
-  if (!is.null(index_override_dataframe)) {
-    fragments_list <- metrics_override_helper(
-      fragments_list = fragments_list,
-      index_override_dataframe = index_override_dataframe
-    )
-  }
 
   # calculate metrics
   metrics_list <- lapply(fragments_list, function(x) {
@@ -1306,6 +1418,8 @@ plot_ladders <- function(fragments_trace_list,
 #' if it's from the sample or ladder channel.
 #'
 #' If peaks are called, green is the tallest peak, blue is peaks above the height threshold (default 5%), purple is below the height threshold. If `force_whole_repeat_units` is used within [call_repeats()], the called repeat will be connected to the peak in the trace with a horizontal dashed line.
+#'
+#' The index peak will be plotted as a vertical dashed line when it has been set using `assign_index_peaks()`.
 #'
 #'
 #' @examples

@@ -364,6 +364,11 @@ find_ladder_helper <- function(fragments_trace,
                                max_combinations,
                                ladder_selection_window) {
 
+  #make sure that the scan window is at least same length as length of size standards
+  if(ladder_selection_window > length(ladder_sizes)){
+    ladder_selection_window <- length(ladder_sizes)
+  }
+
   # allow user to subset to particular scans
   if (!is.null(scan_subset)) {
     fragments_trace$raw_ladder <- fragments_trace$raw_ladder[scan_subset[1]:scan_subset[2]]
