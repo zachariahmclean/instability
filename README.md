@@ -248,12 +248,6 @@ index_list <- assign_index_peaks(
   repeats_list,
   grouped = TRUE
 )
-#> Group 'CC4' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
-#> Group 'CC5' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
-#> Group 'CC6' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
-#> Group 'P3' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
-#> Group 'P6' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
-#> Group 'P14' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak
 ```
 
 We can validate that the index peaks were assigned correctly with a
@@ -265,7 +259,7 @@ length should be in the bimodal distribution.
 plot_traces(index_list[1], xlim = c(110, 150))
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
 
 # Calculate instability metrics
 
@@ -291,17 +285,6 @@ cell line
 
 ``` r
 library(dplyr)
-#> 
-#> Attaching package: 'dplyr'
-#> The following objects are masked from 'package:stats':
-#> 
-#>     filter, lag
-#> The following objects are masked from 'package:base':
-#> 
-#>     intersect, setdiff, setequal, union
-```
-
-``` r
 
 
 plot_data <- metrics_grouped_df |>

@@ -169,7 +169,7 @@ In this case the dots are basically overlapping and in the middle of the linear 
 A key part of several instability metrics is the index peak. This is the repeat length used as the reference for relative instability metrics calculations, like expansion index or average repeat gain. In the metadata, samples are grouped by a `group_id` and a subset of the samples are set as `metrics_baseline_control`, meaning they are the samples taken at day 0 in this experiment. This allows us to set `grouped = TRUE` and set the index peak for the expansion index and other metrics. For mice, if just a few samples have the inherited repeat height shorter than the expanded population, you could not worry about this and instead use the `index_override_dataframe` in `calculate_instability_metrics()`.
 
 
-```{r}
+```{r assign_index, warning=FALSE, message=FALSE}
 
 index_list <- assign_index_peaks(
   repeats_list,
@@ -200,7 +200,7 @@ These metrics can then be used to quantify repeat instability. For example, this
 
 First, prepare the data for plotting by removing poor quality samples and finding the average repeat gain relative to the DMSO group for each cell line
 
-```{r plot_data}
+```{r plot_data, warning=FALSE, message=FALSE}
 library(dplyr)
 
 
