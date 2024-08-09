@@ -342,7 +342,7 @@ testthat::test_that("full pipline repeat size algo", {
         fragments_list = test_repeats,
         grouped = TRUE,
         peak_threshold = 0.05,
-        window_around_main_peak = c(-40, 40)
+        window_around_index_peak = c(-40, 40)
       )
     )
   )

@@ -87,7 +87,7 @@ test_that("index assignment", {
       test_metrics_grouped <- calculate_instability_metrics(
         fragments_list = test_assignment,
         peak_threshold = 0.05,
-        window_around_main_peak = c(-40, 40)
+        window_around_index_peak = c(-40, 40)
       )
     )
   )

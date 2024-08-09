@@ -341,7 +341,7 @@ testthat::test_that("calculate metrics", {
         fragments_list = test_assignment_grouped,
         peak_threshold = 0.05,
         # note the lower lim should be a negative value
-        window_around_main_peak = c(-40, 40),
+        window_around_index_peak = c(-40, 40),
         percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
         repeat_range = c(1, 2, 3, 4, seq(6, 20, 2))
       )
@@ -372,7 +372,7 @@ testthat::test_that("calculate metrics", {
       fragments_list = test_assignment_ungrouped,
       peak_threshold = 0.05,
       # note the lower lim should be a negative value
-      window_around_main_peak = c(-40, 40),
+      window_around_index_peak = c(-40, 40),
       percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
       repeat_range = c(1, 2, 3, 4, seq(6, 20, 2))
     )
@@ -408,7 +408,7 @@ testthat::test_that("calculate metrics", {
       fragments_list = test_assignment_override,
       peak_threshold = 0.05,
       # note the lower lim should be a negative value
-      window_around_main_peak = c(-40, 40),
+      window_around_index_peak = c(-40, 40),
       percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
       repeat_range = c(1, 2, 3, 4, seq(6, 20, 2))
     )
@@ -524,7 +524,7 @@ testthat::test_that("full pipline", {
       test_metrics_grouped <- calculate_instability_metrics(
         fragments_list = test_assignment,
         peak_threshold = 0.05,
-        window_around_main_peak = c(-40, 40)
+        window_around_index_peak = c(-40, 40)
       )
     )
   )
