@@ -19,8 +19,8 @@ now.
 # How to use the package
 
 For an easy way to get started with your own data or to run an example,
-use instability::generate_instability_template() to generate a document
-with the pipeline pre-populated.
+use `instability::generate_instability_template()` to generate a
+document with the pipeline pre-populated.
 
 In this package, each sample is represented by an R6 ‘fragments’ object,
 which are organised in lists. As a user, there are accessor functions
