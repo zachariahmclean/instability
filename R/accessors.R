@@ -359,7 +359,8 @@ fix_ladders_manual <- function(fragments_trace_list,
 #'   fix_ladders_interactive(test_ladders_broken)
 #' }
 #'
-#' # once you have corrected your ladders in the app, export the data we need to incorporate that into the script
+#' # once you have corrected your ladders in the app,
+#' # export the data we need to incorporate that into the script:
 #' # ladder_df_list <- readRDS('path/to/exported/data.rds')
 #' # test_ladders_fixed <- fix_ladders_manual(test_ladders_broken, ladder_df_list)
 #'
@@ -927,7 +928,8 @@ find_alleles <- function(fragments_list,
 #' plot_traces(test_repeats_size_period[1], xlim = c(120,170))
 #'
 #'
-#' # Use force_whole_repeat_units algorithm to make sure called repeats are the exact number of bp apart
+#' # Use force_whole_repeat_units algorithm to make sure called
+#' # repeats are the exact number of bp apart
 #'
 #' test_repeats_whole_units <- call_repeats(
 #'   fragments_list = test_alleles,
@@ -1493,6 +1495,17 @@ plot_ladders <- function(fragments_trace_list,
 #' @return plot traces from fragments object
 #' @export
 #'
+#' @importFrom methods is
+#' @importFrom grDevices adjustcolor
+#' @importFrom grDevices rgb
+#' @importFrom graphics plot.new
+#' @importFrom graphics points
+#' @importFrom graphics segments
+#' @importFrom graphics text
+#' @importFrom graphics title
+#' @importFrom graphics barplot
+#'
+#'
 #' @details
 #' A plot of the raw signal by bp size. Red vertical line indicates the scan was
 #' flagged as off-scale. This is in any channel, so use your best judgment to determine
@@ -1697,6 +1710,8 @@ plot_repeat_correction_model <- function(fragments_list) {
 #'
 #' @return A Quarto template file
 #' @export
+#'
+#' @importFrom utils file.edit
 #'
 #' @examples
 #'

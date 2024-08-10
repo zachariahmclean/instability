@@ -139,7 +139,7 @@ plot_trace_helper <- function(fragments,
 
 
   if (any(data$off_scale)) {
-    abline(v = data[which(data$off_scale), "x"], col = adjustcolor("red", alpha = 0.3), lwd = 2.5)
+    abline(v = data[which(data$off_scale), "x"], col = adjustcolor("red", alpha.f = 0.3), lwd = 2.5)
   }
 
   # add points onto plot showing peaks

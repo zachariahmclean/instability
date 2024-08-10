@@ -55,7 +55,8 @@ if (interactive()) {
   fix_ladders_interactive(test_ladders_broken)
 }
 
-# once you have corrected your ladders in the app, export the data we need to incorporate that into the script
+# once you have corrected your ladders in the app,
+# export the data we need to incorporate that into the script:
 # ladder_df_list <- readRDS('path/to/exported/data.rds')
 # test_ladders_fixed <- fix_ladders_manual(test_ladders_broken, ladder_df_list)
 

@@ -99,7 +99,8 @@ test_repeats_size_period <- call_repeats(
 plot_traces(test_repeats_size_period[1], xlim = c(120,170))
 
 
-# Use force_whole_repeat_units algorithm to make sure called repeats are the exact number of bp apart
+# Use force_whole_repeat_units algorithm to make sure called
+# repeats are the exact number of bp apart
 
 test_repeats_whole_units <- call_repeats(
   fragments_list = test_alleles,
