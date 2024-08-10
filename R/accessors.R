@@ -839,15 +839,15 @@ find_alleles <- function(fragments_list,
 #' @param assay_size_without_repeat An integer specifying the assay size without repeat for repeat calling. Default is 87.
 #' @param repeat_size An integer specifying the repeat size for repeat calling. Default is 3.
 #' @param force_whole_repeat_units A logical value specifying if the peaks should be forced to be whole repeat units apart. Usually the peaks are slightly under the whole repeat unit if left unchanged.
+#' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
 #' @param repeat_calling_algorithm A character specifying the repeat calling algorithm. Options: \code{"simple"}, \code{"fft"}, or \code{"size_period"} (see details section for more information on these).
 #' @param repeat_calling_algorithm_size_window_around_allele A numeric value for how big of a window around the tallest peak should be used to find the peak periodicity. Used for both \code{"fft"} and \code{"size_period"}. For \code{"fft"}, you want to make sure that this window is limited to where there are clear peaks. For \code{"size_period"}, it will not make a big difference.
-#' @param repeat_calling_algorithm_peak_assignment_scan_window A numeric value for the scan window when assigning the peak. This is used for both \code{"fft"} and \code{"size_period"}. When the scan period is determined, the algorithm jumps to the predicted scan for the next peak. This values opens a window of the neighboring scans to pick the tallest in.
+#' @param repeat_calling_algorithm_peak_assignment_scan_window A numeric value for the scan window when assigning the peak. This is used for both \code{"fft"} and \code{"size_period"}. When the scan period is determined, the algorithm jumps to the predicted scan for the next peak. This value opens a window of the neighboring scans to pick the tallest in.
 #' @param repeat_calling_algorithm_size_period A numeric value \code{"size_period"} algorithm to set the peak periodicity by bp size. This is the key variable to change for \code{"size_period"}. In fragment analysis, the peaks are usually slightly below the actual repeat unit size.
-#' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
 #'
 #' @return A list of \code{"fragments_repeats"} objects with repeat data added.
 #'
-#' #' @details
+#' @details
 #' The calculated repeat lengths are assigned to the corresponding peaks in the provided `fragments_repeats` object. The repeat lengths can be used for downstream instability analysis.
 #'
 #' The `simple` algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
@@ -941,12 +941,13 @@ find_alleles <- function(fragments_list,
 call_repeats <- function(fragments_list,
                          assay_size_without_repeat = 87,
                          repeat_size = 3,
+                         force_whole_repeat_units = FALSE,
+                         repeat_length_correction = "none",
                          repeat_calling_algorithm = "simple",
                          repeat_calling_algorithm_size_window_around_allele =  repeat_size * 5,
                          repeat_calling_algorithm_peak_assignment_scan_window = 3,
-                         repeat_calling_algorithm_size_period = repeat_size * 0.93 ,
-                         force_whole_repeat_units = FALSE,
-                         repeat_length_correction = "none"
+                         repeat_calling_algorithm_size_period = repeat_size * 0.93
+
 ) {
   # Check to see if repeats are to be corrected
   # if so, supply the model to each of the samples in the list
@@ -1589,7 +1590,6 @@ plot_fragments <- function(fragments_list,
 #' @return A base R graphic object displaying the repeat correction model results.
 #' @export
 #'
-#' @examples
 #' gm_raw <- instability::example_data
 #' metadata <- instability::metadata
 #'
@@ -1671,6 +1671,8 @@ plot_repeat_correction_model <- function(fragments_list) {
 #' Generate a Quarto file that has the instability pipeline preset
 #'
 #' @param file_name Name of file to create
+#' @param size_standards Indicates if the functionality for correcting repeat size using size standards be included in the pipeline. See \code{\link{add_metadata}} & \code{\link{call_repeats}} for more info.
+#' @param samples_grouped Indicates if the functionality for grouping samples for metrics calculations should be included in the pipeline. See \code{\link{add_metadata}} & \code{\link{assign_index_peaks}} for more info.
 #'
 #' @return A Quarto template file
 #' @export
@@ -1683,30 +1685,73 @@ plot_repeat_correction_model <- function(fragments_list) {
 #'
 #'
 generate_instability_template <- function(
-    file_name = NULL) {
+    file_name = NULL,
+    size_standards = TRUE,
+    samples_grouped = TRUE) {
+
+  comment_out_lines <- function(content, start_pattern, end_pattern, comment_message = NULL) {
+    start_idx <- grep(start_pattern, content)
+    end_idx <- grep(end_pattern, content)[grep(end_pattern, content) > start_idx][1]
+
+    if (length(start_idx) > 0 && length(end_idx) > 0) {
+      content[(start_idx + 1):(end_idx - 1)] <- paste("#", content[(start_idx + 1):(end_idx - 1)])
+      if (!is.null(comment_message)) {
+        content <- append(content, comment_message, after = start_idx - 1)
+      }
+    }
+
+    return(content)
+  }
 
   if (is.null(file_name)) {
     stop("You must provide a valid file_name")
   }
 
-  source_file <- system.file(paste0("extdata/_extensions/template.qmd"), package = "instability")
+  source_file <- system.file("extdata/_extensions/template.qmd", package = "instability")
 
-  # Check if the source file exists
   if (!file.exists(source_file)) {
     stop(paste("Source file does not exist:", source_file))
   }
 
-  # copy from internals
-  file.copy(
-    from = source_file,
-    to = paste0(file_name, ".qmd"),
-    overwrite = TRUE
-  )
+  template_content <- readLines(source_file)
 
-  # open the new file in the editor
+  if (!size_standards) {
+    template_content <- gsub('metadata\\$plate_id <- metadata\\$plate_id', '# metadata$plate_id <- metadata$plate_id', template_content)
+    template_content <- gsub('metadata\\$size_standard <- metadata\\$size_standard', '# metadata$size_standard <- metadata$size_standard', template_content)
+    template_content <- gsub('metadata\\$size_standard_repeat_length <- metadata$size_standard_repeat_length', '# metadata$size_standard_repeat_length <- metadata$size_standard_repeat_length', template_content)
+    template_content <- gsub('repeat_length_correction = "from_metadata"', 'repeat_length_correction = "none"', template_content)
+    template_content <- gsub('plate_id = "plate_id"', 'plate_id = NA', template_content)
+    template_content <- gsub('size_standard = "size_standard"', 'size_standard = NA', template_content)
+    template_content <- gsub('size_standard_repeat_length = "size_standard_repeat_length"', 'size_standard_repeat_length = NA', template_content)
+  }
+
+  if (!samples_grouped) {
+    template_content <- gsub('metadata\\$group_id <- metadata\\$group_id', '# metadata$group_id <- metadata$group_id', template_content)
+    template_content <- gsub('metadata\\$metrics_baseline_control <- metadata\\$metrics_baseline_control', '# metadata$metrics_baseline_control <- metadata$metrics_baseline_control', template_content)
+    template_content <- gsub('grouped = TRUE', 'grouped = FALSE', template_content)
+    template_content <- gsub('group_id = "group_id"', 'group_id = NA', template_content)
+    template_content <- gsub('metrics_baseline_control = "metrics_baseline_control"', 'metrics_baseline_control = NA', template_content)
+  }
+
+  if (!size_standards & !samples_grouped) {
+    template_content <- gsub('metadata <- read.csv\\("")', '# metadata <- read.csv("")', template_content)
+    template_content <- gsub('fragments_list = metadata_added_list', 'fragments_list = peak_list', template_content)
+
+    # Comment out block of input section
+    template_content <- comment_out_lines(template_content, '#Provide the appropriate metadata below by replacing the placeholders', "\\`\\`\\`")
+
+    # Comment out the Add metadata section
+    template_content <- comment_out_lines(template_content, "\\`\\`\\`\\{r Add metadata\\}", "\\`\\`\\`", "metadata not used")
+  }
+
+  writeLines(template_content, paste0(file_name, ".qmd"))
   file.edit(paste0(file_name, ".qmd"))
-
 }
+
+
+
+
+
 
 
 

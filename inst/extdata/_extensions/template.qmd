@@ -12,7 +12,7 @@ library(instability)
 
 # About this file
 
-Welcome to the template file. To use this document, you should just need to fill out the section in the inputs and step through each code section. Once you're satisfied that pipeline is good to go, you can render to generate a report.
+Welcome to the template file. To use this document, you need to fill out the section in the inputs and step through each code section adjusting function parameters as needed. This pipeline assumes full use of the optional functionality from the metadata of correcting repeat length using size standard samples (separate from internal ladder) and grouping samples for index peak assignment. If not using that functionality, pay attention to `repeat_length_correction` in `call_repeats()` and `grouped` in `assign_index_peaks()`, respectively. Once you're satisfied that pipeline is good to go, you can render to generate a report.
 
 In each code chuck, access the help file for more information on how to use it (eg type ?find_ladders into the console).
 
@@ -75,16 +75,36 @@ metadata$sample_name <- paste(
 
 ladder_sizes <- c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500)
 
-ladder_list <- find_ladders(fsa_raw,
-                            ladder_sizes = ladder_sizes,
-                            show_progress_bar = FALSE)
+ladder_list <- find_ladders(
+  # main parameters to set, see help documentation for more info
+  fsa_list = fsa_raw,
+  ladder_channel = "DATA.105",
+  signal_channel = "DATA.1",
+  ladder_sizes = ladder_sizes,
+  # advanced parameters for fine tuning
+  spike_location = NULL,
+  minimum_peak_signal = NULL,
+  zero_floor = FALSE,
+  scan_subset = NULL,
+  ladder_selection_window = 5,
+  max_combinations = 2500000,
+  smoothing_window = 21,
+  show_progress_bar = FALSE)
+
+
 ```
 
 # Find peaks
 
 ```{r Find peaks}
-peak_list <- find_fragments(ladder_list,
-                            min_bp_size = 300
+peak_list <- find_fragments(
+  # main parameters to set, see help documentation for more info
+  fragments_trace_list = ladder_list,
+  min_bp_size = 300,
+  # advanced parameters for fine tuning
+  max_bp_size = 1000,
+  smoothing_window = 21,
+  minimum_peak_signal = 20,
 )
 ```
 
@@ -92,9 +112,16 @@ peak_list <- find_fragments(ladder_list,
 
 ```{r Add metadata}
 
-  metadata_added_list <- add_metadata(
-   fragments_list = peak_list,
-   metadata_data.frame = metadata
+metadata_added_list <- add_metadata(
+  # main parameters to set, see help documentation for more info
+  fragments_list = peak_list,
+  metadata_data.frame = metadata,
+  unique_id = "unique_id",
+  plate_id = "plate_id",
+  group_id = "group_id",
+  metrics_baseline_control = "metrics_baseline_control",
+  size_standard = "size_standard",
+  size_standard_repeat_length = "size_standard_repeat_length"
  )
 
 ```
@@ -102,16 +129,30 @@ peak_list <- find_fragments(ladder_list,
 # Find alleles
 
 ```{r Find alleles}
-allele_list <- find_alleles(metadata_added_list)
+allele_list <- find_alleles(
+  # main parameters to set, see help documentation for more info
+  fragments_list = metadata_added_list,
+  number_of_peaks_to_return = 1,
+  # advanced parameters for fine tuning
+  peak_region_size_gap_threshold = 6,
+  peak_region_height_threshold_multiplier = 1)
 ```
 
-# Find repeats
+# Call repeats
 
 ```{r Find repeats}
 repeats_list <- call_repeats(
+  # main parameters to set, see help documentation for more info
   fragments_list = allele_list,
+  assay_size_without_repeat = 87,
+  repeat_size = 3,
   force_whole_repeat_units = TRUE,
-  repeat_length_correction = "from_metadata"
+  repeat_length_correction = "from_metadata",
+  # advanced parameters for fine tuning
+  repeat_calling_algorithm = "simple",
+  repeat_calling_algorithm_size_window_around_allele = repeat_size * 5,
+  repeat_calling_algorithm_peak_assignment_scan_window = 3,
+  repeat_calling_algorithm_size_period = repeat_size * 0.93
 )
 
 ```
@@ -120,8 +161,11 @@ repeats_list <- call_repeats(
 
 ```{r Assign index peaks}
 index_assigned <- assign_index_peaks(
+  # main parameters to set, see help documentation for more info
   fragments_list = repeats_list,
-  grouped = TRUE
+  grouped = TRUE,
+  # advanced parameters for fine tuning
+  index_override_dataframe = NULL
 )
 
 ```
