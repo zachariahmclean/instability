@@ -133,6 +133,18 @@ compute_metrics <- function(fragments_repeats,
                             window_around_index_peak,
                             percentile_range,
                             repeat_range) {
+
+
+  # check to make sure all the required inputs for the function have been given
+  if(fragments_repeats$.__enclos_env__$private$assigned_index_peak_used == FALSE){
+    stop(paste0(fragments_repeats$unique_id, " requires an index peak to calculate repeat instability metrics. Use 'assign_index_peaks' to set the index peaks."),
+         call. = FALSE
+    )
+  }else if (is.na(fragments_repeats$allele_1_repeat)) {
+    message(paste0(fragments_repeats$unique_id, ": metrics not calculated (no main peaks in sample)"))
+    return(NULL)
+  }
+
   # filter dataset to user supplied thresholds
   size_filtered_df <- repeat_table_subset(
     repeat_table_df = fragments_repeats$repeat_table_df,
