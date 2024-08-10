@@ -33,6 +33,9 @@ test_that("{shinytest2} recording: fix_ladder-checkbox", {
   )
 
 
+  # to generate the values below I ran a test like below and copied the values
+  # shinytest2::record_test(fix_ladders_interactive(test_ladders_fixed_manual))
+
 
   suppressMessages(
     shiny_app <- fix_ladders_interactive(test_ladders_fixed_manual)

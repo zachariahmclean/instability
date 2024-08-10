@@ -51,6 +51,7 @@ fragments <- R6::R6Class("fragments",
 
 
 # fragments_trace class ------------------------------------------------------------
+# responsibility if this class is to process continuous scan level data
 
 
 fragments_trace <- R6::R6Class(
