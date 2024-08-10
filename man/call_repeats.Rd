@@ -8,12 +8,12 @@ call_repeats(
   fragments_list,
   assay_size_without_repeat = 87,
   repeat_size = 3,
+  force_whole_repeat_units = FALSE,
+  repeat_length_correction = "none",
   repeat_calling_algorithm = "simple",
   repeat_calling_algorithm_size_window_around_allele = repeat_size * 5,
   repeat_calling_algorithm_peak_assignment_scan_window = 3,
-  repeat_calling_algorithm_size_period = repeat_size * 0.93,
-  force_whole_repeat_units = FALSE,
-  repeat_length_correction = "none"
+  repeat_calling_algorithm_size_period = repeat_size * 0.93
 )
 }
 \arguments{
@@ -23,22 +23,25 @@ call_repeats(
 
 \item{repeat_size}{An integer specifying the repeat size for repeat calling. Default is 3.}
 
+\item{force_whole_repeat_units}{A logical value specifying if the peaks should be forced to be whole repeat units apart. Usually the peaks are slightly under the whole repeat unit if left unchanged.}
+
+\item{repeat_length_correction}{A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.}
+
 \item{repeat_calling_algorithm}{A character specifying the repeat calling algorithm. Options: \code{"simple"}, \code{"fft"}, or \code{"size_period"} (see details section for more information on these).}
 
 \item{repeat_calling_algorithm_size_window_around_allele}{A numeric value for how big of a window around the tallest peak should be used to find the peak periodicity. Used for both \code{"fft"} and \code{"size_period"}. For \code{"fft"}, you want to make sure that this window is limited to where there are clear peaks. For \code{"size_period"}, it will not make a big difference.}
 
-\item{repeat_calling_algorithm_peak_assignment_scan_window}{A numeric value for the scan window when assigning the peak. This is used for both \code{"fft"} and \code{"size_period"}. When the scan period is determined, the algorithm jumps to the predicted scan for the next peak. This values opens a window of the neighboring scans to pick the tallest in.}
+\item{repeat_calling_algorithm_peak_assignment_scan_window}{A numeric value for the scan window when assigning the peak. This is used for both \code{"fft"} and \code{"size_period"}. When the scan period is determined, the algorithm jumps to the predicted scan for the next peak. This value opens a window of the neighboring scans to pick the tallest in.}
 
 \item{repeat_calling_algorithm_size_period}{A numeric value \code{"size_period"} algorithm to set the peak periodicity by bp size. This is the key variable to change for \code{"size_period"}. In fragment analysis, the peaks are usually slightly below the actual repeat unit size.}
-
-\item{force_whole_repeat_units}{A logical value specifying if the peaks should be forced to be whole repeat units apart. Usually the peaks are slightly under the whole repeat unit if left unchanged.}
-
-\item{repeat_length_correction}{A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.}
 }
 \value{
 A list of \code{"fragments_repeats"} objects with repeat data added.
-
-#' @details
+}
+\description{
+This function calls the repeat lengths for a list of fragments.
+}
+\details{
 The calculated repeat lengths are assigned to the corresponding peaks in the provided \code{fragments_repeats} object. The repeat lengths can be used for downstream instability analysis.
 
 The \code{simple} algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
@@ -46,9 +49,6 @@ The \code{simple} algorithm is just the repeat size calculated either directly, 
 The \code{fft} or \code{size_period} algorithms both re-call the peaks based on empirically determined (\code{fft}) or specified (\code{size_period}) periodicity of the peaks. The main application of these algorithms is to solve the issue of contaminating peaks that are not expected in the expected regular pattern of peaks. The \code{fft} approach applies a fourier transform to the peak signal to determine the underlying periodicity of the signal. \code{size_period} is similar and simpler, where instead of automatically figuring out the periodicity we as users usually know the size distance between repeat units. We can use that known peroidicty to jump between peaks.
 
 The \code{force_whole_repeat_units} algorithm aims to correct for the systematic drift in fragment sizes that occurs. It calculates repeat lengths in a way that helps align peaks with the underlying repeat pattern, making the estimation of repeat lengths more reliable relative to the main peak. The calculated repeat lengths start from the main peak's repeat length and increases in increments of the specified \code{repeat_size}.
-}
-\description{
-This function calls the repeat lengths for a list of fragments.
 }
 \examples{
 
@@ -99,7 +99,8 @@ test_repeats_size_period <- call_repeats(
 plot_traces(test_repeats_size_period[1], xlim = c(120,170))
 
 
-# Use force_whole_repeat_units algorithm to make sure called repeats are the exact number of bp apart
+# Use force_whole_repeat_units algorithm to make sure called
+# repeats are the exact number of bp apart
 
 test_repeats_whole_units <- call_repeats(
   fragments_list = test_alleles,
@@ -114,13 +115,7 @@ plot_traces(test_repeats_whole_units[1], xlim = c(120,170))
 
 test_alleles_metadata <- add_metadata(
   fragments_list = test_alleles,
-  metadata_data.frame = instability::metadata,
-  unique_id = "unique_id",
-  plate_id = "plate_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  metadata_data.frame = instability::metadata
 )
 
 test_repeats_corrected <- call_repeats(

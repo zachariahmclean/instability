@@ -4,7 +4,7 @@
 This package provides a pipeline for short tandem repeat instability
 analysis from fragment analysis data. The inputs are fsa files or peak
 tables (eg Genemapper 5 software output), and a user supplied metadata
-data-frame. The functions identify ladders, calls peaks, and calculates
+data-frame. The functions identify ladders, calls peaks, and calculate
 repeat instability metrics (ie expansion index or average repeat gain).
 
 To report bugs or feature requests, please visit the Github issue
@@ -17,6 +17,10 @@ If you use this package, please cite
 now.
 
 # How to use the package
+
+For an easy way to get started with your own data or to run an example,
+use `instability::generate_instability_template()` to generate a
+document with the pipeline pre-populated.
 
 In this package, each sample is represented by an R6 ‘fragments’ object,
 which are organised in lists. As a user, there are accessor functions
@@ -178,11 +182,11 @@ metadata_added_list <- add_metadata(
   fragments_list = peak_list,
   metadata_data.frame = instability::metadata,
   unique_id = "unique_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
+  group_id = "group_id",
+  metrics_baseline_control = "metrics_baseline_control",
   plate_id = "plate_id",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  size_standard = "size_standard",
+  size_standard_repeat_length = "size_standard_repeat_length"
 )
 ```
 
@@ -228,22 +232,49 @@ tallest peak used for the repeat size standards. If the wrong peak was
 selected for one of the samples, the dots would be shifted across 3 bp
 and no longer overlapping.
 
+# Assign index peaks
+
+A key part of several instability metrics is the index peak. This is the
+repeat length used as the reference for relative instability metrics
+calculations, like expansion index or average repeat gain. In the
+metadata, samples are grouped by a `group_id` and a subset of the
+samples are set as `metrics_baseline_control`, meaning they are the
+samples taken at day 0 in this experiment. This allows us to set
+`grouped = TRUE` and set the index peak for the expansion index and
+other metrics. For mice, if just a few samples have the inherited repeat
+height shorter than the expanded population, you could not worry about
+this and instead use the `index_override_dataframe` in
+`calculate_instability_metrics()`.
+
+``` r
+
+index_list <- assign_index_peaks(
+  repeats_list,
+  grouped = TRUE
+)
+```
+
+We can validate that the index peaks were assigned correctly with a
+dotted vertical line added to the trace. This is perhaps more useful in
+the context of mice where you can visually see when the inherited repeat
+length should be in the bimodal distribution.
+
+``` r
+plot_traces(index_list[1], xlim = c(110, 150))
+```
+
+<img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
+
 # Calculate instability metrics
 
-Finally, the repeat instability metrics can be calculated. In the
-metadata, a subset of the samples are set as ‘metrics_baseline_control’,
-meaning they are the samples taken at day 0 in this experiment. This
-allows us to set `grouped = TRUE` and set the index peak (the modal
-repeat size at the start of the experiment, or inherited repeat length
-in the case of mice) for the expansion index and other metrics. For
-mice, if just a few samples have the inherited repeat height shorter
-than the expanded population, you could not worry about this and instead
-use the `index_override_dataframe` in `calculate_instability_metrics()`.
+All of the information we need to calculate the repeat instability
+metrics has now been identified. We can finally use
+`calculate_instability_metrics` to generate a dataframe of per-sample
+metrics.
 
 ``` r
 metrics_grouped_df <- calculate_instability_metrics(
-  fragments_list = repeats_list,
-  grouped = TRUE,
+  fragments_list = index_list,
   peak_threshold = 0.05
 )
 ```
@@ -258,15 +289,6 @@ cell line
 
 ``` r
 library(dplyr)
-#> Warning: package 'dplyr' was built under R version 4.4.1
-#> 
-#> Attaching package: 'dplyr'
-#> The following objects are masked from 'package:stats':
-#> 
-#>     filter, lag
-#> The following objects are masked from 'package:base':
-#> 
-#>     intersect, setdiff, setequal, union
 
 
 plot_data <- metrics_grouped_df |>
@@ -275,7 +297,7 @@ plot_data <- metrics_grouped_df |>
     day > 0,
     modal_peak_height > 500
   ) |>
-  dplyr::group_by(cell_line) |>
+  dplyr::group_by(group_id) |>
   dplyr::mutate(
     rel_gain = average_repeat_gain / median(average_repeat_gain[which(treatment == 0)]),
     genotype = forcats::fct_rev(genotype)
@@ -286,7 +308,6 @@ Then we can plot the instability metrics
 
 ``` r
 library(ggplot2)
-#> Warning: package 'ggplot2' was built under R version 4.4.1
 
 ggplot(
   plot_data,
