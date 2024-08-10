@@ -52,9 +52,9 @@ test_that("index assignment", {
     )
   )
 
-  plot_traces(test_repeats[1:9], n_facet_col = 3,
-              xlim = c(100, 150),
-              ylim = c(0,2000))
+  # plot_traces(test_repeats[1:9], n_facet_col = 3,
+  #             xlim = c(100, 150),
+  #             ylim = c(0,2000))
 
 
 
@@ -67,9 +67,9 @@ test_that("index assignment", {
       )
     )
   )
-  plot_traces(test_assignment[1:9], n_facet_col = 3,
-              xlim = c(100, 150),
-              ylim = c(0,2000))
+  # plot_traces(test_assignment[1:9], n_facet_col = 3,
+  #             xlim = c(100, 150),
+  #             ylim = c(0,2000))
 
 
 

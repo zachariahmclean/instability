@@ -115,7 +115,7 @@ testthat::test_that("add_metadata", {
     test_fragments_index[i] <- test_metadata[[i]]$metrics_baseline_control
   }
 
-  index_samples <- which(metadata$metrics_baseline_control_TF == TRUE)
+  index_samples <- which(metadata$metrics_baseline_control == TRUE)
 
   testthat::expect_true(all(as.logical(test_fragments_index[index_samples])))
   testthat::expect_true(unique(test_fragments_index[which(!seq_along(test_fragments_index) %in% index_samples)]) == FALSE)
@@ -126,7 +126,7 @@ testthat::test_that("add_metadata", {
     test_fragments_repeat_sizing[i] <- test_metadata[[i]]$size_standard
   }
 
-  repeat_sizing_samples <- which(metadata$repeat_positive_control_TF == TRUE)
+  repeat_sizing_samples <- which(metadata$size_standard == TRUE)
 
   testthat::expect_true(all(as.logical(test_fragments_repeat_sizing[repeat_sizing_samples])))
   testthat::expect_false(unique(test_fragments_repeat_sizing[which(!seq_along(test_fragments_repeat_sizing) %in% repeat_sizing_samples)]))
@@ -509,7 +509,7 @@ testthat::test_that("full pipline", {
   plot_data <- plot_data[plot_data$day > 0 & plot_data$modal_peak_height > 500, ]
 
   # Group by
-  plot_data <- split(plot_data, plot_data$cell_line)
+  plot_data <- split(plot_data, plot_data$group_id)
 
   # Mutate
   for (i in seq_along(plot_data)) {
@@ -539,3 +539,4 @@ testthat::test_that("full pipline", {
 
   expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85697, 0.70219, 0.56223, 1.00000, 1.18329, 1.10977, 1.00459)))
 })
+

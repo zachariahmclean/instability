@@ -345,7 +345,7 @@ testthat::test_that("full pipline repeat size algo", {
   plot_data <- plot_data[plot_data$day > 0 & plot_data$modal_peak_height > 500, ]
 
   # Group by
-  plot_data <- split(plot_data, plot_data$cell_line)
+  plot_data <- split(plot_data, plot_data$group_id)
 
   # Mutate
   for (i in seq_along(plot_data)) {
