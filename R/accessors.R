@@ -1715,7 +1715,7 @@ generate_instability_template <- function(
   if (!size_standards) {
     template_content <- gsub('metadata\\$plate_id <- metadata\\$plate_id', '# metadata$plate_id <- metadata$plate_id', template_content)
     template_content <- gsub('metadata\\$size_standard <- metadata\\$size_standard', '# metadata$size_standard <- metadata$size_standard', template_content)
-    template_content <- gsub('metadata\\$size_standard_repeat_length <- metadata$size_standard_repeat_length', '# metadata$size_standard_repeat_length <- metadata$size_standard_repeat_length', template_content)
+    template_content <- gsub('metadata\\$size_standard_repeat_length <', '# metadata\\$size_standard_repeat_length <', template_content)
     template_content <- gsub('repeat_length_correction = "from_metadata"', 'repeat_length_correction = "none"', template_content)
     template_content <- gsub('plate_id = "plate_id"', 'plate_id = NA', template_content)
     template_content <- gsub('size_standard = "size_standard"', 'size_standard = NA', template_content)
