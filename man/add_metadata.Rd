@@ -7,10 +7,10 @@
 add_metadata(
   fragments_list,
   metadata_data.frame,
-  unique_id = "sample_file_name",
+  unique_id = "unique_id",
   plate_id = "plate_id",
   group_id = "group_id",
-  metrics_baseline_control = "metrics_baseline_control_TF",
+  metrics_baseline_control = "metrics_baseline_control",
   size_standard = "size_standard",
   size_standard_repeat_length = "size_standard_repeat_length"
 )
@@ -58,19 +58,21 @@ test_metadata <- add_metadata(
   metadata_data.frame = metadata,
   unique_id = "unique_id",
   plate_id = "plate_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  group_id = "group_id",
+  metrics_baseline_control = "metrics_baseline_control",
+  size_standard = "size_standard",
+  size_standard_repeat_length = "size_standard_repeat_length"
 )
+
+# skip unwanted metadata by using NA
 
 test_metadata_skipped <- add_metadata(
   fragments_list = test_fragments,
   metadata_data.frame = metadata,
   unique_id = "unique_id",
   plate_id = "plate_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
+  group_id = "group_id",
+  metrics_baseline_control = "metrics_baseline_control",
   size_standard = NA,
   size_standard_repeat_length = NA
 )

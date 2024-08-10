@@ -32,10 +32,10 @@ testthat::test_that("add_metadata function", {
     metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = "cell_line",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length",
-    metrics_baseline_control = "metrics_baseline_control_TF"
+    group_id = "group_id",
+    size_standard = "size_standard",
+    size_standard_repeat_length = "size_standard_repeat_length",
+    metrics_baseline_control = "metrics_baseline_control"
   )
 
   testthat::expect_true(!is.na(test_metadata$unique_id))
@@ -207,7 +207,7 @@ testthat::test_that("instability metrics", {
 
   test_metrics <- test_fragments_repeats_simple$instability_metrics(
     peak_threshold = 0.05,
-    window_around_main_peak = c(-40, 40), # note the lower lim should be a negative value
+    window_around_index_peak = c(-40, 40), # note the lower lim should be a negative value
     percentile_range = c(
       0.01, 0.05, 0.1, 0.2, 0.3,
       0.4, 0.5, 0.6, 0.7, 0.8,

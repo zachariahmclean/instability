@@ -27,13 +27,7 @@ test_fragments <- peak_table_to_fragments(gm_raw,
 
 test_metadata <- add_metadata(
   fragments_list = test_fragments,
-  metadata_data.frame = metadata,
-  unique_id = "unique_id",
-  plate_id = "plate_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  metadata_data.frame = metadata
 )
 
 test_alleles <- find_alleles(

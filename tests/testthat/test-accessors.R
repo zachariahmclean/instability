@@ -89,13 +89,7 @@ testthat::test_that("add_metadata", {
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
 
@@ -121,7 +115,7 @@ testthat::test_that("add_metadata", {
     test_fragments_index[i] <- test_metadata[[i]]$metrics_baseline_control
   }
 
-  index_samples <- which(metadata$metrics_baseline_control_TF == TRUE)
+  index_samples <- which(metadata$metrics_baseline_control == TRUE)
 
   testthat::expect_true(all(as.logical(test_fragments_index[index_samples])))
   testthat::expect_true(unique(test_fragments_index[which(!seq_along(test_fragments_index) %in% index_samples)]) == FALSE)
@@ -132,7 +126,7 @@ testthat::test_that("add_metadata", {
     test_fragments_repeat_sizing[i] <- test_metadata[[i]]$size_standard
   }
 
-  repeat_sizing_samples <- which(metadata$repeat_positive_control_TF == TRUE)
+  repeat_sizing_samples <- which(metadata$size_standard == TRUE)
 
   testthat::expect_true(all(as.logical(test_fragments_repeat_sizing[repeat_sizing_samples])))
   testthat::expect_false(unique(test_fragments_repeat_sizing[which(!seq_along(test_fragments_repeat_sizing) %in% repeat_sizing_samples)]))
@@ -181,11 +175,7 @@ testthat::test_that("add_metadata missing", {
     fragments_list = test_fragments,
     metadata_data.frame = metadata,
     unique_id = "unique_id",
-    plate_id = NA,
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    plate_id = NA
   )
 
   testthat::expect_true(is.na(test_metadata[[1]]$plate_id))
@@ -195,10 +185,7 @@ testthat::test_that("add_metadata missing", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = NA,
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    group_id = NA
   )
 
   testthat::expect_true(is.na(test_metadata[[1]]$group_id))
@@ -208,10 +195,8 @@ testthat::test_that("add_metadata missing", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = NA,
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    group_id = "group_id",
+    metrics_baseline_control = NA
   )
 
   testthat::expect_false(test_metadata[[1]]$metrics_baseline_control)
@@ -222,10 +207,9 @@ testthat::test_that("add_metadata missing", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = NA,
-    size_standard_repeat_length = "repeat_positive_control_length"
+    group_id = "group_id",
+    metrics_baseline_control = "metrics_baseline_control",
+    size_standard = NA
   )
 
   testthat::expect_false(test_metadata[[1]]$size_standard)
@@ -235,9 +219,9 @@ testthat::test_that("add_metadata missing", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
+    group_id = "group_id",
+    metrics_baseline_control = "metrics_baseline_control",
+    size_standard = "size_standard",
     size_standard_repeat_length = NA
   )
 
@@ -292,13 +276,7 @@ testthat::test_that("calculate metrics", {
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
   test_alleles <- find_alleles(
@@ -341,7 +319,7 @@ testthat::test_that("calculate metrics", {
         fragments_list = test_assignment_grouped,
         peak_threshold = 0.05,
         # note the lower lim should be a negative value
-        window_around_main_peak = c(-40, 40),
+        window_around_index_peak = c(-40, 40),
         percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
         repeat_range = c(1, 2, 3, 4, seq(6, 20, 2))
       )
@@ -372,7 +350,7 @@ testthat::test_that("calculate metrics", {
       fragments_list = test_assignment_ungrouped,
       peak_threshold = 0.05,
       # note the lower lim should be a negative value
-      window_around_main_peak = c(-40, 40),
+      window_around_index_peak = c(-40, 40),
       percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
       repeat_range = c(1, 2, 3, 4, seq(6, 20, 2))
     )
@@ -408,7 +386,7 @@ testthat::test_that("calculate metrics", {
       fragments_list = test_assignment_override,
       peak_threshold = 0.05,
       # note the lower lim should be a negative value
-      window_around_main_peak = c(-40, 40),
+      window_around_index_peak = c(-40, 40),
       percentile_range = c(0.01, 0.05, seq(0.1, 0.9, 0.1), 0.95, 0.99),
       repeat_range = c(1, 2, 3, 4, seq(6, 20, 2))
     )
@@ -479,13 +457,7 @@ testthat::test_that("full pipline", {
 
   fragment_metadata <- add_metadata(
     fragments_list = peak_list,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
   fragment_alleles <- find_alleles(
@@ -524,7 +496,7 @@ testthat::test_that("full pipline", {
       test_metrics_grouped <- calculate_instability_metrics(
         fragments_list = test_assignment,
         peak_threshold = 0.05,
-        window_around_main_peak = c(-40, 40)
+        window_around_index_peak = c(-40, 40)
       )
     )
   )
@@ -537,7 +509,7 @@ testthat::test_that("full pipline", {
   plot_data <- plot_data[plot_data$day > 0 & plot_data$modal_peak_height > 500, ]
 
   # Group by
-  plot_data <- split(plot_data, plot_data$cell_line)
+  plot_data <- split(plot_data, plot_data$group_id)
 
   # Mutate
   for (i in seq_along(plot_data)) {
@@ -567,3 +539,4 @@ testthat::test_that("full pipline", {
 
   expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85697, 0.70219, 0.56223, 1.00000, 1.18329, 1.10977, 1.00459)))
 })
+

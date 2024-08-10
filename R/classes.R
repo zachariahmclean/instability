@@ -277,7 +277,7 @@ fragments_trace <- R6::R6Class(
       plot(self$trace_bp_df$scan, self$trace_bp_df$ladder_signal,
         xlab = "Scan", ylab = "Ladder Signal",
         main = ifelse(is.null(plot_title), self$unique_id, plot_title),
-        pch = 16,
+        type = "l",
         xlim = xlim,
         ylim = ylim
       )
@@ -364,7 +364,7 @@ fragments_repeats <- R6::R6Class(
       return(repeat_class)
     },
     instability_metrics = function(peak_threshold = 0.05,
-                                   window_around_main_peak = c(NA, NA), # note the lower lim should be a negative value
+                                   window_around_index_peak = c(NA, NA), # note the lower lim should be a negative value
                                    percentile_range = c(
                                      0.01, 0.05, 0.1, 0.2, 0.3,
                                      0.4, 0.5, 0.6, 0.7, 0.8,
@@ -393,7 +393,7 @@ fragments_repeats <- R6::R6Class(
       metrics <- compute_metrics(
         self,
         peak_threshold = peak_threshold,
-        window_around_main_peak = window_around_main_peak,
+        window_around_index_peak = window_around_index_peak,
         percentile_range = percentile_range,
         repeat_range = repeat_range
       )

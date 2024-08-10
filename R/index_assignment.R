@@ -5,7 +5,7 @@
 
 metrics_grouping_helper <- function(fragments_list,
                                     peak_threshold,
-                                    window_around_main_peak) {
+                                    window_around_index_peak) {
 
   # what we're doing here is pulling out the key data for all the samples that are metrics controls
   # each sample will then have the data for their appropriate control inserted inside

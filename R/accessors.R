@@ -301,6 +301,79 @@ fix_ladders_manual <- function(fragments_trace_list,
 }
 
 
+#' Fix ladders interactively
+#'
+#' An app for fixing ladders
+#'
+#' @param fragment_trace_list A list of fragments_trace objects containing fragment data
+#'
+#' @return interactive shiny app
+#' @export
+#' @details
+#' This function helps you fix ladders that are incorrectly assigned. Run `fix_ladders_interactive()`
+#' and provide output from `find_ladders`. In the app, for each sample, click on
+#' line for the incorrect ladder size and drag it to the correct peak.
+#'
+#' Once you are satisfied with the ladders for all the broken samples, click the download
+#' button to generate a file that has the ladder correction data. Read this file
+#' back into R using readRDS, then use [fix_ladders_manual()] and supply the ladder
+#' correction data as `ladder_df_list`. This allows the manually corrected data to
+#' be saved and used within a script so that the correct does not need to be done
+#' every time.
+#'
+#' @seealso [fix_ladders_manual()], [find_ladders()]
+#'
+#'
+#' @examples
+#' file_list <- instability::cell_line_fsa_list[c("20230413_B03.fsa")]
+#'
+#' test_ladders <- find_ladders(file_list)
+#'
+#' # to create an example, lets brake one of the ladders
+#' brake_ladder_list <- list(
+#'   "20230413_B03.fsa" = data.frame(
+#'     size = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+#'     scan = c(1555, 1633, 1783, 1827, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792,
+#'              4085, 4322, 4370)
+#'   )
+#' )
+#'
+#' test_ladders_broken <- fix_ladders_manual(
+#'   test_ladders,
+#'   brake_ladder_list
+#' )
+#'
+#' plot_ladders(test_ladders_broken["20230413_B03.fsa"],
+#'   n_facet_col = 1
+#' )
+#'
+#'
+#' if (interactive()) {
+#'   fix_ladders_interactive(test_ladders_broken)
+#' }
+#'
+#' # once you have corrected your ladders in the app, export the data we need to incorporate that into the script
+#' # ladder_df_list <- readRDS('path/to/exported/data.rds')
+#' # test_ladders_fixed <- fix_ladders_manual(test_ladders_broken, ladder_df_list)
+#'
+#' # plot_ladders(test_ladders_fixed["20230413_B03.fsa"],
+#' #           n_facet_col = 1)
+#'
+fix_ladders_interactive <- function(fragment_trace_list) {
+  message("To incorporate the manual corrections into your script you need to do the following:")
+  message("1: read in the corrected ladder data using 'ladder_df_list <- readRDS('path/to/exported/data.rds')'")
+  message("2: Run 'fix_ladders_manual(fragments_trace_list, ladder_df_list)'")
+
+  # Launch the Shiny app with fragment_trace_list passed as a parameter
+  shiny::shinyApp(
+    ui = ui,
+    server = function(input, output, session) {
+      server_function(input, output, session, fragment_trace_list)
+    }
+  )
+}
+
+
 
 #' Extract traces
 #'
@@ -609,19 +682,21 @@ repeat_table_to_repeats <- function(df,
 #'   metadata_data.frame = metadata,
 #'   unique_id = "unique_id",
 #'   plate_id = "plate_id",
-#'   group_id = "cell_line",
-#'   metrics_baseline_control = "metrics_baseline_control_TF",
-#'   size_standard = "repeat_positive_control_TF",
-#'   size_standard_repeat_length = "repeat_positive_control_length"
+#'   group_id = "group_id",
+#'   metrics_baseline_control = "metrics_baseline_control",
+#'   size_standard = "size_standard",
+#'   size_standard_repeat_length = "size_standard_repeat_length"
 #' )
+#'
+#' # skip unwanted metadata by using NA
 #'
 #' test_metadata_skipped <- add_metadata(
 #'   fragments_list = test_fragments,
 #'   metadata_data.frame = metadata,
 #'   unique_id = "unique_id",
 #'   plate_id = "plate_id",
-#'   group_id = "cell_line",
-#'   metrics_baseline_control = "metrics_baseline_control_TF",
+#'   group_id = "group_id",
+#'   metrics_baseline_control = "metrics_baseline_control",
 #'   size_standard = NA,
 #'   size_standard_repeat_length = NA
 #' )
@@ -632,10 +707,10 @@ repeat_table_to_repeats <- function(df,
 #'
 add_metadata <- function(fragments_list,
                          metadata_data.frame,
-                         unique_id = "sample_file_name",
+                         unique_id = "unique_id",
                          plate_id = "plate_id",
                          group_id = "group_id",
-                         metrics_baseline_control = "metrics_baseline_control_TF",
+                         metrics_baseline_control = "metrics_baseline_control",
                          size_standard = "size_standard",
                          size_standard_repeat_length = "size_standard_repeat_length") {
   # validate inputs to give good errors to user
@@ -764,15 +839,15 @@ find_alleles <- function(fragments_list,
 #' @param assay_size_without_repeat An integer specifying the assay size without repeat for repeat calling. Default is 87.
 #' @param repeat_size An integer specifying the repeat size for repeat calling. Default is 3.
 #' @param force_whole_repeat_units A logical value specifying if the peaks should be forced to be whole repeat units apart. Usually the peaks are slightly under the whole repeat unit if left unchanged.
+#' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
 #' @param repeat_calling_algorithm A character specifying the repeat calling algorithm. Options: \code{"simple"}, \code{"fft"}, or \code{"size_period"} (see details section for more information on these).
 #' @param repeat_calling_algorithm_size_window_around_allele A numeric value for how big of a window around the tallest peak should be used to find the peak periodicity. Used for both \code{"fft"} and \code{"size_period"}. For \code{"fft"}, you want to make sure that this window is limited to where there are clear peaks. For \code{"size_period"}, it will not make a big difference.
-#' @param repeat_calling_algorithm_peak_assignment_scan_window A numeric value for the scan window when assigning the peak. This is used for both \code{"fft"} and \code{"size_period"}. When the scan period is determined, the algorithm jumps to the predicted scan for the next peak. This values opens a window of the neighboring scans to pick the tallest in.
+#' @param repeat_calling_algorithm_peak_assignment_scan_window A numeric value for the scan window when assigning the peak. This is used for both \code{"fft"} and \code{"size_period"}. When the scan period is determined, the algorithm jumps to the predicted scan for the next peak. This value opens a window of the neighboring scans to pick the tallest in.
 #' @param repeat_calling_algorithm_size_period A numeric value \code{"size_period"} algorithm to set the peak periodicity by bp size. This is the key variable to change for \code{"size_period"}. In fragment analysis, the peaks are usually slightly below the actual repeat unit size.
-#' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
 #'
 #' @return A list of \code{"fragments_repeats"} objects with repeat data added.
 #'
-#' #' @details
+#' @details
 #' The calculated repeat lengths are assigned to the corresponding peaks in the provided `fragments_repeats` object. The repeat lengths can be used for downstream instability analysis.
 #'
 #' The `simple` algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
@@ -849,13 +924,7 @@ find_alleles <- function(fragments_list,
 #'
 #' test_alleles_metadata <- add_metadata(
 #'   fragments_list = test_alleles,
-#'   metadata_data.frame = instability::metadata,
-#'   unique_id = "unique_id",
-#'   plate_id = "plate_id",
-#'   group_id = "cell_line",
-#'   metrics_baseline_control = "metrics_baseline_control_TF",
-#'   size_standard = "repeat_positive_control_TF",
-#'   size_standard_repeat_length = "repeat_positive_control_length"
+#'   metadata_data.frame = instability::metadata
 #' )
 #'
 #' test_repeats_corrected <- call_repeats(
@@ -872,12 +941,13 @@ find_alleles <- function(fragments_list,
 call_repeats <- function(fragments_list,
                          assay_size_without_repeat = 87,
                          repeat_size = 3,
+                         force_whole_repeat_units = FALSE,
+                         repeat_length_correction = "none",
                          repeat_calling_algorithm = "simple",
                          repeat_calling_algorithm_size_window_around_allele =  repeat_size * 5,
                          repeat_calling_algorithm_peak_assignment_scan_window = 3,
-                         repeat_calling_algorithm_size_period = repeat_size * 0.93 ,
-                         force_whole_repeat_units = FALSE,
-                         repeat_length_correction = "none"
+                         repeat_calling_algorithm_size_period = repeat_size * 0.93
+
 ) {
   # Check to see if repeats are to be corrected
   # if so, supply the model to each of the samples in the list
@@ -969,13 +1039,7 @@ call_repeats <- function(fragments_list,
 #'
 #' metadata_added_list <- add_metadata(
 #'   fragments_list = repeats_list,
-#'   metadata_data.frame = instability::metadata,
-#'   unique_id = "unique_id",
-#'   plate_id = "plate_id",
-#'   group_id = "cell_line",
-#'   metrics_baseline_control = "metrics_baseline_control_TF",
-#'   size_standard = "repeat_positive_control_TF",
-#'   size_standard_repeat_length = "repeat_positive_control_length"
+#'   metadata_data.frame = instability::metadata
 #' )
 #'
 #'index_assigned <- assign_index_peaks(metadata_added_list,
@@ -1030,7 +1094,7 @@ assign_index_peaks <- function(fragments_list,
 #'
 #' @param fragments_list A list of "fragments_repeats" objects representing fragment data.
 #' @param peak_threshold The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.
-#' @param window_around_main_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140. The sign of the numbers does not matter (The absolute value is found).
+#' @param window_around_index_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140. The sign of the numbers does not matter (The absolute value is found).
 #' @param percentile_range A numeric vector of percentiles to compute (e.g., c(0.5, 0.75, 0.9, 0.95)).
 #' @param repeat_range A numeric vector specifying ranges of repeats for the inverse quantile computation.
 #' @param grouped This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.
@@ -1096,13 +1160,7 @@ assign_index_peaks <- function(fragments_list,
 #'
 #' test_metadata <- add_metadata(
 #'   fragments_list = test_fragments,
-#'   metadata_data.frame = metadata,
-#'   unique_id = "unique_id",
-#'   plate_id = "plate_id",
-#'   group_id = "cell_line",
-#'   metrics_baseline_control = "metrics_baseline_control_TF",
-#'   size_standard = "repeat_positive_control_TF",
-#'   size_standard_repeat_length = "repeat_positive_control_length"
+#'   metadata_data.frame = metadata
 #' )
 #'
 #' test_alleles <- find_alleles(
@@ -1121,19 +1179,24 @@ assign_index_peaks <- function(fragments_list,
 #'   repeat_length_correction = "none"
 #' )
 #'
+#' test_assigned <- assign_index_peaks(
+#'   fragments_list = test_repeats,
+#'   grouped = TRUE
+#' )
+#'
+#'
 #' # grouped metrics
 #' # uses t=0 samples as indicated in metadata
 #' test_metrics_grouped <- calculate_instability_metrics(
-#'   fragments_list = test_repeats,
-#'   grouped = TRUE,
+#'   fragments_list = test_assigned,
 #'   peak_threshold = 0.05,
-#'   window_around_main_peak = c(-40, 40),
+#'   window_around_index_peak = c(-40, 40),
 #'   percentile_range = c(0.5, 0.75, 0.9, 0.95),
 #'   repeat_range = c(2, 5, 10, 20)
 #' )
 calculate_instability_metrics <- function(fragments_list,
                                           peak_threshold = 0.05,
-                                          window_around_main_peak = c(NA, NA),
+                                          window_around_index_peak = c(NA, NA),
                                           percentile_range = c(0.5, 0.75, 0.9, 0.95),
                                           repeat_range = c(2, 5, 10, 20),
                                           grouped = NA,
@@ -1161,7 +1224,7 @@ calculate_instability_metrics <- function(fragments_list,
   metrics_list <- lapply(fragments_list, function(x) {
     x$instability_metrics(
       peak_threshold = peak_threshold,
-      window_around_main_peak = window_around_main_peak,
+      window_around_index_peak = window_around_index_peak,
       percentile_range = percentile_range,
       repeat_range = repeat_range
     )
@@ -1247,13 +1310,7 @@ extract_alleles <- function(fragments_list) {
 #'
 #' test_metadata <- add_metadata(
 #'   fragments_list = test_fragments,
-#'   metadata_data.frame = metadata,
-#'   unique_id = "unique_id",
-#'   plate_id = "plate_id",
-#'   group_id = "cell_line",
-#'   metrics_baseline_control = "metrics_baseline_control_TF",
-#'   size_standard = "repeat_positive_control_TF",
-#'   size_standard_repeat_length = "repeat_positive_control_length"
+#'   metadata_data.frame = metadata
 #' )
 #'
 #' test_alleles <- find_alleles(
@@ -1534,6 +1591,8 @@ plot_fragments <- function(fragments_list,
 #' @export
 #'
 #' @examples
+#'
+#'
 #' gm_raw <- instability::example_data
 #' metadata <- instability::metadata
 #'
@@ -1552,13 +1611,7 @@ plot_fragments <- function(fragments_list,
 #'
 #' test_metadata <- add_metadata(
 #'   fragments_list = test_alleles,
-#'   metadata_data.frame = metadata,
-#'   unique_id = "unique_id",
-#'   plate_id = "plate_id",
-#'   group_id = "cell_line",
-#'   metrics_baseline_control = "metrics_baseline_control_TF",
-#'   size_standard = "repeat_positive_control_TF",
-#'   size_standard_repeat_length = "repeat_positive_control_length"
+#'   metadata_data.frame = metadata
 #' )
 #'
 #' test_repeats_corrected <- call_repeats(
@@ -1605,3 +1658,101 @@ plot_repeat_correction_model <- function(fragments_list) {
     graphics::abline(lm_model, col = "blue")
   }
 }
+
+
+
+
+# qmd templates -----------------------------------------------------------
+
+
+#' Generate a Quarto file that has the instability pipeline preset
+#'
+#' @param file_name Name of file to create
+#' @param size_standards Indicates if the functionality for correcting repeat size using size standards be included in the pipeline. See \code{\link{add_metadata}} & \code{\link{call_repeats}} for more info.
+#' @param samples_grouped Indicates if the functionality for grouping samples for metrics calculations should be included in the pipeline. See \code{\link{add_metadata}} & \code{\link{assign_index_peaks}} for more info.
+#'
+#' @return A Quarto template file
+#' @export
+#'
+#' @examples
+#'
+#' if (interactive()) {
+#'   generate_instability_template("test")
+#' }
+#'
+#'
+generate_instability_template <- function(
+    file_name = NULL,
+    size_standards = TRUE,
+    samples_grouped = TRUE) {
+
+  comment_out_lines <- function(content, start_pattern, end_pattern, comment_message = NULL) {
+    start_idx <- grep(start_pattern, content)
+    end_idx <- grep(end_pattern, content)[grep(end_pattern, content) > start_idx][1]
+
+    if (length(start_idx) > 0 && length(end_idx) > 0) {
+      content[(start_idx + 1):(end_idx - 1)] <- paste("#", content[(start_idx + 1):(end_idx - 1)])
+      if (!is.null(comment_message)) {
+        content <- append(content, comment_message, after = start_idx - 1)
+      }
+    }
+
+    return(content)
+  }
+
+  if (is.null(file_name)) {
+    stop("You must provide a valid file_name")
+  }
+
+  source_file <- system.file("extdata/_extensions/template.qmd", package = "instability")
+
+  if (!file.exists(source_file)) {
+    stop(paste("Source file does not exist:", source_file))
+  }
+
+  template_content <- readLines(source_file)
+
+  if (!size_standards) {
+    template_content <- gsub('metadata\\$plate_id <- metadata\\$plate_id', '# metadata$plate_id <- metadata$plate_id', template_content)
+    template_content <- gsub('metadata\\$size_standard <- metadata\\$size_standard', '# metadata$size_standard <- metadata$size_standard', template_content)
+    template_content <- gsub('metadata\\$size_standard_repeat_length <', '# metadata\\$size_standard_repeat_length <', template_content)
+    template_content <- gsub('repeat_length_correction = "from_metadata"', 'repeat_length_correction = "none"', template_content)
+    template_content <- gsub('plate_id = "plate_id"', 'plate_id = NA', template_content)
+    template_content <- gsub('size_standard = "size_standard"', 'size_standard = NA', template_content)
+    template_content <- gsub('size_standard_repeat_length = "size_standard_repeat_length"', 'size_standard_repeat_length = NA', template_content)
+  }
+
+  if (!samples_grouped) {
+    template_content <- gsub('metadata\\$group_id <- metadata\\$group_id', '# metadata$group_id <- metadata$group_id', template_content)
+    template_content <- gsub('metadata\\$metrics_baseline_control <- metadata\\$metrics_baseline_control', '# metadata$metrics_baseline_control <- metadata$metrics_baseline_control', template_content)
+    template_content <- gsub('grouped = TRUE', 'grouped = FALSE', template_content)
+    template_content <- gsub('group_id = "group_id"', 'group_id = NA', template_content)
+    template_content <- gsub('metrics_baseline_control = "metrics_baseline_control"', 'metrics_baseline_control = NA', template_content)
+  }
+
+  if (!size_standards & !samples_grouped) {
+    template_content <- gsub('metadata <- read.csv\\("")', '# metadata <- read.csv("")', template_content)
+    template_content <- gsub('fragments_list = metadata_added_list', 'fragments_list = peak_list', template_content)
+
+    # Comment out block of input section
+    template_content <- comment_out_lines(template_content, '#Provide the appropriate metadata below by replacing the placeholders', "\\`\\`\\`")
+
+    # Comment out the Add metadata section
+    template_content <- comment_out_lines(template_content, "\\`\\`\\`\\{r Add metadata\\}", "\\`\\`\\`", "metadata not used")
+  }
+
+  writeLines(template_content, paste0(file_name, ".qmd"))
+  file.edit(paste0(file_name, ".qmd"))
+}
+
+
+
+
+
+
+
+
+
+
+
+

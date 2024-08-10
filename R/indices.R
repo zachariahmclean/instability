@@ -98,25 +98,25 @@ repeat_table_subset <- function(repeat_table_df,
                                 allele_1_height,
                                 index_repeat,
                                 peak_threshold,
-                                window_around_main_peak) {
+                                window_around_index_peak) {
   # Filter to include only the peaks above the certain threshold
   # height threshold is set on the modal peak rather than the index peak
   repeat_table_df$peak_percent <- repeat_table_df$height / allele_1_height
   height_filtered_df <- repeat_table_df[which(repeat_table_df$peak_percent > peak_threshold), ]
 
-  # Ensure window_around_main_peak is exactly length 2
-  if (length(window_around_main_peak) != 2) {
-    stop("window_around_main_peak must be a vector of length 2")
+  # Ensure window_around_index_peak is exactly length 2
+  if (length(window_around_index_peak) != 2) {
+    stop("window_around_index_peak must be a vector of length 2")
   }
 
   # Filter to include only peaks of a certain size
-  lower_lim <- ifelse(is.na(window_around_main_peak[1]),
+  lower_lim <- ifelse(is.na(window_around_index_peak[1]),
     min(height_filtered_df$repeats),
-    index_repeat - abs(window_around_main_peak[1])
+    index_repeat - abs(window_around_index_peak[1])
   )
-  upper_lim <- ifelse(is.na(window_around_main_peak[1]),
+  upper_lim <- ifelse(is.na(window_around_index_peak[1]),
     max(height_filtered_df$repeats),
-    index_repeat + abs(window_around_main_peak[2])
+    index_repeat + abs(window_around_index_peak[2])
   )
   size_filtered_df <- height_filtered_df[which(height_filtered_df$repeats >= lower_lim & height_filtered_df$repeats <= upper_lim), ]
 
@@ -130,7 +130,7 @@ repeat_table_subset <- function(repeat_table_df,
 
 compute_metrics <- function(fragments_repeats,
                             peak_threshold,
-                            window_around_main_peak,
+                            window_around_index_peak,
                             percentile_range,
                             repeat_range) {
   # filter dataset to user supplied thresholds
@@ -139,7 +139,7 @@ compute_metrics <- function(fragments_repeats,
     allele_1_height = fragments_repeats$allele_1_height,
     index_repeat = fragments_repeats$index_repeat,
     peak_threshold = peak_threshold,
-    window_around_main_peak = window_around_main_peak
+    window_around_index_peak = window_around_index_peak
   )
 
   if(!is.null(fragments_repeats$.__enclos_env__$private$index_samples)){
@@ -150,7 +150,7 @@ compute_metrics <- function(fragments_repeats,
         allele_1_height = x[[2]][which(x[[2]]$repeats == x[[1]]), "height"],
         index_repeat = x[[1]],
         peak_threshold = peak_threshold,
-        window_around_main_peak = window_around_main_peak
+        window_around_index_peak = window_around_index_peak
       )
 
       weighted.mean(control_filtered_df$repeats, control_filtered_df$height)

@@ -68,11 +68,7 @@ testthat::test_that("call_repeats", {
 
   # correct repeat length
 
-  test_alleles_metadata <- add_metadata(test_alleles, metadata,
-                                        group_id = "cell_line",
-                                        unique_id = "unique_id",
-                                        size_standard = "repeat_positive_control_TF",
-                                        size_standard_repeat_length = "repeat_positive_control_length"
+  test_alleles_metadata <- add_metadata(test_alleles, metadata
   )
 
   suppressMessages(
@@ -304,13 +300,7 @@ testthat::test_that("full pipline repeat size algo", {
 
   fragment_metadata <- add_metadata(
     fragments_list = peak_list,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
   fragment_alleles <- find_alleles(
@@ -342,7 +332,7 @@ testthat::test_that("full pipline repeat size algo", {
         fragments_list = test_repeats,
         grouped = TRUE,
         peak_threshold = 0.05,
-        window_around_main_peak = c(-40, 40)
+        window_around_index_peak = c(-40, 40)
       )
     )
   )
@@ -355,7 +345,7 @@ testthat::test_that("full pipline repeat size algo", {
   plot_data <- plot_data[plot_data$day > 0 & plot_data$modal_peak_height > 500, ]
 
   # Group by
-  plot_data <- split(plot_data, plot_data$cell_line)
+  plot_data <- split(plot_data, plot_data$group_id)
 
   # Mutate
   for (i in seq_along(plot_data)) {

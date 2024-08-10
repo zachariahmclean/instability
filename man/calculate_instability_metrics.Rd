@@ -7,7 +7,7 @@
 calculate_instability_metrics(
   fragments_list,
   peak_threshold = 0.05,
-  window_around_main_peak = c(NA, NA),
+  window_around_index_peak = c(NA, NA),
   percentile_range = c(0.5, 0.75, 0.9, 0.95),
   repeat_range = c(2, 5, 10, 20),
   grouped = NA,
@@ -19,7 +19,7 @@ calculate_instability_metrics(
 
 \item{peak_threshold}{The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.}
 
-\item{window_around_main_peak}{A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140. The sign of the numbers does not matter (The absolute value is found).}
+\item{window_around_index_peak}{A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140. The sign of the numbers does not matter (The absolute value is found).}
 
 \item{percentile_range}{A numeric vector of percentiles to compute (e.g., c(0.5, 0.75, 0.9, 0.95)).}
 
@@ -102,13 +102,7 @@ test_fragments <- peak_table_to_fragments(gm_raw,
 
 test_metadata <- add_metadata(
   fragments_list = test_fragments,
-  metadata_data.frame = metadata,
-  unique_id = "unique_id",
-  plate_id = "plate_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  metadata_data.frame = metadata
 )
 
 test_alleles <- find_alleles(
@@ -127,13 +121,18 @@ test_repeats <- call_repeats(
   repeat_length_correction = "none"
 )
 
+test_assigned <- assign_index_peaks(
+  fragments_list = test_repeats,
+  grouped = TRUE
+)
+
+
 # grouped metrics
 # uses t=0 samples as indicated in metadata
 test_metrics_grouped <- calculate_instability_metrics(
-  fragments_list = test_repeats,
-  grouped = TRUE,
+  fragments_list = test_assigned,
   peak_threshold = 0.05,
-  window_around_main_peak = c(-40, 40),
+  window_around_index_peak = c(-40, 40),
   percentile_range = c(0.5, 0.75, 0.9, 0.95),
   repeat_range = c(2, 5, 10, 20)
 )
