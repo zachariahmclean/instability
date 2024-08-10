@@ -124,19 +124,25 @@ find_ladders <- function(fsa_list,
     }
 
     ladder_list[[i]] <- fragments_trace$new(unique_id = names(fsa_list[i]))
-    ladder_list[[i]]$find_ladder(
-      fsa_list[[i]],
-      ladder_channel = ladder_channel,
-      signal_channel = signal_channel,
-      ladder_sizes = ladder_sizes,
-      spike_location = spike_location,
-      zero_floor = zero_floor,
-      scan_subset = scan_subset,
-      smoothing_window = smoothing_window,
-      minimum_peak_signal = minimum_peak_signal,
-      max_combinations = max_combinations,
-      ladder_selection_window = ladder_selection_window
-    )
+    ladder_list[[i]]$raw_ladder <- fsa_list[[i]]$Data[[ladder_channel]]
+    ladder_list[[i]]$raw_data <- fsa_list[[i]]$Data[[signal_channel]]
+    ladder_list[[i]]$scan <- 0:(length(fsa_list[[i]]$Data[[signal_channel]]) - 1)
+    ladder_list[[i]]$off_scale_scans <- fsa_list[[i]]$Data$OfSc.1
+
+
+    ladder_list[[i]] <- find_ladder_helper(
+        fragments_trace = ladder_list[[i]],
+        ladder_channel = ladder_channel,
+        signal_channel = signal_channel,
+        ladder_sizes = ladder_sizes,
+        spike_location = spike_location,
+        zero_floor = zero_floor,
+        scan_subset = scan_subset,
+        smoothing_window = smoothing_window,
+        minimum_peak_signal = minimum_peak_signal,
+        max_combinations = max_combinations,
+        ladder_selection_window = ladder_selection_window
+      )
 
     if (show_progress_bar) {
       utils::setTxtProgressBar(pb, i)
@@ -198,10 +204,10 @@ fix_ladders_auto <- function(fragments_trace_list,
   fragments_trace_list_2 <- vector("list", length(fragments_trace_list))
   for (i in seq_along(fragments_trace_list)) {
     if (fragments_trace_list[[i]]$unique_id %in% unique_ids) {
-      fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]$ladder_correction_auto(
-        size_threshold = size_threshold,
-        size_tolerance = size_tolerance,
-        rsq_threshold = rsq_threshold
+      fragments_trace_list_2[[i]] <- ladder_self_mod_predict(fragments_trace_list[[i]]$clone(),
+                                                             size_threshold = size_threshold,
+                                                             size_tolerance = size_tolerance,
+                                                             rsq_threshold = rsq_threshold
       )
     } else {
       fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]$clone()
@@ -274,12 +280,9 @@ fix_ladders_manual <- function(fragments_trace_list,
   fragments_trace_list_2 <- vector("list", length(fragments_trace_list))
   for (i in seq_along(fragments_trace_list)) {
     if (fragments_trace_list[[i]]$unique_id %in% samples_to_fix) {
-      tmp_unique_id <- fragments_trace_list[[i]]$unique_id
-      message(paste("Fixing ladder for", tmp_unique_id))
+      message(paste("Fixing ladder for", fragments_trace_list[[i]]$unique_id))
 
-      fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]$clone()
-
-      tmp_ladder_df <- ladder_df_list[[which(names(ladder_df_list) == tmp_unique_id)]]
+      tmp_ladder_df <- ladder_df_list[[which(names(ladder_df_list) == fragments_trace_list[[i]]$unique_id)]]
 
       # do some quality control of the df user supplied
       if (!any(colnames(tmp_ladder_df) == "scan") | !any(colnames(tmp_ladder_df) == "size")) {
@@ -289,7 +292,11 @@ fix_ladders_manual <- function(fragments_trace_list,
         )
       }
 
-      fragments_trace_list_2[[i]] <- fragments_trace_list_2[[i]]$ladder_correction_manual(tmp_ladder_df)
+      fragments_trace_list_2[[i]] <-  ladder_fix_helper(
+        fragments_trace_list[[i]]$clone(),
+        replacement_ladder_df = tmp_ladder_df
+        )
+
     } else {
       fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]$clone()
     }
@@ -459,17 +466,19 @@ find_fragments <- function(fragments_trace_list,
                            max_bp_size = 1000,
                            ...) {
   fragments_list <- lapply(fragments_trace_list, function(x) {
-    x$call_peaks(
-      smoothing_window = smoothing_window,
-      minimum_peak_signal = minimum_peak_signal,
-      min_bp_size = min_bp_size,
-      max_bp_size = max_bp_size,
-      ...
+    #find peak table
+    df <- find_fragment_peaks(x$trace_bp_df,
+                              smoothing_window = smoothing_window,
+                              minimum_peak_signal = minimum_peak_signal,
+                              ...
     )
+    df$unique_id <- rep(x$unique_id, nrow(df))
+    df <- df[which(df$size > min_bp_size & df$size < max_bp_size), ]
 
+    #generate new class
     new_fragments_repeats <- fragments_repeats$new(unique_id = x$unique_id)
     new_fragments_repeats$trace_bp_df <- x$trace_bp_df
-    new_fragments_repeats$peak_table_df <- x$peak_table_df
+    new_fragments_repeats$peak_table_df <- df
     new_fragments_repeats <- transfer_metadata_helper(x, new_fragments_repeats)
     new_fragments_repeats$.__enclos_env__$private$min_bp_size <- min_bp_size
     new_fragments_repeats$.__enclos_env__$private$max_bp_size <- max_bp_size
@@ -764,7 +773,8 @@ add_metadata <- function(fragments_list,
   metadata_added <- lapply(
     fragments_list,
     function(x) {
-      x$add_metadata(
+      add_metadata_helper(
+        fragments = x$clone(),
         metadata_data.frame = metadata_data.frame,
         unique_id = unique_id,
         plate_id = plate_id,
@@ -772,7 +782,7 @@ add_metadata <- function(fragments_list,
         size_standard = size_standard,
         size_standard_repeat_length = size_standard_repeat_length,
         metrics_baseline_control = metrics_baseline_control
-      )
+        )
     }
   )
 }
@@ -820,11 +830,19 @@ find_alleles <- function(fragments_list,
                          peak_region_size_gap_threshold = 6,
                          peak_region_height_threshold_multiplier = 1) {
   main_peaks <- lapply(fragments_list, function(x) {
-    x$find_main_peaks(
+
+    x <- find_main_peaks_helper(
+      fragments_repeats_class = x$clone(),
       number_of_peaks_to_return = number_of_peaks_to_return,
       peak_region_size_gap_threshold = peak_region_size_gap_threshold,
       peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier
     )
+
+    # finally, indicate in the private part of the class that this function has been used since that is required for next steps
+    x$.__enclos_env__$private$find_main_peaks_used <- TRUE
+
+    return(x)
+
   })
 }
 
@@ -969,16 +987,19 @@ call_repeats <- function(fragments_list,
   added_repeats <- lapply(
     fragments_list,
     function(x) {
-      x$add_repeats(
-        assay_size_without_repeat = assay_size_without_repeat,
-        repeat_size = repeat_size,
-        repeat_calling_algorithm = repeat_calling_algorithm,
-        repeat_calling_algorithm_size_window_around_allele = repeat_calling_algorithm_size_window_around_allele,
-        repeat_calling_algorithm_peak_assignment_scan_window = repeat_calling_algorithm_peak_assignment_scan_window,
-        repeat_calling_algorithm_size_period = repeat_calling_algorithm_size_period,
-        force_whole_repeat_units = force_whole_repeat_units,
-        correct_repeat_length = ifelse(repeat_length_correction == "none", FALSE, TRUE)
-      )
+        x <- add_repeats_helper(
+          x,
+          assay_size_without_repeat = assay_size_without_repeat,
+          repeat_size = repeat_size,
+          repeat_calling_algorithm = repeat_calling_algorithm,
+          repeat_calling_algorithm_size_window_around_allele = repeat_calling_algorithm_size_window_around_allele,
+          repeat_calling_algorithm_peak_assignment_scan_window = repeat_calling_algorithm_peak_assignment_scan_window,
+          repeat_calling_algorithm_size_period = repeat_calling_algorithm_size_period,
+          force_whole_repeat_units = force_whole_repeat_units,
+          correct_repeat_length = ifelse(repeat_length_correction == "none", FALSE, TRUE)
+        )
+
+        return(x)
     }
   )
 
@@ -1222,12 +1243,15 @@ calculate_instability_metrics <- function(fragments_list,
 
   # calculate metrics
   metrics_list <- lapply(fragments_list, function(x) {
-    x$instability_metrics(
-      peak_threshold = peak_threshold,
-      window_around_index_peak = window_around_index_peak,
-      percentile_range = percentile_range,
-      repeat_range = repeat_range
-    )
+
+      # compute metrics
+      metrics <- compute_metrics(
+        x,
+        peak_threshold = peak_threshold,
+        window_around_index_peak = window_around_index_peak,
+        percentile_range = percentile_range,
+        repeat_range = repeat_range
+      )
   })
   metrics <- do.call(rbind, metrics_list)
 

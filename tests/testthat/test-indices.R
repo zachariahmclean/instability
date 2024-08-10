@@ -16,28 +16,27 @@ testthat::test_that("percentiles", {
     min_size_bp = 350
   )
 
-  test_main_peaks <- test_fragments[[1]]$find_main_peaks(
-    number_of_peaks_to_return = 1,
-    peak_region_size_gap_threshold = 6,
-    peak_region_height_threshold_multiplier = 1
-  )
+  test_main_peaks <- find_alleles(test_fragments[1],
+                                  number_of_peaks_to_return = 1,
+                                  peak_region_size_gap_threshold = 6,
+                                  peak_region_height_threshold_multiplier = 1)
 
-  test_fragments_repeats_simple <- test_main_peaks$add_repeats(
+  test_fragments_repeats_simple <- call_repeats(
+    test_main_peaks,
     repeat_calling_algorithm = "simple",
     assay_size_without_repeat = 87,
-    repeat_size = 3,
-    correct_repeat_length = FALSE
+    repeat_size = 3
   )
 
 
-  test_distribution_df <- test_fragments_repeats_simple$repeat_table_df
+  test_distribution_df <- test_fragments_repeats_simple[[1]]$repeat_table_df
   test_distribution_df <- test_distribution_df[which(test_distribution_df$repeats > 113), ]
 
 
   percentiles <- find_percentiles(
     repeats = test_distribution_df$repeats,
     heights = test_distribution_df$height,
-    index_peak_repeat = test_fragments_repeats_simple$allele_1_repeat,
+    index_peak_repeat = test_fragments_repeats_simple[[1]]$allele_1_repeat,
     type = "percentile", # "percentile" or "repeat"
     range = seq(0.1, 0.99, .10),
     col_preffix = "percentile"
@@ -46,7 +45,7 @@ testthat::test_that("percentiles", {
   repeat_test <- find_percentiles(
     repeats = test_distribution_df$repeats,
     heights = test_distribution_df$height,
-    index_peak_repeat = test_fragments_repeats_simple$allele_1_repeat,
+    index_peak_repeat = test_fragments_repeats_simple[[1]]$allele_1_repeat,
     type = "repeat", # "percentile" or "repeat"
     range = percentiles$percentile_0.2,
     col_preffix = "repeat"
