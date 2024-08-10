@@ -60,13 +60,7 @@ repeats_list <- call_repeats(
 
 metadata_added_list <- add_metadata(
   fragments_list = repeats_list,
-  metadata_data.frame = instability::metadata,
-  unique_id = "unique_id",
-  plate_id = "plate_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  metadata_data.frame = instability::metadata
 )
 
 index_assigned <- assign_index_peaks(metadata_added_list,

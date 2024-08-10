@@ -57,13 +57,7 @@ testthat::test_that("metadata transfer", {
     )
   )
   suppressWarnings(
-    metadata_added <- add_metadata(test_ladders, metadata,
-      unique_id = "unique_id",
-      plate_id = "plate_id",
-      group_id = "cell_line",
-      metrics_baseline_control = "metrics_baseline_control_TF",
-      size_standard = "repeat_positive_control_TF",
-      size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_added <- add_metadata(test_ladders, metadata
     )
   )
 

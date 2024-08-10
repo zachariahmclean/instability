@@ -102,13 +102,7 @@ test_fragments <- peak_table_to_fragments(gm_raw,
 
 test_metadata <- add_metadata(
   fragments_list = test_fragments,
-  metadata_data.frame = metadata,
-  unique_id = "unique_id",
-  plate_id = "plate_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  metadata_data.frame = metadata
 )
 
 test_alleles <- find_alleles(
@@ -127,11 +121,16 @@ test_repeats <- call_repeats(
   repeat_length_correction = "none"
 )
 
+test_assigned <- assign_index_peaks(
+  fragments_list = test_repeats,
+  grouped = TRUE
+)
+
+
 # grouped metrics
 # uses t=0 samples as indicated in metadata
 test_metrics_grouped <- calculate_instability_metrics(
-  fragments_list = test_repeats,
-  grouped = TRUE,
+  fragments_list = test_assigned,
   peak_threshold = 0.05,
   window_around_index_peak = c(-40, 40),
   percentile_range = c(0.5, 0.75, 0.9, 0.95),

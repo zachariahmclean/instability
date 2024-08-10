@@ -89,13 +89,7 @@ testthat::test_that("add_metadata", {
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
 
@@ -181,11 +175,7 @@ testthat::test_that("add_metadata missing", {
     fragments_list = test_fragments,
     metadata_data.frame = metadata,
     unique_id = "unique_id",
-    plate_id = NA,
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    plate_id = NA
   )
 
   testthat::expect_true(is.na(test_metadata[[1]]$plate_id))
@@ -195,10 +185,7 @@ testthat::test_that("add_metadata missing", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = NA,
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    group_id = NA
   )
 
   testthat::expect_true(is.na(test_metadata[[1]]$group_id))
@@ -208,10 +195,8 @@ testthat::test_that("add_metadata missing", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = NA,
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    group_id = "group_id",
+    metrics_baseline_control = NA
   )
 
   testthat::expect_false(test_metadata[[1]]$metrics_baseline_control)
@@ -222,10 +207,9 @@ testthat::test_that("add_metadata missing", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = NA,
-    size_standard_repeat_length = "repeat_positive_control_length"
+    group_id = "group_id",
+    metrics_baseline_control = "metrics_baseline_control",
+    size_standard = NA
   )
 
   testthat::expect_false(test_metadata[[1]]$size_standard)
@@ -235,9 +219,9 @@ testthat::test_that("add_metadata missing", {
     metadata_data.frame = metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
+    group_id = "group_id",
+    metrics_baseline_control = "metrics_baseline_control",
+    size_standard = "size_standard",
     size_standard_repeat_length = NA
   )
 
@@ -292,13 +276,7 @@ testthat::test_that("calculate metrics", {
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
   test_alleles <- find_alleles(
@@ -479,13 +457,7 @@ testthat::test_that("full pipline", {
 
   fragment_metadata <- add_metadata(
     fragments_list = peak_list,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
   fragment_alleles <- find_alleles(

@@ -16,6 +16,8 @@ A base R graphic object displaying the repeat correction model results.
 Plots the results of the repeat correction model for a list of fragments.
 }
 \examples{
+
+
 gm_raw <- instability::example_data
 metadata <- instability::metadata
 
@@ -34,13 +36,7 @@ test_alleles <- find_alleles(
 
 test_metadata <- add_metadata(
   fragments_list = test_alleles,
-  metadata_data.frame = metadata,
-  unique_id = "unique_id",
-  plate_id = "plate_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  metadata_data.frame = metadata
 )
 
 test_repeats_corrected <- call_repeats(

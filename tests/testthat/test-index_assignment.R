@@ -35,13 +35,7 @@ test_that("index assignment", {
 
   fragment_metadata <- add_metadata(
     fragments_list = peak_list,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
   fragment_alleles <- find_alleles(

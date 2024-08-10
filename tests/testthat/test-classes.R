@@ -32,10 +32,10 @@ testthat::test_that("add_metadata function", {
     metadata,
     unique_id = "unique_id",
     plate_id = "plate_id",
-    group_id = "cell_line",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length",
-    metrics_baseline_control = "metrics_baseline_control_TF"
+    group_id = "group_id",
+    size_standard = "size_standard",
+    size_standard_repeat_length = "size_standard_repeat_length",
+    metrics_baseline_control = "metrics_baseline_control"
   )
 
   testthat::expect_true(!is.na(test_metadata$unique_id))

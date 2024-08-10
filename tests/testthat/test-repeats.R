@@ -68,11 +68,7 @@ testthat::test_that("call_repeats", {
 
   # correct repeat length
 
-  test_alleles_metadata <- add_metadata(test_alleles, metadata,
-                                        group_id = "cell_line",
-                                        unique_id = "unique_id",
-                                        size_standard = "repeat_positive_control_TF",
-                                        size_standard_repeat_length = "repeat_positive_control_length"
+  test_alleles_metadata <- add_metadata(test_alleles, metadata
   )
 
   suppressMessages(
@@ -304,13 +300,7 @@ testthat::test_that("full pipline repeat size algo", {
 
   fragment_metadata <- add_metadata(
     fragments_list = peak_list,
-    metadata_data.frame = metadata,
-    unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "cell_line",
-    metrics_baseline_control = "metrics_baseline_control_TF",
-    size_standard = "repeat_positive_control_TF",
-    size_standard_repeat_length = "repeat_positive_control_length"
+    metadata_data.frame = metadata
   )
 
   fragment_alleles <- find_alleles(
