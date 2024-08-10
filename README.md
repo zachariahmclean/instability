@@ -4,7 +4,7 @@
 This package provides a pipeline for short tandem repeat instability
 analysis from fragment analysis data. The inputs are fsa files or peak
 tables (eg Genemapper 5 software output), and a user supplied metadata
-data-frame. The functions identify ladders, calls peaks, and calculates
+data-frame. The functions identify ladders, calls peaks, and calculate
 repeat instability metrics (ie expansion index or average repeat gain).
 
 To report bugs or feature requests, please visit the Github issue
@@ -17,6 +17,10 @@ If you use this package, please cite
 now.
 
 # How to use the package
+
+For an easy way to get started with your own data or to run an example,
+use instability::generate_instability_template() to generate a document
+with the pipeline pre-populated.
 
 In this package, each sample is represented by an R6 ‘fragments’ object,
 which are organised in lists. As a user, there are accessor functions
@@ -178,11 +182,11 @@ metadata_added_list <- add_metadata(
   fragments_list = peak_list,
   metadata_data.frame = instability::metadata,
   unique_id = "unique_id",
-  group_id = "cell_line",
-  metrics_baseline_control = "metrics_baseline_control_TF",
+  group_id = "group_id",
+  metrics_baseline_control = "metrics_baseline_control",
   plate_id = "plate_id",
-  size_standard = "repeat_positive_control_TF",
-  size_standard_repeat_length = "repeat_positive_control_length"
+  size_standard = "size_standard",
+  size_standard_repeat_length = "size_standard_repeat_length"
 )
 ```
 
@@ -293,7 +297,7 @@ plot_data <- metrics_grouped_df |>
     day > 0,
     modal_peak_height > 500
   ) |>
-  dplyr::group_by(cell_line) |>
+  dplyr::group_by(group_id) |>
   dplyr::mutate(
     rel_gain = average_repeat_gain / median(average_repeat_gain[which(treatment == 0)]),
     genotype = forcats::fct_rev(genotype)
@@ -304,7 +308,6 @@ Then we can plot the instability metrics
 
 ``` r
 library(ggplot2)
-#> Warning: package 'ggplot2' was built under R version 4.4.1
 
 ggplot(
   plot_data,
