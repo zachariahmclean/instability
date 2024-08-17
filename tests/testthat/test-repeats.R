@@ -376,3 +376,42 @@ testthat::test_that("full pipline repeat size algo", {
   testthat::expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85562, 0.70208, 0.56223, 1.00000, 1.18592, 1.10739, 1.00075)))
 })
 
+
+
+testthat::test_that("size standards with ids", {
+
+
+  H7_metadata <- lapply(1:10, function(x){
+     df <- metadata[which(metadata$unique_id == "20230413_H07.fsa"), ]
+     df$unique_id <- paste0("20230413_H07.fsa", "_", x)
+
+     return(df)
+  })
+
+  H7_metadata <- do.call(rbind, H7_metadata)
+
+  H7_fsa_list <- rep(cell_line_fsa_list["20230413_H07.fsa"],10)
+
+  names(H7_fsa_list) <- paste0("20230413_H07.fsa", "_", 1:10)
+
+
+  cell_line_fsa_list["20230413_H07.fsa"]
+
+
+
+  ladder_list <- find_ladders(cell_line_fsa_list[c("20230413_H07.fsa", "20230413_H08.fsa")])
+
+  fragments_list <- find_fragments(ladder_list, min_bp_size = 300)
+
+  metadata[which(metadata$)]
+
+
+  # 20230413_H07.fsa == S-21-211
+  # 20230413_H08.fsa == S-21-212
+
+
+
+
+
+})
+

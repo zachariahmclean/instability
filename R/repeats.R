@@ -392,6 +392,15 @@ model_repeat_length <- function(fragments_list,
 
   message(paste0("Repeat correction model: ", length(unique(controls_repeats_df$unique_id)), " samples used to build model"))
 
+
+
+  # identify size stds with shared id
+  # can compare to each other to make sure that the same peak in the distribution has been selected as the modal
+
+
+
+
+
   # Can now make a model based on the bp size and the known repeat size
   if (length(unique(controls_repeats_df$plate_id)) == 1) {
     # when there's only one plate just set up simple lm
