@@ -319,6 +319,7 @@ model_repeat_length <- function(fragments_list,
           main_peak_repeat = x$size_standard_repeat_length,
           repeat_size = repeat_size
         ),
+        height = cluster_df$height,
         plate_id = rep(x$plate_id, cluster_df_length)
       )
     })
@@ -334,7 +335,8 @@ model_repeat_length <- function(fragments_list,
         unique_id = x$unique_id,
         size_standard = x$size_standard,
         allele_1_size = x$allele_1_size,
-        plate_id = x$plate_id
+        plate_id = x$plate_id,
+        size_standard_sample_id = x$size_standard_sample_id
       )
     })
     extracted_df <- do.call(rbind, extracted)
@@ -390,16 +392,42 @@ model_repeat_length <- function(fragments_list,
     )
   }
 
-  message(paste0("Repeat correction model: ", length(unique(controls_repeats_df$unique_id)), " samples used to build model"))
-
-
-
-  # identify size stds with shared id
+  # identify size stds with shared id for more quality control
   # can compare to each other to make sure that the same peak in the distribution has been selected as the modal
+  standard_sample_ids <-sapply(controls_fragments, function(x) x$size_standard_sample_id)
+  if(any(!is.na(standard_sample_ids))){
+    unique_standard_sample_ids <- unique(standard_sample_ids)
 
-
-
-
+    for (i in seq_along(unique_standard_sample_ids)) {
+      ids_i <- controls_df[which(controls_df$size_standard_sample_id == unique_standard_sample_ids[i]), "unique_id"]
+      controls_repeats_df_i <- controls_repeats_df[which(controls_repeats_df$unique_id %in% ids_i), ]
+      controls_repeats_df_list_i <- split(controls_repeats_df_i, controls_repeats_df_i$unique_id)
+      differences_i <- sapply(controls_repeats_df_list_i, function(x) {
+        # this compares the average (weighted mean) and the mode
+        # if there's a little wobble at the top with two cloes peaks
+        # then the average size shouldn't change much
+        # but the difference between the mode and the average changes a whole repeat unit
+        # which can indicate to us that one of the stds might be off
+        weighted.mean(x$size, x$height) - x$size[which.max(x$height)]
+      })
+      differences_of_differences_i <- lapply(differences_i, function(x) differences <- x - differences_i)
+      if(any(sapply(differences_of_differences_i, function(x) abs(x) > repeat_size * 0.8))){
+        # how do you dtermine which of the samples might be off? 
+        # perhaps we could try and help the person figure that out
+        # but that is complicated, instead give them a warning
+        warning(
+          call. = FALSE, 
+          paste0("Warning! It looks like at least one of the samples in the size standard group '",
+          unique_standard_sample_ids[i], "' has a different modal peak than the other samples. ",
+          "It's possible that the modal peak has shifted to a different spot in the distribution in at least of one the runs. ",
+          "Use plot_size_standard_samples() to visualize and identify this sample, the update metadata with the correct repeat length of the modal peak."
+        )
+        )
+      }
+    }
+  }
+  
+  message(paste0("Repeat correction model: ", length(unique(controls_repeats_df$unique_id)), " samples used to build model"))
 
   # Can now make a model based on the bp size and the known repeat size
   if (length(unique(controls_repeats_df$plate_id)) == 1) {
@@ -418,8 +446,8 @@ model_repeat_length <- function(fragments_list,
   controls_repeats_df$residuals <- correction_mods$residuals
   message(paste0("Repeat correction model: Average repeat residual ", round(mean(controls_repeats_df$residuals), 10)))
 
-  if (any(abs(controls_repeats_df$residuals) > 0.5)) {
-    message("Repeat correction model: Warning! The following samples may be off and need investigaion")
+  if (any(abs(controls_repeats_df$residuals) > 0.3)) {
+    message("Repeat correction model: Warning! The following samples may be off and need investigaion. It's possible that at least one of these samples has the incorrect repeat length indicated in the metadata.")
 
     samples_all_controls <- unique(controls_repeats_df$unique_id)
     samples_high_diff <- unique(controls_repeats_df[which(abs(controls_repeats_df$residuals) > 0.5), "unique_id"])

@@ -221,10 +221,10 @@ repeat size when we indicate size standard samples in the metadata and
 have `repeat_length_correction = "from_metadata"` in `call_repeats()`.
 
 ``` r
-plot_repeat_correction_model(repeats_list)
+plot_size_standard_model(repeats_list)
 ```
 
-<img src="man/figures/README-plot_repeat_correction_model-1.png" width="100%" />
+<img src="man/figures/README-plot_size_standard_model-1.png" width="100%" />
 
 In this case the dots are basically overlapping and in the middle of the
 linear model, indicating that we have correctly identified the known

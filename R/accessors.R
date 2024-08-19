@@ -722,6 +722,7 @@ add_metadata <- function(fragments_list,
                          group_id = "group_id",
                          metrics_baseline_control = "metrics_baseline_control",
                          size_standard = "size_standard",
+                         size_standard_sample_id = "size_standard_sample_id",
                          size_standard_repeat_length = "size_standard_repeat_length") {
   # validate inputs to give good errors to user
   ## check to make sure that if the user supplies a column name, that it's actually in the dataframe they supplied
@@ -781,6 +782,7 @@ add_metadata <- function(fragments_list,
         plate_id = plate_id,
         group_id = group_id,
         size_standard = size_standard,
+        size_standard_sample_id = size_standard_sample_id,
         size_standard_repeat_length = size_standard_repeat_length,
         metrics_baseline_control = metrics_baseline_control
         )
@@ -1595,7 +1597,7 @@ plot_traces <- function(fragments_list,
 #'
 #' plot_fragments(test_alleles[1:2])
 plot_fragments <- function(fragments_list,
-                           n_facet_col = 2,
+                           n_facet_col = 1,
                            sample_subset = NULL,
                            xlim = NULL,
                            ylim = NULL) {
@@ -1614,7 +1616,7 @@ plot_fragments <- function(fragments_list,
 }
 
 
-# plot repeat correction model --------------------------------------------
+# plot size standard model --------------------------------------------
 
 
 
@@ -1659,9 +1661,9 @@ plot_fragments <- function(fragments_list,
 #'   repeat_length_correction = "from_metadata"
 #' )
 #'
-#' plot_repeat_correction_model(test_repeats_corrected)
+#' plot_size_standard_model(test_repeats_corrected)
 #'
-plot_repeat_correction_model <- function(fragments_list) {
+plot_size_standard_model <- function(fragments_list) {
   # Check if all models in the list are the same
   first_model_df <- fragments_list[[1]]$.__enclos_env__$private$correction_mod$model
   identical_model_test <- logical(length(fragments_list))
@@ -1679,7 +1681,7 @@ plot_repeat_correction_model <- function(fragments_list) {
   # Plotting
   graphics::par(mfrow = c(1, length(unique(controls_repeats_df$plate_id))))
   for (plate_id in unique(controls_repeats_df$plate_id)) {
-    plate_data <- subset(controls_repeats_df, plate_id == plate_id)
+    plate_data <- controls_repeats_df[which(controls_repeats_df$plate_id == plate_id),]
 
     # Generating unique colors for each unique value in unique_id
     unique_ids <- unique(plate_data$unique_id)
@@ -1696,7 +1698,102 @@ plot_repeat_correction_model <- function(fragments_list) {
   }
 }
 
+# plot size standard sample groups ----------------------------------------
 
+#' plot size standard samples
+#'
+#' Plot the overlapping traces of the size standards by their size standard ids
+#'
+#' @param fragments_list A list of fragments_repeats objects containing fragment data.
+#' @param sample_subset A character vector of size_standard_sample_id for a subset of samples to plot. Or alternativly supply a numeric vector.
+#' @param xlim the x limits of the plot. A numeric vector of length two.
+#' @param x_axis A character indicating what should be plotted on the x-axis, chose between `size` or `repeats`. Only use repeats if plotting after the repeat correction.
+#'
+#' @return plot traces from fragments object
+#' @export
+#' @details
+#' A plot of the raw signal by bp size or repeats for the size standard samples. 
+#' 
+#' When plotting the traces before repeat correction we do not expect the samples to be closely overallping due to run-to-run variation. After repeat correction and plotting "repeats" on the x-axis, the traces should be bascially overlapping. It can be difficult from the "repeats" x-axis to figure out which sample is wrong because if one is wrong it will mess up the repeat size for all other samples in that same plate_id. Use the "size" x-axis to make sure all of the traces have the same distribution and modal peak."
+#'
+#' @examples
+#'
+plot_size_standard_samples <- function(fragments_list,
+  sample_subset = NULL,
+  x_axis = "size",
+  xlim = NULL){
+
+  # browser()
+
+size_standard_fragments <- sapply(fragments_list, function(x) x$size_standard)
+controls_fragments_list <- fragments_list[which(size_standard_fragments)]
+  
+if(!is.null(sample_subset)){
+  sample_subset <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id %in% sample_subset)
+  controls_fragments_list <- controls_fragments_list[which(sample_subset)]
+}
+  
+size_standard_fragments_sample_groups <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id)
+  
+split_by_sample <- split(controls_fragments_list, size_standard_fragments_sample_groups)
+  
+overlapping_plot <- function(sample_fragments){
+  sample_traces <- lapply(sample_fragments, function(y){
+    df <- y$trace_bp_df
+    if (x_axis == "size") {
+      df$x <- df$size
+    } else if(x_axis == "repeats") {
+      df$x <- df$calculated_repeats
+    } else{
+      stop(call. = FALSE,
+        "Please provide valid x-axis, either: 'size' or 'repeats'"
+      )
+    }
+    return(df)
+    })
+  
+  # for (trace_df in split_by_sample[[1]]) {
+  #   plot()
+  # }
+  
+  
+  # Generate colors dynamically
+  n_dfs <- length(sample_traces)
+  colors <- rainbow(n_dfs, alpha = 0.5)  # Generates n colors with alpha for transparency
+    
+  
+  if (!is.null(xlim))  {
+    sample_traces <- lapply(sample_traces, function(df){
+      df <- df[which(df$x < xlim[2] & df$x > xlim[1]), ]
+      return(df)
+    })
+  }
+  # Plot the first dataframe
+  plot(sample_traces[[1]]$x, sample_traces[[1]]$signal, 
+    type = "l", 
+    col = colors[1], 
+    xlab = ifelse(x_axis == "size", "Size", "Repeats"), 
+    ylab = "Signal", 
+    ylim = range(sapply(sample_traces, function(df) range(df$signal))),
+    main = sample_fragments[[1]]$size_standard_sample_id
+  )
+  
+  # Add lines for remaining dataframes
+  for (i in 2:n_dfs) {
+    lines(sample_traces[[i]]$x, sample_traces[[i]]$signal, col = colors[i])
+  }
+  
+  # Add a legend
+  graphics::legend("topright", legend = sapply(sample_fragments, function(x) x$unique_id), 
+    col = colors, lty = 1, cex = 0.7, inset = c(-0.5, 0), seg.len = 0.5)
+}
+
+for (i in seq_along(split_by_sample)) {
+  dev.new()
+  overlapping_plot(split_by_sample[[i]])
+}
+
+}
 
 
 # qmd templates -----------------------------------------------------------

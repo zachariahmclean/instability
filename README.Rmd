@@ -160,8 +160,8 @@ plot_traces(repeats_list[1], xlim = c(110, 150))
 
 We can also view the data used to generate the model for calling the repeat size when we indicate size standard samples in the metadata and have `repeat_length_correction = "from_metadata"` in `call_repeats()`.
 
-```{r plot_repeat_correction_model}
-plot_repeat_correction_model(repeats_list)
+```{r plot_size_standard_model}
+plot_size_standard_model(repeats_list)
 ```
 
 In this case the dots are basically overlapping and in the middle of the linear model, indicating that we have correctly identified the known tallest peak used for the repeat size standards. If the wrong peak was selected for one of the samples, the dots would be shifted across 3 bp and no longer overlapping.

@@ -480,7 +480,7 @@ testthat::test_that("full pipline", {
 
 
   # plot_fragments(test_repeats[1:4])
-  # plot_repeat_correction_model(test_repeats)
+  # plot_size_standard_model(test_repeats)
 
   suppressMessages(
     suppressWarnings(
