@@ -397,7 +397,8 @@ testthat::test_that("size standards with ids", {
   H8_fsa_list <- rep(cell_line_fsa_list["20230413_H08.fsa"],10)
   names(H8_fsa_list) <- paste0("20230413_H08.fsa", "_", 1:10)
 
-  ladder_list <- find_ladders(c(H7_fsa_list, H8_fsa_list))
+  ladder_list <- find_ladders(c(H7_fsa_list, H8_fsa_list),
+          show_progress_bar = FALSE)
 
   fragments_list <- find_fragments(ladder_list, min_bp_size = 300)
 
@@ -428,22 +429,22 @@ testthat::test_that("size standards with ids", {
 
     
 
-  repeats_list <- call_repeats(allele_list,
+  # repeats_list <- call_repeats(allele_list,
+  #   repeat_length_correction = "from_metadata"  
+  #   )
+  
+  sample_group_waning <- tryCatch(call_repeats(allele_list,
     repeat_length_correction = "from_metadata"  
-    )
+    ), warning=function(w) w)
   
-    plot_size_standard_samples(repeats_list, x_axis = "size", xlim = c(400, 470))
-    plot_size_standard_samples(repeats_list, x_axis = "repeats", xlim = c(100, 130))
+  #test that warning is given
+  testthat::expect_true(class(sample_group_waning)[1] == "simpleWarning")
+
+  #test that warning is only for "S-21-212"
+  testthat::expect_true(grepl("S-21-212", sample_group_waning))
   
-    plot_traces(repeats_list[11], x_axis = "repeats", xlim = c(100, 130))
-#   pdf("C:/Users/gusella_lab/Downloads/test.pdf", height = 3, width = 20)
-
-# plot_size_standard_model(repeats_list)
-  
-#   dev.off()
-
-
-
+  # plot_size_standard_samples(repeats_list, x_axis = "size", xlim = c(400, 470))
+  # plot_size_standard_samples(repeats_list, x_axis = "repeats", xlim = c(100, 130))
 
 
 })

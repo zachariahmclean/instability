@@ -667,6 +667,7 @@ repeat_table_to_repeats <- function(df,
 #' @param group_id (optional) A character string indicating the column name for sample group identifiers in the metadata. To skip, provide NA.
 #' @param metrics_baseline_control (optional) A character string indicating the column name for baseline control indicators in the metadata. To skip, provide NA.
 #' @param size_standard (optional) A character string indicating the column name for repeat positive control indicators in the metadata. To skip, provide NA.
+#' @param size_standard_sample_id (optional) A character string indicating the column name for an id of the size standard. For example, a sample code. This is so that checks can be done that the sample has the same modal peak across different fragment analysis runs. To skip, provide NA.
 #' @param size_standard_repeat_length (optional) A character string indicating the column name for repeat positive control lengths in the metadata. To skip, provide NA.
 #'
 #' @return A modified list of fragment objects with added metadata.
@@ -1718,19 +1719,77 @@ plot_size_standard_model <- function(fragments_list) {
 #'
 #' @examples
 #'
+#' 
+#' test_ladders <- find_ladders(cell_line_fsa_list, show_progress_bar = FALSE)
+#' 
+#' 
+#'
+#'# duplicate data to generate an example
+#'
+#' test_metadata <- add_metadata(
+#'   fragments_list = test_ladders,
+#'   metadata_data.frame = metadata
+#' )
+#'
+#' test_metadata2 <- lapply(test_metadata, function(sample){
+#'  sample2 <- sample$clone()
+#'  sample2$trace_bp_df$size <- sample2$trace_bp_df$size + 2
+#'  sample2$unique_id <- paste0(sample$unique_id, "_2")
+#'  sample2$plate_id <- paste0(sample2$plate_id, "_2")
+#'  return(sample2)
+#'})
+#'
+#'names(test_metadata2) <- sapply(test_metadata2, function(x) x$unique_id)
+#'
+#'metadata_added_combined <- c(test_metadata, test_metadata2)
+#'
+#' test_fragments <- find_fragments(metadata_added_combined, min_bp_size = 300)
+#'
+#' test_alleles <- find_alleles(
+#'   fragments_list = test_fragments,
+#'   number_of_peaks_to_return = 1,
+#'   peak_region_size_gap_threshold = 6,
+#'   peak_region_height_threshold_multiplier = 1
+#' )
+#'
+#'
+#' test_repeats_corrected <- call_repeats(
+#'   fragments_list = test_alleles,
+#'   repeat_calling_algorithm = "simple",
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3,
+#'   repeat_length_correction = "from_metadata"
+#' )
+#'
+#' # traces of bp size shows traces at different sizes
+#' plot_size_standard_samples(test_repeats_corrected, x_axis = "size", 
+#'                            sample_subset = "S-21-212", xlim = c(400, 450))
+#' 
+#' # overlapping traces when looking at the corrected repeat length
+#' plot_size_standard_samples(test_repeats_corrected, x_axis = "repeats", 
+#'                            sample_subset = "S-21-212", xlim = c(100, 130))
+#' 
 plot_size_standard_samples <- function(fragments_list,
   sample_subset = NULL,
   x_axis = "size",
   xlim = NULL){
 
-  # browser()
-
-size_standard_fragments <- sapply(fragments_list, function(x) x$size_standard)
-controls_fragments_list <- fragments_list[which(size_standard_fragments)]
+size_standard_fragments <- sapply(fragments_list, function(x) x$size_standard_sample_id)  
+controls_fragments_list <- fragments_list[which(!is.na(size_standard_fragments))]
+  
+if(length(unique(na.omit(size_standard_fragments))) == 0){
+  stop(call. = FALSE,
+    "There are no samples with size_standard_sample_id assigned. Check that the size_standard_sample_id has been added to the samples via add_metadata().")
+}
   
 if(!is.null(sample_subset)){
   sample_subset <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id %in% sample_subset)
   controls_fragments_list <- controls_fragments_list[which(sample_subset)]
+
+  if(length(controls_fragments_list) == 0){
+    stop(call. = FALSE,
+      "After subsetting the samples with the provided id, no samples were left. Check that you provided the correct id or that the size_standard_sample_id has been added to the samples.")
+  }
 }
   
 size_standard_fragments_sample_groups <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id)
@@ -1780,7 +1839,7 @@ overlapping_plot <- function(sample_fragments){
   
   # Add lines for remaining dataframes
   for (i in 2:n_dfs) {
-    lines(sample_traces[[i]]$x, sample_traces[[i]]$signal, col = colors[i])
+    graphics::lines(sample_traces[[i]]$x, sample_traces[[i]]$signal, col = colors[i])
   }
   
   # Add a legend
@@ -1789,7 +1848,7 @@ overlapping_plot <- function(sample_fragments){
 }
 
 for (i in seq_along(split_by_sample)) {
-  dev.new()
+  # why does this not split out all the plots?
   overlapping_plot(split_by_sample[[i]])
 }
 

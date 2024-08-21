@@ -12,6 +12,7 @@ add_metadata(
   group_id = "group_id",
   metrics_baseline_control = "metrics_baseline_control",
   size_standard = "size_standard",
+  size_standard_sample_id = "size_standard_sample_id",
   size_standard_repeat_length = "size_standard_repeat_length"
 )
 }
@@ -29,6 +30,8 @@ add_metadata(
 \item{metrics_baseline_control}{(optional) A character string indicating the column name for baseline control indicators in the metadata. To skip, provide NA.}
 
 \item{size_standard}{(optional) A character string indicating the column name for repeat positive control indicators in the metadata. To skip, provide NA.}
+
+\item{size_standard_sample_id}{(optional) A character string indicating the column name for an id of the size standard. For example, a sample code. This is so that checks can be done that the sample has the same modal peak across different fragment analysis runs. To skip, provide NA.}
 
 \item{size_standard_repeat_length}{(optional) A character string indicating the column name for repeat positive control lengths in the metadata. To skip, provide NA.}
 }

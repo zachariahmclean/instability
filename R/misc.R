@@ -124,6 +124,7 @@ transfer_metadata_helper <- function(old_fragment,
     "plate_id",
     "group_id",
     "size_standard",
+    "size_standard_sample_id",
     "size_standard_repeat_length",
     "metrics_baseline_control"
   )

@@ -6,7 +6,7 @@
 \usage{
 plot_fragments(
   fragments_list,
-  n_facet_col = 2,
+  n_facet_col = 1,
   sample_subset = NULL,
   xlim = NULL,
   ylim = NULL
