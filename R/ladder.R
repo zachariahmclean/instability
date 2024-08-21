@@ -441,7 +441,8 @@ ladder_fix_helper <- function(fragments_trace,
     scan = fragments_trace_copy$scan,
     size = predicted_size,
     signal = fragments_trace_copy$raw_data,
-    ladder_signal = fragments_trace_copy$raw_ladder
+    ladder_signal = fragments_trace_copy$raw_ladder,
+    off_scale = fragments_trace_copy$scan %in% fragments_trace_copy$off_scale_scans
   )
 
   # make a warning if one of the ladder modes is bad

@@ -42,16 +42,20 @@ experiment and things to consider when using this package:
   population, you could not worry about this and instead use the
   `index_override_dataframe` in `calculate_instability_metrics()`
 
-- (optional) Using a common sample of known repeat length to correct
+- (optional) Using a common sample(s) of known repeat length to correct
   repeat size across fragment analysis runs. There are slight
   fluctuations of repeat length size across runs, so if samples are to
   be analyzed for different runs, you must correct the repeat length so
   they are comparable. This is usually achieved by running running
   positive control samples with a known validated repeat size of the
   modal peak in each fragment analysis run. These samples are then
-  indicated `TRUE` in the column `size_standard` in the metadata, and
-  the known repeat length of the modal peak given in the
-  `size_standard_repeat_length` column.
+  indicated in the metadata with `plate_id` (to group samples by
+  fragment analysis run), `size_standard` (to indicate which sames are
+  size standards), `size_standard_sample_id` (to enable checking that
+  the modal peak is consistent across runs and plotting functions to
+  check correction results), and `size_standard_repeat_length`
+  (indicating the repeat length of the modal peak for each size standard
+  sample).
 
 - If starting from fsa files, the GeneScan™ 1200 LIZ™ dye Size Standard
   ladder assignment may not work very well. The ladder identification
@@ -59,7 +63,7 @@ experiment and things to consider when using this package:
   The 1200 LIZ™ ladder has a challenging pattern of ladder peaks to
   automatically assign. However, these ladders can be fixed by playing
   with the various parameters or manually with the built-in
-  fix_ladders_interactive()\` app.
+  fix_ladders_interactive() app.
 
 # Installation
 
@@ -156,25 +160,25 @@ peak_list_genemapper <- peak_table_to_fragments(instability::example_data,
 
 # Add metadata
 
-Metadata can be incorporated to enhance the fragments class and allow
-additional functionality in the `call_repeats()` (correcting repeat
-length across fragment analysis runs) and
-`calculate_instability_metrics()` (calculating expansion index or
-average repeat gain) functions. Some of the metadata fields are optional
-but highly recommended. Prepare a file (eg spreadsheet saved as .csv)
-with the following columns. If you use the specified column names, it
-will be automatically parsed by `add_metadata()`, otherwise you will
+Metadata can be incorporated to allow additional functionality in the
+`call_repeats()` (correcting repeat length across fragment analysis
+runs) and `calculate_instability_metrics()` (calculating expansion index
+or average repeat gain) functions. Some of the metadata fields are
+optional but highly recommended. Prepare a file (eg spreadsheet saved as
+.csv) with the following columns. If you use the specified column names,
+it will be automatically parsed by `add_metadata()`, otherwise you will
 need to match up which column name belongs to which metadata category
 (as done below in `add_metadata()`):
 
-| Metadata table column       | Description                                                                                                                                                                                                                                                                                                     |
-|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| unique_id                   | The unique identifier for the fsa file. Usually the sample file name. This must be unique, including across runs.                                                                                                                                                                                               |
-| group_id                    | This groups the samples for instability metric calculations. Provide a group id value for each sample. For example, in a mouse experiment and using the expansion index, you need to group the samples since they have the same metrics baseline control (eg inherited repeat length), so provide the mouse id. |
-| metrics_baseline_control    | This is related to group_id. Indicate with ‘TRUE’ to specify which sample is the baseline control (eg mouse tail for inherited repeat length, or day-zero sample in cell line experiments)                                                                                                                      |
-| plate_id                    | This groups the samples for correcting the repeat length. Provide a value for each fragment analysis run (eg date).                                                                                                                                                                                             |
-| size_standard               | This is related to plate_id. Indicate with ‘TRUE’ to specify which sample is the size standard of the repeat length.                                                                                                                                                                                            |
-| size_standard_repeat_length | This is related to size_standard. If the sample is a size standard, provide a numeric value of the modal repeat length.                                                                                                                                                                                         |
+| Metadata table column       | Functionality metadata is associated with                   | Description                                                                                                                                                                                                                                                                                                     |
+|-----------------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| unique_id                   | Required for adding metadata using `add_metdata()`          | The unique identifier for the fsa file. Usually the sample file name. This must be unique, including across runs.                                                                                                                                                                                               |
+| group_id                    | `assign_index_peaks()`, allows setting `grouped = TRUE`     | This groups the samples for instability metric calculations. Provide a group id value for each sample. For example, in a mouse experiment and using the expansion index, you need to group the samples since they have the same metrics baseline control (eg inherited repeat length), so provide the mouse id. |
+| metrics_baseline_control    | `assign_index_peaks()`, allows setting `grouped = TRUE`     | This is related to group_id. Indicate with ‘TRUE’ to specify which sample is the baseline control (eg mouse tail for inherited repeat length, or day-zero sample in cell line experiments)                                                                                                                      |
+| plate_id                    | `call_repeats()`, allows setting `repeat_length_correction` | This groups the samples for correcting the repeat length. Provide a value for each fragment analysis run (eg date).                                                                                                                                                                                             |
+| size_standard               | `call_repeats()`, allows setting `repeat_length_correction` | This is related to plate_id. Indicate with ‘TRUE’ to specify which sample is the size standard of the repeat length.                                                                                                                                                                                            |
+| size_standard_sample_id     | `call_repeats()`, allows setting `repeat_length_correction` | Give an id for the size standard. This allows comparison of the size standard across fragment analysis runs and plotting to visualize corrections.                                                                                                                                                              |
+| size_standard_repeat_length | `call_repeats()`, allows setting `repeat_length_correction` | This is related to size_standard. If the sample is a size standard, provide a numeric value of the modal repeat length.                                                                                                                                                                                         |
 
 ``` r
 
@@ -221,10 +225,10 @@ repeat size when we indicate size standard samples in the metadata and
 have `repeat_length_correction = "from_metadata"` in `call_repeats()`.
 
 ``` r
-plot_repeat_correction_model(repeats_list)
+plot_size_standard_model(repeats_list)
 ```
 
-<img src="man/figures/README-plot_repeat_correction_model-1.png" width="100%" />
+<img src="man/figures/README-plot_size_standard_model-1.png" width="100%" />
 
 In this case the dots are basically overlapping and in the middle of the
 linear model, indicating that we have correctly identified the known

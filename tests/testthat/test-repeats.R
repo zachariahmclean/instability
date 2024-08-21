@@ -122,7 +122,7 @@ testthat::test_that("call_repeats with correction from genemapper alleles", {
 })
 
 
-test_that("fft", {
+testthat::test_that("fft", {
 
   suppressWarnings(
     test_ladders <- find_ladders(cell_line_fsa_list[1],
@@ -193,7 +193,7 @@ test_that("fft", {
 
 
 
-test_that("repeat period", {
+testthat::test_that("repeat period", {
 
   suppressWarnings(
     test_ladders <- find_ladders(cell_line_fsa_list[1],
@@ -324,7 +324,7 @@ testthat::test_that("full pipline repeat size algo", {
 
 
   # plot_fragments(test_repeats[1:4])
-  # plot_repeat_correction_model(test_repeats)
+  # plot_size_standard_model(test_repeats)
 
   suppressMessages(
     suppressWarnings(
@@ -374,5 +374,78 @@ testthat::test_that("full pipline repeat size algo", {
   medians <- aggregate(rel_gain ~ treatment + genotype, plot_data, median, na.rm = TRUE)
 
   testthat::expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85562, 0.70208, 0.56223, 1.00000, 1.18592, 1.10739, 1.00075)))
+})
+
+
+
+testthat::test_that("size standards with ids", {
+
+
+  H7_metadata <- lapply(1:10, function(x){
+    df <- metadata[which(metadata$unique_id %in% c("20230413_H07.fsa", "20230413_H08.fsa")), ]
+    df$unique_id <- paste0(df$unique_id, "_", x)
+    df$plate_id <- x 
+
+     return(df)
+  })
+
+  H7_metadata <- do.call(rbind, H7_metadata)
+
+  H7_fsa_list <- rep(cell_line_fsa_list["20230413_H07.fsa"],10)
+  names(H7_fsa_list) <- paste0("20230413_H07.fsa", "_", 1:10)
+
+  H8_fsa_list <- rep(cell_line_fsa_list["20230413_H08.fsa"],10)
+  names(H8_fsa_list) <- paste0("20230413_H08.fsa", "_", 1:10)
+
+  ladder_list <- find_ladders(c(H7_fsa_list, H8_fsa_list),
+          show_progress_bar = FALSE)
+
+  fragments_list <- find_fragments(ladder_list, min_bp_size = 300)
+
+  metadata_list <- add_metadata(fragments_list,
+    H7_metadata)
+
+# add a random systematic error to each sample
+  # will use the number appended on the end as that for convience
+  metadata_list <- lapply(metadata_list, function(x){
+    x$peak_table_df$size <- x$peak_table_df$size + as.numeric(substr(x$unique_id, 18,19))
+    x$trace_bp_df$size <- x$trace_bp_df$size + as.numeric(substr(x$unique_id, 18,19))
+    #chose one of them to have the peaks swapped
+    if(as.numeric(substr(x$unique_id, 18,19)) == 5){
+      x$peak_table_df$height[7] <- x$peak_table_df$height[7] + 390
+      x$trace_bp_df$signal[which(x$trace_bp_df$size == x$peak_table_df$size[7])] <- x$trace_bp_df$signal[which(x$trace_bp_df$size == x$peak_table_df$size[7])] + 390
+    }
+    else{
+      #judt below other peak
+      x$peak_table_df$height[7] <- x$peak_table_df$height[7] + 380
+      x$trace_bp_df$signal[which(x$trace_bp_df$size == x$peak_table_df$size[7])] <- x$trace_bp_df$signal[which(x$trace_bp_df$size == x$peak_table_df$size[7])] + 380
+    }
+
+    return(x)
+  })
+  
+
+  allele_list <- find_alleles(metadata_list)
+
+    
+
+  # repeats_list <- call_repeats(allele_list,
+  #   repeat_length_correction = "from_metadata"  
+  #   )
+  
+  sample_group_waning <- tryCatch(call_repeats(allele_list,
+    repeat_length_correction = "from_metadata"  
+    ), warning=function(w) w)
+  
+  #test that warning is given
+  testthat::expect_true(class(sample_group_waning)[1] == "simpleWarning")
+
+  #test that warning is only for "S-21-212"
+  testthat::expect_true(grepl("S-21-212", sample_group_waning))
+  
+  # plot_size_standard_samples(repeats_list, x_axis = "size", xlim = c(400, 470))
+  # plot_size_standard_samples(repeats_list, x_axis = "repeats", xlim = c(100, 130))
+
+
 })
 

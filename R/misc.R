@@ -89,6 +89,7 @@ add_metadata_helper <- function(
     plate_id,
     group_id,
     size_standard,
+    size_standard_sample_id,
     size_standard_repeat_length,
     metrics_baseline_control) {
   # make sure dataframe, not tibble
@@ -105,6 +106,7 @@ add_metadata_helper <- function(
   } else {
     FALSE
   }
+  fragments$size_standard_sample_id <- if(!is.na(size_standard_sample_id)) as.character(sample_metadata[[size_standard_sample_id]]) else NA_character_
   fragments$size_standard_repeat_length <- if (!is.na(size_standard_repeat_length)) as.double(sample_metadata[[size_standard_repeat_length]]) else NA_real_
   fragments$metrics_baseline_control <- if (!is.na(metrics_baseline_control)) {
     ifelse(is.na(sample_metadata[[metrics_baseline_control]]) || !as.logical(sample_metadata[[metrics_baseline_control]]), FALSE, TRUE)
@@ -122,6 +124,7 @@ transfer_metadata_helper <- function(old_fragment,
     "plate_id",
     "group_id",
     "size_standard",
+    "size_standard_sample_id",
     "size_standard_repeat_length",
     "metrics_baseline_control"
   )

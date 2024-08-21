@@ -7,6 +7,7 @@ fragments <- R6::R6Class("fragments",
     group_id = NA_character_,
     metrics_baseline_control = FALSE,
     size_standard = FALSE,
+    size_standard_sample_id = NA_character_,
     size_standard_repeat_length = NA_real_,
     initialize = function(unique_id) {
       if (length(unique_id) != 1) stop("Fragments must have a single unique id", call. = FALSE)
@@ -14,7 +15,7 @@ fragments <- R6::R6Class("fragments",
     },
     print = function(...) {
       print_helper(self,
-        sample_attrs = c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_repeat_length")
+        sample_attrs = c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_sample_id", "size_standard_repeat_length")
       )
     },
     plot_trace = function(show_peaks = TRUE,
