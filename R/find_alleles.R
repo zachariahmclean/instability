@@ -100,88 +100,6 @@ find_candidate_peaks <- function(height,
   return(top_regional_peaks)
 }
 
-################### R6 Class Method Helpers #################################
-
-find_main_peaks_helper <- function(fragments_repeats_class,
-                                   number_of_peaks_to_return,
-                                   peak_region_size_gap_threshold,
-                                   peak_region_height_threshold_multiplier) {
-
-  # the main idea here is that PCR generates clusters of peaks around the main alleles.
-  # find the cluster of peaks and pick the tallest within
-
-  # do some checks
-  if (!number_of_peaks_to_return %in% c(1, 2)) {
-    stop("number_of_peaks_to_return must be 1 or 2",
-      call. = FALSE
-    )
-  }
-
-  #first select if working off repeat size or bp size
-  fragment_height <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$height else fragments_repeats_class$repeat_table_df$height
-  fragment_sizes <- if (is.null(fragments_repeats_class$repeat_table_df)) fragments_repeats_class$peak_table_df$size else fragments_repeats_class$repeat_table_df$repeats
-
-
-
-  # Find peak regions
-  peak_regions <- find_peak_regions(fragment_height, fragment_sizes, peak_region_size_gap_threshold,
-                                    peak_region_height_threshold_multiplier)
-
-  top_regional_peaks <- find_candidate_peaks(
-    fragment_height,
-    fragment_sizes,
-    number_of_peaks_to_return = number_of_peaks_to_return,
-    peak_region_size_gap_threshold = peak_region_size_gap_threshold,
-    peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier,
-    peak_regions
-  )
-
-  if (length(top_regional_peaks) == 0) {
-    warning(paste0(fragments_repeats_class$unique_id, ": No main alleles identified"))
-  }
-
-  # change this so that it populates either repeat, size
-
-  if (number_of_peaks_to_return == 2) {
-    # shorter repeat allele
-    if (is.null(fragments_repeats_class$repeat_table_df)) {
-      fragments_repeats_class$allele_2_size <- fragment_sizes[top_regional_peaks[1]]
-    } else {
-      fragments_repeats_class$allele_2_repeat <- fragment_sizes[top_regional_peaks[1]]
-    }
-    fragments_repeats_class$allele_2_height <- fragment_height[top_regional_peaks[1]]
-
-    # longer repeat allele
-    if (is.null(fragments_repeats_class$repeat_table_df)) {
-      fragments_repeats_class$allele_1_size <- fragment_sizes[top_regional_peaks[2]]
-    } else {
-      fragments_repeats_class$allele_1_repeat <- fragment_sizes[top_regional_peaks[2]]
-    }
-    fragments_repeats_class$allele_1_height <- fragment_height[top_regional_peaks[2]]
-  } else if (number_of_peaks_to_return == 1) {
-    # shorter repeat allele doesn't exist
-    fragments_repeats_class$allele_2_size <- NA_real_
-    fragments_repeats_class$allele_2_repeat <- NA_real_
-    fragments_repeats_class$allele_2_height <- NA_real_
-
-    # longer repeat allele
-    if (is.null(fragments_repeats_class$repeat_table_df)) {
-      fragments_repeats_class$allele_1_size <- fragment_sizes[top_regional_peaks[1]]
-    } else {
-      fragments_repeats_class$allele_1_repeat <- fragment_sizes[top_regional_peaks[1]]
-    }
-    fragments_repeats_class$allele_1_height <- fragment_height[top_regional_peaks[1]]
-  }
-
-  # peak_regions
-  fragments_repeats_class$.__enclos_env__$private$peak_regions <- peak_regions
-
-  return(fragments_repeats_class)
-}
-
-
-
-
 # find alleles ------------------------------------------------------------
 
 
@@ -218,26 +136,90 @@ find_main_peaks_helper <- function(fragments_repeats_class,
 #'   peak_region_size_gap_threshold = 6,
 #'   peak_region_height_threshold_multiplier = 1
 #' )
-find_alleles <- function(fragments_list,
-  number_of_peaks_to_return = 1,
-  peak_region_size_gap_threshold = 6,
-  peak_region_height_threshold_multiplier = 1) {
-main_peaks <- lapply(fragments_list, function(x) {
+find_alleles <- function(
+    fragments_list,
+    number_of_peaks_to_return = 1,
+    peak_region_size_gap_threshold = 6,
+    peak_region_height_threshold_multiplier = 1) {
+  main_peaks <- lapply(fragments_list, function(fragment) {
+    # the main idea here is that PCR generates clusters of peaks around the main alleles.
+    # find the cluster of peaks and pick the tallest within
 
-x <- find_main_peaks_helper(
-fragments_repeats_class = x$clone(),
-number_of_peaks_to_return = number_of_peaks_to_return,
-peak_region_size_gap_threshold = peak_region_size_gap_threshold,
-peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier
-)
+    # do some checks
+    if (!number_of_peaks_to_return %in% c(1, 2)) {
+      stop("number_of_peaks_to_return must be 1 or 2",
+        call. = FALSE
+      )
+    }
 
-# finally, indicate in the private part of the class that this function has been used since that is required for next steps
-x$.__enclos_env__$private$find_main_peaks_used <- TRUE
+    # first select if working off repeat size or bp size
+    fragment_height <- if (is.null(fragment$repeat_table_df)) fragment$peak_table_df$height else fragment$repeat_table_df$height
+    fragment_sizes <- if (is.null(fragment$repeat_table_df)) fragment$peak_table_df$size else fragment$repeat_table_df$repeats
 
-return(x)
+    # Find peak regions
+    peak_regions <- find_peak_regions(
+      fragment_height, fragment_sizes, peak_region_size_gap_threshold,
+      peak_region_height_threshold_multiplier
+    )
 
-})
+    top_regional_peaks <- find_candidate_peaks(
+      fragment_height,
+      fragment_sizes,
+      number_of_peaks_to_return = number_of_peaks_to_return,
+      peak_region_size_gap_threshold = peak_region_size_gap_threshold,
+      peak_region_height_threshold_multiplier = peak_region_height_threshold_multiplier,
+      peak_regions
+    )
+
+    if (length(top_regional_peaks) == 0) {
+      warning(paste0(fragment$unique_id, ": No main alleles identified"))
+    }
+
+    # change this so that it populates either repeat, size
+
+    if (number_of_peaks_to_return == 2) {
+      # shorter repeat allele
+      if (is.null(fragment$repeat_table_df)) {
+        fragment$allele_2_size <- fragment_sizes[top_regional_peaks[1]]
+      } else {
+        fragment$allele_2_repeat <- fragment_sizes[top_regional_peaks[1]]
+      }
+      fragment$allele_2_height <- fragment_height[top_regional_peaks[1]]
+
+      # longer repeat allele
+      if (is.null(fragment$repeat_table_df)) {
+        fragment$allele_1_size <- fragment_sizes[top_regional_peaks[2]]
+      } else {
+        fragment$allele_1_repeat <- fragment_sizes[top_regional_peaks[2]]
+      }
+      fragment$allele_1_height <- fragment_height[top_regional_peaks[2]]
+    } else if (number_of_peaks_to_return == 1) {
+      # shorter repeat allele doesn't exist
+      fragment$allele_2_size <- NA_real_
+      fragment$allele_2_repeat <- NA_real_
+      fragment$allele_2_height <- NA_real_
+
+      # longer repeat allele
+      if (is.null(fragment$repeat_table_df)) {
+        fragment$allele_1_size <- fragment_sizes[top_regional_peaks[1]]
+      } else {
+        fragment$allele_1_repeat <- fragment_sizes[top_regional_peaks[1]]
+      }
+      fragment$allele_1_height <- fragment_height[top_regional_peaks[1]]
+    }
+
+    # peak_regions
+    fragment$.__enclos_env__$private$peak_regions <- peak_regions
+
+    # finally, indicate in the private part of the class that this function has been used since that is required for next steps
+    fragment$.__enclos_env__$private$find_main_peaks_used <- TRUE
+
+    return(fragment)
+  })
+
+  return(main_peaks)
 }
+
 
 
 

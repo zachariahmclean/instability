@@ -218,17 +218,17 @@ ladder_rsq_warning_helper <- function(
 # bp sizing ---------------------------------------------------------------
 
 
-local_southern_fit <- function(x, y) {
+local_southern <- function(x, y) {
   # do some quality control. There should be no missing values and vectors should be same length
   if (length(x) != length(y)) {
     stop(
       call. = FALSE,
-      "local_southern_fit error: ladder scan and size vectors different lengths"
+      "local_southern error: ladder scan and size vectors different lengths"
     )
   } else if (any(is.na(x)) | any(is.na(y))) {
     stop(
       call. = FALSE,
-      "local_southern_fit error: missing values in ladder scan or size"
+      "local_southern error: missing values in ladder scan or size"
     )
   }
 
@@ -254,28 +254,22 @@ local_southern_fit <- function(x, y) {
   return(mod_list)
 }
 
-local_southern_predict <- function(local_southern_fit, scans) {
+local_southern_predict <- function(local_southern_output, scans) {
   # total number of groups to brake the scans into:
-  ladder_scan_pos <- sapply(local_southern_fit, function(fit) fit$first)
+  ladder_scan_pos <- sapply(local_southern_output, function(fit) fit$first)
 
   # Find the nearest ladder position for each scan position
   nearest_ladder_index <- sapply(scans, function(scan) which.min(abs(scan - ladder_scan_pos)))
 
   # Assign the scan positions to corresponding groups based on nearest ladder position
-  group_assignments <- rep(NA, length(scans))
-  for (i in seq_along(nearest_ladder_index)) {
-    group_assignments[i] <- nearest_ladder_index[i]
-  }
-
-  scan_split <- split(scans, group_assignments)
-
+  scan_split <- split(scans, nearest_ladder_index)
   size_split <- vector("list", length = length(scan_split))
   for (i in seq_along(scan_split)) {
     if (i == 1 | i == length(scan_split)) {
-      size_split[[i]] <- stats::predict(local_southern_fit[[i]]$mod, data.frame(xi = scan_split[[i]]))
+      size_split[[i]] <- stats::predict(local_southern_output[[i]]$mod, data.frame(xi = scan_split[[i]]))
     } else {
-      lower_prediction <- stats::predict(local_southern_fit[[i - 1]]$mod, data.frame(xi = scan_split[[i]]))
-      upper_prediction <- stats::predict(local_southern_fit[[i]]$mod, data.frame(xi = scan_split[[i]]))
+      lower_prediction <- stats::predict(local_southern_output[[i - 1]]$mod, data.frame(xi = scan_split[[i]]))
+      upper_prediction <- stats::predict(local_southern_output[[i]]$mod, data.frame(xi = scan_split[[i]]))
       size_split[[i]] <- (lower_prediction + upper_prediction) / 2
     }
   }
@@ -285,42 +279,35 @@ local_southern_predict <- function(local_southern_fit, scans) {
   return(size)
 }
 
-# class helper ------------------------------------------------------------
-
-
-
-
-
 
 # ladder fixing -----------------------------------------------------------
 
 
 ladder_fix_helper <- function(fragments_trace,
                               replacement_ladder_df) {
-  fragments_trace_copy <- fragments_trace$clone()
 
-  fragments_trace_copy$ladder_df <- replacement_ladder_df
-  ladder_df <- fragments_trace_copy$ladder_df[which(!is.na(fragments_trace_copy$ladder_df$size)), ]
+  fragments_trace$ladder_df <- replacement_ladder_df
+  ladder_df <- fragments_trace$ladder_df[which(!is.na(fragments_trace$ladder_df$size)), ]
   ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
-  fragments_trace_copy$mod_parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
+  fragments_trace$mod_parameters <- local_southern(ladder_df$scan, ladder_df$size)
 
-  predicted_size <- local_southern_predict(local_southern_fit = fragments_trace_copy$mod_parameters, scans = fragments_trace_copy$scan)
+  predicted_size <- local_southern_predict(local_southern_output = fragments_trace$mod_parameters, scans = fragments_trace$scan)
 
-  fragments_trace_copy$trace_bp_df <- data.frame(
-    unique_id = rep(fragments_trace_copy$unique_id, length(fragments_trace_copy$scan)),
-    scan = fragments_trace_copy$scan,
+  fragments_trace$trace_bp_df <- data.frame(
+    unique_id = rep(fragments_trace$unique_id, length(fragments_trace$scan)),
+    scan = fragments_trace$scan,
     size = predicted_size,
-    signal = fragments_trace_copy$raw_data,
-    ladder_signal = fragments_trace_copy$raw_ladder,
-    off_scale = fragments_trace_copy$scan %in% fragments_trace_copy$off_scale_scans
+    signal = fragments_trace$raw_data,
+    ladder_signal = fragments_trace$raw_ladder,
+    off_scale = fragments_trace$scan %in% fragments_trace$off_scale_scans
   )
 
   # make a warning if one of the ladder modes is bad
-  ladder_rsq_warning_helper(fragments_trace_copy,
+  ladder_rsq_warning_helper(fragments_trace,
     rsq_threshold = 0.998
   )
 
-  return(fragments_trace_copy)
+  return(fragments_trace)
 }
 
 
@@ -328,19 +315,18 @@ ladder_self_mod_predict <- function(fragments_trace,
                                     size_threshold,
                                     size_tolerance,
                                     rsq_threshold) {
-  fragments_trace_copy <- fragments_trace$clone()
 
-  ladder_sizes <- fragments_trace_copy$ladder_df[which(!is.na(fragments_trace_copy$ladder_df$size)), "size"]
-  ladder_peaks <- fragments_trace_copy$ladder_df$scan
+  ladder_sizes <- fragments_trace$ladder_df[which(!is.na(fragments_trace$ladder_df$size)), "size"]
+  ladder_peaks <- fragments_trace$ladder_df$scan
 
-  mod_validations <- vector("list", length(fragments_trace_copy$mod_parameters))
-  for (i in seq_along(fragments_trace_copy$mod_parameters)) {
-    predictions <- stats::predict(fragments_trace_copy$mod_parameters[[i]]$mod, newdata = data.frame(xi = ladder_peaks))
-    low_size_threshold <- fragments_trace_copy$mod_parameters[[i]]$mod$model$yi[1] - size_threshold
-    high_size_threshold <- fragments_trace_copy$mod_parameters[[i]]$mod$model$yi[3] + size_threshold
+  mod_validations <- vector("list", length(fragments_trace$mod_parameters))
+  for (i in seq_along(fragments_trace$mod_parameters)) {
+    predictions <- stats::predict(fragments_trace$mod_parameters[[i]]$mod, newdata = data.frame(xi = ladder_peaks))
+    low_size_threshold <- fragments_trace$mod_parameters[[i]]$mod$model$yi[1] - size_threshold
+    high_size_threshold <- fragments_trace$mod_parameters[[i]]$mod$model$yi[3] + size_threshold
 
     predictions_close <- predictions[which(predictions > low_size_threshold & predictions < high_size_threshold)]
-    mod_sizes <- fragments_trace_copy$mod_parameters[[i]]$mod$model$yi
+    mod_sizes <- fragments_trace$mod_parameters[[i]]$mod$model$yi
 
     ladder_hits <- sapply(predictions_close, function(x) {
       diff <- ladder_sizes - x
@@ -358,9 +344,9 @@ ladder_self_mod_predict <- function(fragments_trace,
     mod_validations[[i]]$predictions <- predictions
     mod_validations[[i]]$predictions_close <- predictions_close
     mod_validations[[i]]$mod_sizes <- mod_sizes
-    mod_validations[[i]]$rsq <- summary(fragments_trace_copy$mod_parameters[[i]]$mod)$r.squared
+    mod_validations[[i]]$rsq <- summary(fragments_trace$mod_parameters[[i]]$mod)$r.squared
     mod_validations[[i]]$ladder_hits <- ladder_hits
-    mod_validations[[i]]$mod <- fragments_trace_copy$mod_parameters[[i]]$mod
+    mod_validations[[i]]$mod <- fragments_trace$mod_parameters[[i]]$mod
   }
 
   # predicted to be a good model if it has some ladder hits and good rsq
@@ -411,12 +397,12 @@ ladder_self_mod_predict <- function(fragments_trace,
 
   ladder_df <- rbind(
     assigned_df,
-    fragments_trace_copy$ladder_df[which(fragments_trace_copy$ladder_df$size %in% confirmed_sizes), ]
+    fragments_trace$ladder_df[which(fragments_trace$ladder_df$size %in% confirmed_sizes), ]
   )
 
   # now just rerun the bp sizing
   fixed_fragment_trace <- ladder_fix_helper(
-    fragments_trace_copy,
+    fragments_trace,
     ladder_df
   )
 
@@ -591,9 +577,9 @@ find_ladders <- function(
     # predict bp size
     ladder_df <- ladder_df[which(!is.na(ladder_df$size)), ]
     ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
-    ladder_list[[i]]$mod_parameters <- local_southern_fit(ladder_df$scan, ladder_df$size)
+    ladder_list[[i]]$mod_parameters <- local_southern(ladder_df$scan, ladder_df$size)
 
-    predicted_size <- local_southern_predict(local_southern_fit = ladder_list[[i]]$mod_parameters, scans = ladder_list[[i]]$scan)
+    predicted_size <- local_southern_predict(local_southern = ladder_list[[i]]$mod_parameters, scans = ladder_list[[i]]$scan)
 
     ladder_list[[i]]$trace_bp_df <- data.frame(
       unique_id = rep(ladder_list[[i]]$unique_id, length(ladder_list[[i]]$scan)),
@@ -667,22 +653,16 @@ fix_ladders_auto <- function(fragments_trace_list,
                              size_threshold = 60,
                              size_tolerance = 2.5,
                              rsq_threshold = 0.9985) {
-  fragments_trace_list_2 <- vector("list", length(fragments_trace_list))
   for (i in seq_along(fragments_trace_list)) {
     if (fragments_trace_list[[i]]$unique_id %in% unique_ids) {
-      fragments_trace_list_2[[i]] <- ladder_self_mod_predict(fragments_trace_list[[i]]$clone(),
+      fragments_trace_list[[i]] <- ladder_self_mod_predict(fragments_trace_list[[i]],
                                                              size_threshold = size_threshold,
                                                              size_tolerance = size_tolerance,
                                                              rsq_threshold = rsq_threshold
       )
-    } else {
-      fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]$clone()
     }
   }
-
-  names(fragments_trace_list_2) <- names(fragments_trace_list)
-
-  return(fragments_trace_list_2)
+  return(fragments_trace_list)
 }
 
 
@@ -742,8 +722,6 @@ fix_ladders_auto <- function(fragments_trace_list,
 fix_ladders_manual <- function(fragments_trace_list,
                                ladder_df_list) {
   samples_to_fix <- names(ladder_df_list)
-
-  fragments_trace_list_2 <- vector("list", length(fragments_trace_list))
   for (i in seq_along(fragments_trace_list)) {
     if (fragments_trace_list[[i]]$unique_id %in% samples_to_fix) {
       message(paste("Fixing ladder for", fragments_trace_list[[i]]$unique_id))
@@ -758,19 +736,15 @@ fix_ladders_manual <- function(fragments_trace_list,
         )
       }
 
-      fragments_trace_list_2[[i]] <-  ladder_fix_helper(
-        fragments_trace_list[[i]]$clone(),
+      fragments_trace_list[[i]] <-  ladder_fix_helper(
+        fragments_trace_list[[i]],
         replacement_ladder_df = tmp_ladder_df
         )
 
-    } else {
-      fragments_trace_list_2[[i]] <- fragments_trace_list[[i]]$clone()
     }
   }
 
-  names(fragments_trace_list_2) <- names(fragments_trace_list)
-
-  return(fragments_trace_list_2)
+  return(fragments_trace_list)
 }
 
 

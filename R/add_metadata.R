@@ -1,39 +1,3 @@
-
-add_metadata_helper <- function(
-    fragments,
-    metadata_data.frame,
-    unique_id,
-    plate_id,
-    group_id,
-    size_standard,
-    size_standard_sample_id,
-    size_standard_repeat_length,
-    metrics_baseline_control) {
-  # make sure dataframe, not tibble
-  metadata_data.frame <- as.data.frame(metadata_data.frame)
-
-  # filter for row of sample
-  sample_metadata <- metadata_data.frame[which(metadata_data.frame[unique_id] == fragments$unique_id), , drop = FALSE]
-
-  # add metadata to slots, checking if parameters are NA
-  fragments$plate_id <- if (!is.na(plate_id)) as.character(sample_metadata[[plate_id]]) else NA_character_
-  fragments$group_id <- if (!is.na(group_id)) as.character(sample_metadata[[group_id]]) else NA_character_
-  fragments$size_standard <- if (!is.na(size_standard)) {
-    ifelse(is.na(sample_metadata[[size_standard]]) || !as.logical(sample_metadata[[size_standard]]), FALSE, TRUE)
-  } else {
-    FALSE
-  }
-  fragments$size_standard_sample_id <- if (!is.na(size_standard_sample_id)) as.character(sample_metadata[[size_standard_sample_id]]) else NA_character_
-  fragments$size_standard_repeat_length <- if (!is.na(size_standard_repeat_length)) as.double(sample_metadata[[size_standard_repeat_length]]) else NA_real_
-  fragments$metrics_baseline_control <- if (!is.na(metrics_baseline_control)) {
-    ifelse(is.na(sample_metadata[[metrics_baseline_control]]) || !as.logical(sample_metadata[[metrics_baseline_control]]), FALSE, TRUE)
-  } else {
-    FALSE
-  }
-
-  return(fragments)
-}
-
 transfer_metadata_helper <- function(old_fragment,
                                      new_fragment) {
   metadata_names <- c(
@@ -57,13 +21,8 @@ transfer_metadata_helper <- function(old_fragment,
       )
     ))
   }
-
   return(new_fragment)
 }
-
-
-
-
 
 # add metadata ------------------------------------------------------------
 
@@ -187,19 +146,34 @@ add_metadata <- function(
 
   metadata_added <- lapply(
     fragments_list,
-    function(x) {
-      add_metadata_helper(
-        fragments = x$clone(),
-        metadata_data.frame = metadata_data.frame,
-        unique_id = unique_id,
-        plate_id = plate_id,
-        group_id = group_id,
-        size_standard = size_standard,
-        size_standard_sample_id = size_standard_sample_id,
-        size_standard_repeat_length = size_standard_repeat_length,
-        metrics_baseline_control = metrics_baseline_control
-      )
+    function(fragments) {
+
+      # make sure dataframe, not tibble
+      metadata_data.frame <- as.data.frame(metadata_data.frame)
+    
+      # filter for row of sample
+      sample_metadata <- metadata_data.frame[which(metadata_data.frame[unique_id] == fragments$unique_id), , drop = FALSE]
+    
+      # add metadata to slots, checking if parameters are NA
+      fragments$plate_id <- if (!is.na(plate_id)) as.character(sample_metadata[[plate_id]]) else NA_character_
+      fragments$group_id <- if (!is.na(group_id)) as.character(sample_metadata[[group_id]]) else NA_character_
+      fragments$size_standard <- if (!is.na(size_standard)) {
+        ifelse(is.na(sample_metadata[[size_standard]]) || !as.logical(sample_metadata[[size_standard]]), FALSE, TRUE)
+      } else {
+        FALSE
+      }
+      fragments$size_standard_sample_id <- if (!is.na(size_standard_sample_id)) as.character(sample_metadata[[size_standard_sample_id]]) else NA_character_
+      fragments$size_standard_repeat_length <- if (!is.na(size_standard_repeat_length)) as.double(sample_metadata[[size_standard_repeat_length]]) else NA_real_
+      fragments$metrics_baseline_control <- if (!is.na(metrics_baseline_control)) {
+        ifelse(is.na(sample_metadata[[metrics_baseline_control]]) || !as.logical(sample_metadata[[metrics_baseline_control]]), FALSE, TRUE)
+      } else {
+        FALSE
+      }
+    
+      return(fragments)
     }
   )
+
+  return(metadata_added)
 }
 

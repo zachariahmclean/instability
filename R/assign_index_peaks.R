@@ -1,97 +1,4 @@
 
-
-############################# accessor-function helper ##################################
-
-
-metrics_grouping_helper <- function(fragments_list,
-                                    peak_threshold,
-                                    window_around_index_peak) {
-
-  # what we're doing here is pulling out the key data for all the samples that are metrics controls
-  # each sample will then have the data for their appropriate control inserted inside
-  # that can then be used in the calculation of instability metrics
-
-  # we need to insert the whole peak table of the control because the calculation of the weighted mean
-  # looks at a specific subset of the table, which is not set until the calculate metrics function
-
-  # make a list of dataframes and alleles for each of the controls for the groups
-  group_ids <- sapply(fragments_list, function(x) x$group_id)
-  unique_group_ids <- unique(group_ids)
-
-  baseline_control_list <- vector("list", length(unique_group_ids))
-  names(baseline_control_list) <- unique_group_ids
-
-  for(i in seq_along(fragments_list)){
-    if(fragments_list[[i]]$metrics_baseline_control == TRUE){
-
-      #since there can be more than one control, make a list of them
-      baseline_control_list[[fragments_list[[i]]$group_id]] <- c(
-         baseline_control_list[[fragments_list[[i]]$group_id]],
-         list(
-            list(
-              fragments_list[[i]]$allele_1_repeat,
-              fragments_list[[i]]$repeat_table_df
-             )
-          )
-       )
-    }
-  }
-
-  # do some quality control
-
-  for (i in seq_along(baseline_control_list)) {
-    controls_missing_allele <- all(sapply(baseline_control_list[[fragments_list[[i]]$group_id]], function(x) is.na(x[[1]])))
-
-    if (length(baseline_control_list[[i]]) == 0) {
-      stop(paste0("Group '", names(baseline_control_list)[[i]], "' has no 'metrics_baseline_control'. Go back to metadata to check that each group has a baseline control, or remove samples from the list for analysis with 'remove_fragments()' if it doesn't make sense to include them beyond this point (eg size standards or no template controls)"),
-           call. = FALSE
-      )
-    } else if (controls_missing_allele == TRUE) {
-      stop(paste0("Group '", names(baseline_control_list)[[i]], "' control has no allele called. Grouped analysis won't work for these samples."),
-           call. = FALSE
-      )
-    } else if (length(baseline_control_list[[i]]) > 1) {
-      message(paste0("Group '", names(baseline_control_list)[[i]], "' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak"))
-    }
-  }
-
-  #loop over each sample and put data inside
-  for(i in seq_along(fragments_list)){
-    fragments_list[[i]] <- fragments_list[[i]]$clone()
-
-    fragments_list[[i]]$.__enclos_env__$private$index_samples <- baseline_control_list[[fragments_list[[i]]$group_id]]
-
-    control_index_median_repeat <- median(sapply(baseline_control_list[[fragments_list[[i]]$group_id]], function(x) x[[1]]))
-
-
-    # since the repeat size may not be an integer, need to find what the closest peak is to the control sample
-    # delta between repeat of index sample and all repeats of sample.
-
-    # skip samples with no data
-
-    if(nrow(fragments_list[[i]]$repeat_table_df) > 0){
-
-      index_delta <- fragments_list[[i]]$repeat_table_df$repeats - control_index_median_repeat
-      closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
-
-      if (length(closest_peak) == 1) {
-        fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[closest_peak]
-        fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[closest_peak]
-      } else {
-        tallest_candidate <- closest_peak[which(fragments_list[[i]]$repeat_table_df$height[closest_peak] == max(fragments_list[[i]]$repeat_table_df$height[closest_peak]))]
-        fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[tallest_candidate]
-        fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[tallest_candidate]
-      }
-    }
-
-    # confirm that the index was set in the class so it can be used for calculate instability metrics
-    fragments_list[[i]]$.__enclos_env__$private$assigned_index_peak_used <- TRUE
-
-  }
-
-  return(fragments_list)
-}
-
 # metrics_override_helper ---------------------------------------------------------
 metrics_override_helper <- function(fragments_list,
                                     index_override_dataframe) {
@@ -197,15 +104,90 @@ assign_index_peaks <- function(
     fragments_list,
     grouped = FALSE,
     index_override_dataframe = NULL) {
-  # is it grouped and the index peak needs to be determined from another sample?
   if (grouped == TRUE) {
-    fragments_list <- metrics_grouping_helper(
-      fragments_list = fragments_list
-    )
+    # what we're doing here is pulling out the key data for all the samples that are metrics controls
+    # each sample will then have the data for their appropriate control inserted inside
+    # that can then be used in the calculation of instability metrics
+
+    # we need to insert the whole peak table of the control because the calculation of the weighted mean
+    # looks at a specific subset of the table, which is not set until the calculate metrics function
+      
+    # make a list of dataframes and alleles for each of the controls for the groups
+    group_ids <- sapply(fragments_list, function(x) x$group_id)
+    unique_group_ids <- unique(group_ids)
+
+    baseline_control_list <- vector("list", length(unique_group_ids))
+    names(baseline_control_list) <- unique_group_ids
+
+    for(i in seq_along(fragments_list)){
+      if(fragments_list[[i]]$metrics_baseline_control == TRUE){
+
+        #since there can be more than one control, make a list of them
+        baseline_control_list[[fragments_list[[i]]$group_id]] <- c(
+          baseline_control_list[[fragments_list[[i]]$group_id]],
+          list(
+              list(
+                fragments_list[[i]]$allele_1_repeat,
+                fragments_list[[i]]$repeat_table_df
+              )
+            )
+        )
+      }
+    }
+
+    # do some quality control
+
+    for (i in seq_along(baseline_control_list)) {
+      controls_missing_allele <- all(sapply(baseline_control_list[[fragments_list[[i]]$group_id]], function(x) is.na(x[[1]])))
+
+      if (length(baseline_control_list[[i]]) == 0) {
+        stop(paste0("Group '", names(baseline_control_list)[[i]], "' has no 'metrics_baseline_control'. Go back to metadata to check that each group has a baseline control, or remove samples from the list for analysis with 'remove_fragments()' if it doesn't make sense to include them beyond this point (eg size standards or no template controls)"),
+            call. = FALSE
+        )
+      } else if (controls_missing_allele == TRUE) {
+        stop(paste0("Group '", names(baseline_control_list)[[i]], "' control has no allele called. Grouped analysis won't work for these samples."),
+            call. = FALSE
+        )
+      } else if (length(baseline_control_list[[i]]) > 1) {
+        message(paste0("Group '", names(baseline_control_list)[[i]], "' has more than one 'metrics_baseline_control'. The median repeat of the assigned samples will be used to assign the index peak"))
+      }
+    }
+
+    #loop over each sample and put data inside
+    for(i in seq_along(fragments_list)){
+      fragments_list[[i]]$.__enclos_env__$private$index_samples <- baseline_control_list[[fragments_list[[i]]$group_id]]
+
+      control_index_median_repeat <- median(sapply(baseline_control_list[[fragments_list[[i]]$group_id]], function(x) x[[1]]))
+
+
+      # since the repeat size may not be an integer, need to find what the closest peak is to the control sample
+      # delta between repeat of index sample and all repeats of sample.
+
+      # skip samples with no data
+
+      if(nrow(fragments_list[[i]]$repeat_table_df) > 0){
+
+        index_delta <- fragments_list[[i]]$repeat_table_df$repeats - control_index_median_repeat
+        closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
+
+        if (length(closest_peak) == 1) {
+          fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[closest_peak]
+          fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[closest_peak]
+        } else {
+          tallest_candidate <- closest_peak[which(fragments_list[[i]]$repeat_table_df$height[closest_peak] == max(fragments_list[[i]]$repeat_table_df$height[closest_peak]))]
+          fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[tallest_candidate]
+          fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[tallest_candidate]
+        }
+      }
+
+      # confirm that the index was set in the class so it can be used for calculate instability metrics
+      fragments_list[[i]]$.__enclos_env__$private$assigned_index_peak_used <- TRUE
+
+    }
+
   } else {
     # otherwise just use the modal peak as the index peak
     fragments_list <- lapply(fragments_list, function(x) {
-      x <- x$clone()
       x$index_repeat <- x$allele_1_repeat
       x$index_height <- x$allele_1_height
       x$.__enclos_env__$private$assigned_index_peak_used <- TRUE
