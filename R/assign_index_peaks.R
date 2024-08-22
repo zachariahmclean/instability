@@ -127,3 +127,100 @@ metrics_override_helper <- function(fragments_list,
     return(x)
   })
 }
+
+
+
+
+#' Assign index peaks
+#'
+#' Assign index peaks in preparation for calculation of instability metrics
+#'
+#' @param fragments_list A list of "fragments_repeats" class objects representing
+#' fragment data.
+#' @param grouped Logical value indicating whether samples should be grouped to
+#' share a common index peak. `FALSE` will assign the sample's own modal allele as the index peak. `TRUE` will use metadata to assign the index peak based on the modal peak of another sample. This is useful for cases like inferring repeat size of inherited alleles from mouse tail data. Requires metadata via \code{link{add_metadata()}}.
+#' @param index_override_dataframe A data.frame to manually set index peaks.
+#' Column 1: unique sample IDs, Column 2: desired index peaks (the order of the
+#' columns is important since the information is pulled by column position rather
+#' than column name). Closest peak in each sample is selected.
+#'
+#' @return A list of \code{"fragments_repeats"} objects with index_repeat and index_height added.
+#' @details
+#' A key part of several instability metrics is the index peak. This is the repeat
+#' length used as the reference peak for relative instability metrics calculations, like expansion index or average repeat gain.
+#' For example, this is the the inherited repeat length of a mouse, or the modal repeat length for the cell line at a starting time point.
+#'
+#'
+#' If `grouped` is set to `TRUE`, this function groups the samples by their group_id and uses the samples set as
+#' metrics_baseline_control to set the index peak. Use \code{link{add_metadata()}}
+#' to set these variables.
+#'
+#' `index_override_dataframe` can be used to manually override these assigned index
+#' repeat values (irrespective of whether `grouped` is TRUE or FALSE).
+#'
+#' @export
+#'
+#' @examples
+#'
+#'
+#' file_list <- instability::cell_line_fsa_list
+#'
+#' ladder_list <- find_ladders(file_list)
+#'
+#' fragments_list <- find_fragments(ladder_list,
+#'   min_bp_size = 300
+#' )
+#'
+#' allele_list <- find_alleles(
+#'   fragments_list = fragments_list
+#' )
+#' repeats_list <- call_repeats(
+#'   fragments_list = allele_list
+#' )
+#'
+#' metadata_added_list <- add_metadata(
+#'   fragments_list = repeats_list,
+#'   metadata_data.frame = instability::metadata
+#' )
+#'
+#'index_assigned <- assign_index_peaks(metadata_added_list,
+#'                                     grouped = TRUE)
+#'
+#' plot_traces(index_assigned[1], xlim = c(100,150))
+#'
+#'
+#'
+#'
+#'
+#'
+assign_index_peaks <- function(
+    fragments_list,
+    grouped = FALSE,
+    index_override_dataframe = NULL) {
+  # is it grouped and the index peak needs to be determined from another sample?
+  if (grouped == TRUE) {
+    fragments_list <- metrics_grouping_helper(
+      fragments_list = fragments_list
+    )
+  } else {
+    # otherwise just use the modal peak as the index peak
+    fragments_list <- lapply(fragments_list, function(x) {
+      x <- x$clone()
+      x$index_repeat <- x$allele_1_repeat
+      x$index_height <- x$allele_1_height
+      x$.__enclos_env__$private$assigned_index_peak_used <- TRUE
+      return(x)
+    })
+  }
+
+  # override index peak with manually supplied values
+  if (!is.null(index_override_dataframe)) {
+    fragments_list <- metrics_override_helper(
+      fragments_list = fragments_list,
+      index_override_dataframe = index_override_dataframe
+    )
+  }
+
+  return(fragments_list)
+}
+

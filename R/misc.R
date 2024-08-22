@@ -80,67 +80,133 @@ print_helper <- function(fragment,
 }
 
 
-# metadata ----------------------------------------------------------------
+# remove fragments -------------------------------------------------------
 
-add_metadata_helper <- function(
-    fragments,
-    metadata_data.frame,
-    unique_id,
-    plate_id,
-    group_id,
-    size_standard,
-    size_standard_sample_id,
-    size_standard_repeat_length,
-    metrics_baseline_control) {
-  # make sure dataframe, not tibble
-  metadata_data.frame <- as.data.frame(metadata_data.frame)
-
-  # filter for row of sample
-  sample_metadata <- metadata_data.frame[which(metadata_data.frame[unique_id] == fragments$unique_id), , drop = FALSE]
-
-  # add metadata to slots, checking if parameters are NA
-  fragments$plate_id <- if (!is.na(plate_id)) as.character(sample_metadata[[plate_id]]) else NA_character_
-  fragments$group_id <- if (!is.na(group_id)) as.character(sample_metadata[[group_id]]) else NA_character_
-  fragments$size_standard <- if (!is.na(size_standard)) {
-    ifelse(is.na(sample_metadata[[size_standard]]) || !as.logical(sample_metadata[[size_standard]]), FALSE, TRUE)
-  } else {
-    FALSE
+#' Remove Samples from List
+#'
+#' A convenient function to remove specific samples from a list of fragments.
+#'
+#' @param fragments_list A list of fragments_repeats objects containing fragment data.
+#' @param samples_to_remove A character vector containing the unique IDs of the samples to be removed.
+#'
+#' @return A modified list of fragments with the specified samples removed.
+#' @export
+#'
+#' @examples
+#' gm_raw <- instability::example_data
+#' metadata <- instability::metadata
+#'
+#' test_fragments <- peak_table_to_fragments(
+#'   gm_raw,
+#'   data_format = "genemapper5",
+#'   dye_channel = "B"
+#' )
+#'
+#' all_fragment_names <- names(test_fragments)
+#'
+#' # pull out unique ids of samples to remove
+#' samples_to_remove <- all_fragment_names[c(1, 5, 10)]
+#'
+#' samples_removed <- remove_fragments(test_fragments, samples_to_remove)
+#'
+remove_fragments <- function(
+    fragments_list,
+    samples_to_remove) {
+  unique_ids <- vector("numeric", length = length(fragments_list))
+  for (i in seq_along(fragments_list)) {
+    unique_ids[[i]] <- fragments_list[[i]]$unique_id
   }
-  fragments$size_standard_sample_id <- if(!is.na(size_standard_sample_id)) as.character(sample_metadata[[size_standard_sample_id]]) else NA_character_
-  fragments$size_standard_repeat_length <- if (!is.na(size_standard_repeat_length)) as.double(sample_metadata[[size_standard_repeat_length]]) else NA_real_
-  fragments$metrics_baseline_control <- if (!is.na(metrics_baseline_control)) {
-    ifelse(is.na(sample_metadata[[metrics_baseline_control]]) || !as.logical(sample_metadata[[metrics_baseline_control]]), FALSE, TRUE)
-  } else {
-    FALSE
-  }
-
-  return(fragments)
+  samples_removed <- fragments_list
+  suppressWarnings(
+    samples_removed[which(unique_ids %in% samples_to_remove)] <- NULL
+  )
+  return(samples_removed)
 }
 
-transfer_metadata_helper <- function(old_fragment,
-                                     new_fragment) {
-  metadata_names <- c(
-    "unique_id",
-    "plate_id",
-    "group_id",
-    "size_standard",
-    "size_standard_sample_id",
-    "size_standard_repeat_length",
-    "metrics_baseline_control"
-  )
 
 
-  for (name in metadata_names) {
-    eval(parse(
-      text = paste0(
-        "new_fragment$",
-        name,
-        "<- old_fragment$",
-        name
-      )
-    ))
+# qmd templates -----------------------------------------------------------
+
+
+#' Generate a Quarto file that has the instability pipeline preset
+#'
+#' @param file_name Name of file to create
+#' @param size_standards Indicates if the functionality for correcting repeat size using size standards be included in the pipeline. See \code{\link{add_metadata}} & \code{\link{call_repeats}} for more info.
+#' @param samples_grouped Indicates if the functionality for grouping samples for metrics calculations should be included in the pipeline. See \code{\link{add_metadata}} & \code{\link{assign_index_peaks}} for more info.
+#'
+#' @return A Quarto template file
+#' @export
+#'
+#' @importFrom utils file.edit
+#'
+#' @examples
+#'
+#' if (interactive()) {
+#'   generate_instability_template("test")
+#' }
+#'
+#'
+generate_instability_template <- function(
+  file_name = NULL,
+  size_standards = TRUE,
+  samples_grouped = TRUE) {
+
+comment_out_lines <- function(content, start_pattern, end_pattern, comment_message = NULL) {
+  start_idx <- grep(start_pattern, content)
+  end_idx <- grep(end_pattern, content)[grep(end_pattern, content) > start_idx][1]
+
+  if (length(start_idx) > 0 && length(end_idx) > 0) {
+    content[(start_idx + 1):(end_idx - 1)] <- paste("#", content[(start_idx + 1):(end_idx - 1)])
+    if (!is.null(comment_message)) {
+      content <- append(content, comment_message, after = start_idx - 1)
+    }
   }
 
-  return(new_fragment)
+  return(content)
+}
+
+if (is.null(file_name)) {
+  stop("You must provide a valid file_name")
+}
+
+source_file <- system.file("extdata/_extensions/template.qmd", package = "instability")
+
+if (!file.exists(source_file)) {
+  stop(paste("Source file does not exist:", source_file))
+}
+
+template_content <- readLines(source_file)
+
+if (!size_standards) {
+  template_content <- gsub('metadata\\$plate_id <- metadata\\$plate_id', '# metadata$plate_id <- metadata$plate_id', template_content)
+  template_content <- gsub('metadata\\$size_standard <- metadata\\$size_standard', '# metadata$size_standard <- metadata$size_standard', template_content)
+  template_content <- gsub('metadata\\$size_standard_repeat_length <', '# metadata\\$size_standard_repeat_length <', template_content)
+  template_content <- gsub('repeat_length_correction = "from_metadata"', 'repeat_length_correction = "none"', template_content)
+  template_content <- gsub('plate_id = "plate_id"', 'plate_id = NA', template_content)
+  template_content <- gsub('size_standard = "size_standard"', 'size_standard = NA', template_content)
+  template_content <- gsub('size_standard_repeat_length = "size_standard_repeat_length"', 'size_standard_repeat_length = NA', template_content)
+}
+
+if (!samples_grouped) {
+  template_content <- gsub('metadata\\$group_id <- metadata\\$group_id', '# metadata$group_id <- metadata$group_id', template_content)
+  template_content <- gsub('metadata\\$metrics_baseline_control <- metadata\\$metrics_baseline_control', '# metadata$metrics_baseline_control <- metadata$metrics_baseline_control', template_content)
+  template_content <- gsub('grouped = TRUE', 'grouped = FALSE', template_content)
+  template_content <- gsub('group_id = "group_id"', 'group_id = NA', template_content)
+  template_content <- gsub('metrics_baseline_control = "metrics_baseline_control"', 'metrics_baseline_control = NA', template_content)
+}
+
+if (!size_standards & !samples_grouped) {
+  template_content <- gsub('metadata <- read.csv\\("")', '# metadata <- read.csv("")', template_content)
+  template_content <- gsub('fragments_list = metadata_added_list', 'fragments_list = peak_list', template_content)
+
+  # Comment out block of input section
+  template_content <- comment_out_lines(template_content, '#Provide the appropriate metadata below by replacing the placeholders', "\\`\\`\\`")
+
+  # Comment out the Add metadata section
+  template_content <- comment_out_lines(template_content, "\\`\\`\\`\\{r Add metadata\\}", "\\`\\`\\`", "metadata not used")
+}
+
+writeLines(template_content, paste0(file_name, ".qmd"))
+file.edit(paste0(file_name, ".qmd"))
 }
 

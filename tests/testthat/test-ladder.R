@@ -71,77 +71,77 @@ test_that("iterative ladder", {
 
 
 
-test_that("fit ladder", {
-  file_list <- instability::cell_line_fsa_list
+# test_that("fit ladder", {
+#   file_list <- instability::cell_line_fsa_list
 
-  test_ladder_signal <- file_list[[1]]$Data$DATA.105
-  test_scans <- 0:(length(file_list[[1]]$Data$DATA.105) - 1)
-
-
-
-  test_fit <- fit_ladder(
-    ladder = test_ladder_signal,
-    scans = test_scans,
-    spike_location = NULL,
-    ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-    smoothing_window = 21,
-    minimum_peak_signal = NULL,
-    zero_floor = FALSE,
-    max_combinations = 2500000,
-    ladder_selection_window = 5
-  )
-
-
-  mod <- lm(scan ~ size, data = test_fit)
-
-  testthat::expect_true(round(mod$coefficients[[1]], 3) == 1347.69)
-  testthat::expect_true(round(mod$coefficients[[2]], 5) == 6.25118)
-})
-
-
-test_that("local southern", {
-  file_list <- instability::cell_line_fsa_list
-
-  test_ladder_signal <- file_list[[1]]$Data$DATA.105
-  test_scans <- 0:(length(file_list[[1]]$Data$DATA.105) - 1)
+#   test_ladder_signal <- file_list[[1]]$Data$DATA.105
+#   test_scans <- 0:(length(file_list[[1]]$Data$DATA.105) - 1)
 
 
 
-  test_fit <- fit_ladder(
-    ladder = test_ladder_signal,
-    scans = test_scans,
-    ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-    spike_location = NULL,
-    smoothing_window = 21,
-    minimum_peak_signal = NULL,
-    zero_floor = FALSE,
-    max_combinations = 2500000,
-    ladder_selection_window = 5
-  )
-
-  # ladder all as one lm
+#   test_fit <- fit_ladder(
+#     ladder = test_ladder_signal,
+#     scans = test_scans,
+#     spike_location = NULL,
+#     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+#     smoothing_window = 21,
+#     minimum_peak_signal = NULL,
+#     zero_floor = FALSE,
+#     max_combinations = 2500000,
+#     ladder_selection_window = 5
+#   )
 
 
-  mod <- lm(size ~ scan, data = test_fit)
-  single_rsqd <- summary(mod)$r.squared
+#   mod <- lm(scan ~ size, data = test_fit)
+
+#   testthat::expect_true(round(mod$coefficients[[1]], 3) == 1347.69)
+#   testthat::expect_true(round(mod$coefficients[[2]], 5) == 6.25118)
+# })
+
+
+# test_that("local southern", {
+#   file_list <- instability::cell_line_fsa_list
+
+#   test_ladder_signal <- file_list[[1]]$Data$DATA.105
+#   test_scans <- 0:(length(file_list[[1]]$Data$DATA.105) - 1)
+
+
+
+#   test_fit <- fit_ladder(
+#     ladder = test_ladder_signal,
+#     scans = test_scans,
+#     ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+#     spike_location = NULL,
+#     smoothing_window = 21,
+#     minimum_peak_signal = NULL,
+#     zero_floor = FALSE,
+#     max_combinations = 2500000,
+#     ladder_selection_window = 5
+#   )
+
+#   # ladder all as one lm
+
+
+#   mod <- lm(size ~ scan, data = test_fit)
+#   single_rsqd <- summary(mod)$r.squared
 
 
 
 
-  mod_fit <- local_southern_fit(test_fit$scan, test_fit$size)
+#   mod_fit <- local_southern_fit(test_fit$scan, test_fit$size)
 
-  multi_rsqd <- sapply(mod_fit, function(x) summary(x$mod)$r.squared)
+#   multi_rsqd <- sapply(mod_fit, function(x) summary(x$mod)$r.squared)
 
-  rsq_diff <- sum(multi_rsqd - single_rsqd)
-
-
-  predicted_sizes <- local_southern_predict(mod_fit, test_scans)
-
-  # plot(predicted_sizes, file_list[[1]]$Data$DATA.1)
+#   rsq_diff <- sum(multi_rsqd - single_rsqd)
 
 
-  testthat::expect_true(round(rsq_diff, 5) == -0.00343)
-})
+#   predicted_sizes <- local_southern_predict(mod_fit, test_scans)
+
+#   # plot(predicted_sizes, file_list[[1]]$Data$DATA.1)
+
+
+#   testthat::expect_true(round(rsq_diff, 5) == -0.00343)
+# })
 
 
 

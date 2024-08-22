@@ -617,3 +617,169 @@ add_repeats_helper <- function(fragments_repeats,
 
   return(repeat_class)
 }
+
+
+
+# call_repeats ------------------------------------------------------------
+
+#' Call Repeats for Fragments
+#'
+#' This function calls the repeat lengths for a list of fragments.
+#'
+#' @param fragments_list A list of fragments_repeats objects containing fragment data.
+#' @param assay_size_without_repeat An integer specifying the assay size without repeat for repeat calling. Default is 87.
+#' @param repeat_size An integer specifying the repeat size for repeat calling. Default is 3.
+#' @param force_whole_repeat_units A logical value specifying if the peaks should be forced to be whole repeat units apart. Usually the peaks are slightly under the whole repeat unit if left unchanged.
+#' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
+#' @param repeat_calling_algorithm A character specifying the repeat calling algorithm. Options: \code{"simple"}, \code{"fft"}, or \code{"size_period"} (see details section for more information on these).
+#' @param repeat_calling_algorithm_size_window_around_allele A numeric value for how big of a window around the tallest peak should be used to find the peak periodicity. Used for both \code{"fft"} and \code{"size_period"}. For \code{"fft"}, you want to make sure that this window is limited to where there are clear peaks. For \code{"size_period"}, it will not make a big difference.
+#' @param repeat_calling_algorithm_peak_assignment_scan_window A numeric value for the scan window when assigning the peak. This is used for both \code{"fft"} and \code{"size_period"}. When the scan period is determined, the algorithm jumps to the predicted scan for the next peak. This value opens a window of the neighboring scans to pick the tallest in.
+#' @param repeat_calling_algorithm_size_period A numeric value \code{"size_period"} algorithm to set the peak periodicity by bp size. This is the key variable to change for \code{"size_period"}. In fragment analysis, the peaks are usually slightly below the actual repeat unit size.
+#'
+#' @return A list of \code{"fragments_repeats"} objects with repeat data added.
+#'
+#' @details
+#' The calculated repeat lengths are assigned to the corresponding peaks in the provided `fragments_repeats` object. The repeat lengths can be used for downstream instability analysis.
+#'
+#' The `simple` algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
+#'
+#' The `fft` or `size_period` algorithms both re-call the peaks based on empirically determined (`fft`) or specified (`size_period`) periodicity of the peaks. The main application of these algorithms is to solve the issue of contaminating peaks that are not expected in the expected regular pattern of peaks. The `fft` approach applies a fourier transform to the peak signal to determine the underlying periodicity of the signal. `size_period` is similar and simpler, where instead of automatically figuring out the periodicity we as users usually know the size distance between repeat units. We can use that known peroidicty to jump between peaks.
+#'
+#' The `force_whole_repeat_units` algorithm aims to correct for the systematic drift in fragment sizes that occurs. It calculates repeat lengths in a way that helps align peaks with the underlying repeat pattern, making the estimation of repeat lengths more reliable relative to the main peak. The calculated repeat lengths start from the main peak's repeat length and increases in increments of the specified `repeat_size`.
+#'
+#' @seealso [find_alleles()]
+#'
+#' @export
+#'
+#' @examples
+#'
+#' file_list <- instability::cell_line_fsa_list[c(90:92)]
+#'
+#' test_ladders <- find_ladders(file_list)
+#'
+#' fragments_list <- find_fragments(test_ladders,
+#'   min_bp_size = 300
+#' )
+#'
+#' test_alleles <- find_alleles(
+#'   fragments_list = fragments_list
+#' )
+#'
+#' # Simple conversion from bp size to repeat size
+#' test_repeats <- call_repeats(
+#'   fragments_list = test_alleles,
+#'   repeat_calling_algorithm = "simple",
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3
+#' )
+#'
+#' plot_traces(test_repeats[1], xlim = c(120,170))
+#'
+#'
+#' # use different algorithms to call the repeats to ensure only periodic peaks are called
+#'
+#' # fft to automatically find peak period
+#' test_repeats_fft <- call_repeats(
+#'   fragments_list = test_alleles,
+#'   repeat_calling_algorithm = "fft",
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3
+#' )
+#'
+#' plot_traces(test_repeats_fft[1], xlim = c(120,170))
+#'
+#' # size_period to manually supply the peak period
+#' test_repeats_size_period <- call_repeats(
+#'   fragments_list = test_alleles,
+#'   repeat_calling_algorithm = "size_period",
+#'   repeat_calling_algorithm_size_period = 2.75,
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3
+#' )
+#'
+#' plot_traces(test_repeats_size_period[1], xlim = c(120,170))
+#'
+#'
+#' # Use force_whole_repeat_units algorithm to make sure called
+#' # repeats are the exact number of bp apart
+#'
+#' test_repeats_whole_units <- call_repeats(
+#'   fragments_list = test_alleles,
+#'   force_whole_repeat_units = TRUE,
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3
+#' )
+#'
+#' plot_traces(test_repeats_whole_units[1], xlim = c(120,170))
+#'
+#' # correct repeat length from metadata
+#'
+#' test_alleles_metadata <- add_metadata(
+#'   fragments_list = test_alleles,
+#'   metadata_data.frame = instability::metadata
+#' )
+#'
+#' test_repeats_corrected <- call_repeats(
+#'   fragments_list = test_alleles_metadata,
+#'   repeat_length_correction = "from_metadata"
+#' )
+#'
+#'
+#' plot_traces(test_repeats_corrected[1], xlim = c(120,170))
+#'
+#'
+#'
+#'
+call_repeats <- function(
+    fragments_list,
+    assay_size_without_repeat = 87,
+    repeat_size = 3,
+    force_whole_repeat_units = FALSE,
+    repeat_length_correction = "none",
+    repeat_calling_algorithm = "simple",
+    repeat_calling_algorithm_size_window_around_allele = repeat_size * 5,
+    repeat_calling_algorithm_peak_assignment_scan_window = 3,
+    repeat_calling_algorithm_size_period = repeat_size * 0.93) {
+  # Check to see if repeats are to be corrected
+  # if so, supply the model to each of the samples in the list
+  if (repeat_length_correction %in% c("from_metadata", "from_genemapper")) {
+    mod <- model_repeat_length(
+      fragments_list = fragments_list,
+      assay_size_without_repeat = assay_size_without_repeat,
+      repeat_size = repeat_size,
+      repeat_length_correction = repeat_length_correction
+    )
+
+    for (i in seq_along(fragments_list)) {
+      fragments_list[[i]]$.__enclos_env__$private$correction_mod <- mod$correction_mods
+      fragments_list[[i]]$.__enclos_env__$private$controls_repeats_df <- mod$controls_repeats_df
+    }
+  }
+
+  # call repeats for each sample
+  added_repeats <- lapply(
+    fragments_list,
+    function(x) {
+      x <- add_repeats_helper(
+        x,
+        assay_size_without_repeat = assay_size_without_repeat,
+        repeat_size = repeat_size,
+        repeat_calling_algorithm = repeat_calling_algorithm,
+        repeat_calling_algorithm_size_window_around_allele = repeat_calling_algorithm_size_window_around_allele,
+        repeat_calling_algorithm_peak_assignment_scan_window = repeat_calling_algorithm_peak_assignment_scan_window,
+        repeat_calling_algorithm_size_period = repeat_calling_algorithm_size_period,
+        force_whole_repeat_units = force_whole_repeat_units,
+        correct_repeat_length = ifelse(repeat_length_correction == "none", FALSE, TRUE)
+      )
+
+      return(x)
+    }
+  )
+
+  return(added_repeats)
+}
+
+
+
+
+

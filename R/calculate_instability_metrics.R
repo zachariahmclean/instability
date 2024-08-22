@@ -294,3 +294,166 @@ compute_metrics <- function(fragments_repeats,
 
   return(metrics)
 }
+
+
+
+
+
+
+# Calculate metrics -------------------------------------------------------
+
+#' Calculate Repeat Instability Metrics
+#'
+#' This function computes instability metrics from a list of fragments_repeats data objects.
+#'
+#' @param fragments_list A list of "fragments_repeats" objects representing fragment data.
+#' @param peak_threshold The threshold for peak heights to be considered in the calculations, relative to the modal peak height of the expanded allele.
+#' @param window_around_index_peak A numeric vector (length = 2) defining the range around the index peak. First number specifies repeats before the index peak, second after. For example, \code{c(-5, 40)} around an index peak of 100 would analyze repeats 95 to 140. The sign of the numbers does not matter (The absolute value is found).
+#' @param percentile_range A numeric vector of percentiles to compute (e.g., c(0.5, 0.75, 0.9, 0.95)).
+#' @param repeat_range A numeric vector specifying ranges of repeats for the inverse quantile computation.
+#' @param grouped This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.
+#' @param index_override_dataframe This parameter is here for backwards compatibility and is not intended to be used within this function. It's passed to the \code{\link{assign_index_peaks}} function, see that function for documentation.
+#'
+#' @return A data.frame with calculated instability metrics for each sample.
+#' @details
+#' Each of the columns in the supplied dataframe are explained below:
+#'
+#' ## General Information
+#' - `unique_id`: A unique identifier for the sample (usually the fsa file name).
+#'
+#' ## Quality Control
+#' - `QC_comments`: Quality control comments.
+#' - `QC_modal_peak_height`: Quality control status based on the modal peak height (Low < 500, very low < 100).
+#' - `QC_peak_number`: Quality control status based on the number of peaks (Low < 20, very low < 10).
+#' - `QC_off_scale`: Quality control comments for off-scale peaks. Potential peaks that are off-scale are given. However, a caveat is that this could be from any of the channels (ie it could be from the ladder channel but is the same scan as the given repeat).
+#'
+#' ## General sample metrics
+#' - `modal_peak_repeat`: The repeat size of the modal peak.
+#' - `modal_peak_height`: The height of the modal peak.
+#' - `index_peak_repeat`: The repeat size of the index peak (the repeat value closest to the modal peak of the index sample).
+#' - `index_peak_height`: The height of the index peak.
+#' - `index_weighted_mean_repeat`: The weighted mean repeat size (weighted on the height of the peaks) of the index sample.
+#' - `n_peaks_total`: The total number of peaks in the repeat table.
+#' - `n_peaks_analysis_subset`: The number of peaks in the analysis subset.
+#' - `n_peaks_analysis_subset_expansions`: The number of expansion peaks in the analysis subset.
+#' - `min_repeat`: The minimum repeat size in the analysis subset.
+#' - `max_repeat`: The maximum repeat size in the analysis subset.
+#' - `mean_repeat`: The mean repeat size in the analysis subset.
+#' - `weighted_mean_repeat`: The weighted mean repeat size (weight on peak height) in the analysis subset.
+#' - `median_repeat`: The median repeat size in the analysis subset.
+#' - `max_height`: The maximum peak height in the analysis subset.
+#' - `max_delta_neg`: The maximum negative delta to the index peak.
+#' - `max_delta_pos`: The maximum positive delta to the index peak.
+#' - `skewness`: The skewness of the repeat size distribution.
+#' - `kurtosis`: The kurtosis of the repeat size distribution.
+#'
+#' ## Repeat instability metrics
+#' - `modal_repeat_delta`: The delta between the modal peak repeat and the index peak repeat.
+#' - `average_repeat_gain`: The average repeat change: The weighted mean of the sample (weighted by peak height) subtracted by the weighted mean repeat of the index sample.
+#' - `instability_index`: The instability index based on peak height and distance to the index peak. (See Lee et al., 2010, https://doi.org/10.1186/1752-0509-4-29).
+#' - `instability_index_abs`: The absolute instability index. The absolute value is taken for the "Change from the main allele".
+#' - `expansion_index`: The instability index for expansion peaks only.
+#' - `contraction_index`: The instability index for contraction peaks only.
+#' - `expansion_ratio`: The ratio of expansion peaks' heights to the main peak height. Also known as "peak proportional sum" (https://doi.org/10.1016/j.cell.2019.06.036).
+#' - `contraction_ratio`: The ratio of contraction peaks' heights to the main peak height.
+#' - `expansion_percentile_*`: The repeat size at specified percentiles of the cumulative distribution of expansion peaks.
+#' - `expansion_percentile_for_repeat_*`: The percentile rank of specified repeat sizes in the distribution of expansion peaks.
+
+#'
+#' @export
+#'
+#' @examples
+#' gm_raw <- instability::example_data
+#' metadata <- instability::metadata
+#'
+#' test_fragments <- peak_table_to_fragments(gm_raw,
+#'   data_format = "genemapper5",
+#'   dye_channel = "B",
+#'   min_size_bp = 400
+#' )
+#'
+#' test_metadata <- add_metadata(
+#'   fragments_list = test_fragments,
+#'   metadata_data.frame = metadata
+#' )
+#'
+#' test_alleles <- find_alleles(
+#'   fragments_list = test_metadata,
+#'   number_of_peaks_to_return = 1,
+#'   peak_region_size_gap_threshold = 6,
+#'   peak_region_height_threshold_multiplier = 1
+#' )
+#'
+#'
+#' test_repeats <- call_repeats(
+#'   fragments_list = test_alleles,
+#'   repeat_calling_algorithm = "simple",
+#'   assay_size_without_repeat = 87,
+#'   repeat_size = 3,
+#'   repeat_length_correction = "none"
+#' )
+#'
+#' test_assigned <- assign_index_peaks(
+#'   fragments_list = test_repeats,
+#'   grouped = TRUE
+#' )
+#'
+#'
+#' # grouped metrics
+#' # uses t=0 samples as indicated in metadata
+#' test_metrics_grouped <- calculate_instability_metrics(
+#'   fragments_list = test_assigned,
+#'   peak_threshold = 0.05,
+#'   window_around_index_peak = c(-40, 40),
+#'   percentile_range = c(0.5, 0.75, 0.9, 0.95),
+#'   repeat_range = c(2, 5, 10, 20)
+#' )
+calculate_instability_metrics <- function(
+    fragments_list,
+    peak_threshold = 0.05,
+    window_around_index_peak = c(NA, NA),
+    percentile_range = c(0.5, 0.75, 0.9, 0.95),
+    repeat_range = c(2, 5, 10, 20),
+    grouped = NA,
+    index_override_dataframe = NA) {
+  # this section is in here for backwards compatibility since the functionality of assign_index_peaks() used to happen in here but was later separated
+  if (!is.na(grouped) || is.data.frame(index_override_dataframe)) {
+    # give the user a message to tell them to use the other function
+    message("The functionalty of assigning index peaks was separated into the assign_index_peaks() function, with the parameters 'grouped' and 'index_override_dataframe' kept here for backwards compatibility. We recomend using the assign_index_peaks() function seperatly instead of whitin this function. This allows you to validate that the correct index peak was assigned before moving forward with calculation of instability metrics.")
+
+    fragments_list <- assign_index_peaks(
+      fragments_list = fragments_list,
+      grouped = ifelse(!is.na(grouped), grouped, FALSE),
+      index_override_dataframe = if (is.data.frame(index_override_dataframe)) {
+        index_override_dataframe
+      } else {
+        NULL
+      }
+    )
+  }
+
+
+  # calculate metrics
+  metrics_list <- lapply(fragments_list, function(x) {
+    # compute metrics
+    metrics <- compute_metrics(
+      x,
+      peak_threshold = peak_threshold,
+      window_around_index_peak = window_around_index_peak,
+      percentile_range = percentile_range,
+      repeat_range = repeat_range
+    )
+  })
+  metrics <- do.call(rbind, metrics_list)
+
+  # add back in any samples that were removed earlier or failed to calculate metrics (they are returned as NULL and therefore not in the dataframe)
+  missing_samples <- names(fragments_list)[!names(fragments_list) %in% metrics$unique_id]
+  if (length(missing_samples) > 0) {
+    metrics[nrow(metrics) + seq_along(missing_samples), "unique_id"] <- missing_samples
+    rownames(metrics) <- metrics$unique_id
+    metrics$QC_comments <- ifelse(metrics$unique_id %in% missing_samples, "metrics could not be calculated", NA_character_)
+  }
+
+  return(metrics)
+}
+
