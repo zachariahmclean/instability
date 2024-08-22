@@ -60,6 +60,7 @@ fragments_trace <- R6::R6Class(
   inherit = fragments,
   public = list(
     unique_id = NULL,
+    fsa = NULL,
     raw_ladder = NULL,
     raw_data = NULL,
     scan = NULL,
@@ -68,6 +69,19 @@ fragments_trace <- R6::R6Class(
     trace_bp_df = NULL,
     peak_table_df = NULL,
     mod_parameters = NULL,
+    initialize = function(
+      unique_id, 
+      fsa_file,
+      ladder_channel,
+      signal_channel) {
+        if (length(unique_id) != 1) stop("Fragments must have a single unique id", call. = FALSE)
+        self$unique_id <- unique_id
+        self$fsa <- fsa_file
+        self$raw_ladder <- self$fsa$Data[[ladder_channel]]
+        self$raw_data <- self$fsa$Data[[signal_channel]]
+        self$scan <- 0:(length(self$fsa$Data[[signal_channel]]) - 1)
+        self$off_scale_scans <- self$fsa$Data$OfSc.1
+    },
     plot_ladder = function(xlim = NULL, ylim = NULL,
                            plot_title = NULL) {
       plot_ladder_helper(self,

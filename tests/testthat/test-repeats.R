@@ -126,8 +126,6 @@ testthat::test_that("fft", {
 
   suppressWarnings(
     test_ladders <- find_ladders(cell_line_fsa_list[1],
-                                 ladder_channel = "DATA.105",
-                                 signal_channel = "DATA.1",
                                  ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                                  max_combinations = 2500000,
                                  ladder_selection_window = 5,
@@ -197,8 +195,6 @@ testthat::test_that("repeat period", {
 
   suppressWarnings(
     test_ladders <- find_ladders(cell_line_fsa_list[1],
-                                 ladder_channel = "DATA.105",
-                                 signal_channel = "DATA.1",
                                  ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                                  max_combinations = 2500000,
                                  ladder_selection_window = 5,
@@ -267,8 +263,6 @@ testthat::test_that("repeat period", {
 testthat::test_that("full pipline repeat size algo", {
   suppressWarnings(
     test_ladders <- find_ladders(cell_line_fsa_list,
-                                 ladder_channel = "DATA.105",
-                                 signal_channel = "DATA.1",
                                  ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
                                  max_combinations = 2500000,
                                  ladder_selection_window = 5,
@@ -391,10 +385,20 @@ testthat::test_that("size standards with ids", {
 
   H7_metadata <- do.call(rbind, H7_metadata)
 
-  H7_fsa_list <- rep(cell_line_fsa_list["20230413_H07.fsa"],10)
+  H7_fsa_list <- lapply(1:10, function(x) {
+    y <- cell_line_fsa_list[["20230413_H07.fsa"]]$clone()
+    y$unique_id <-  paste0("20230413_H07.fsa", "_", x)
+    return(y)
+  })
   names(H7_fsa_list) <- paste0("20230413_H07.fsa", "_", 1:10)
 
-  H8_fsa_list <- rep(cell_line_fsa_list["20230413_H08.fsa"],10)
+  
+
+  H8_fsa_list <- lapply(1:10, function(x) {
+    y <- cell_line_fsa_list[["20230413_H08.fsa"]]$clone()
+    y$unique_id <-  paste0("20230413_H08.fsa", "_", x)
+    return(y)
+  })
   names(H8_fsa_list) <- paste0("20230413_H08.fsa", "_", 1:10)
 
   ladder_list <- find_ladders(c(H7_fsa_list, H8_fsa_list),

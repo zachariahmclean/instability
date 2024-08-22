@@ -416,13 +416,9 @@ ladder_self_mod_predict <- function(fragments_trace,
 
 #' Ladder and bp sizing
 #'
-#' Find the ladder peaks in the fsa file and use that to call bp size
+#' Find the ladder peaks in and use that to call bp size
 #'
-#' @param fsa_list list from 'read_fsa' function
-#' @param ladder_channel string: which channel in the fsa file contains the
-#'        ladder signal
-#' @param signal_channel string: which channel in the fsa file contains the data
-#'        signal
+#' @param fragments_trace list from 'read_fsa' function
 #' @param ladder_sizes numeric vector: bp sizes of ladder used in fragment analysis.
 #'        defaults to GeneScan™ 500 LIZ™
 #' @param spike_location numeric: indicate the scan number to start looking for
@@ -449,7 +445,7 @@ ladder_self_mod_predict <- function(fragments_trace,
 #' @export
 #'
 #' @details
-#' This function takes a list of fsa files (the output from read_fsa) and identifies
+#' This function takes a list of fragments_trace files (the output from read_fsa) and identifies
 #' the ladders in the ladder channel which is used to call the bp size. The output
 #' is a list of fragments_traces. bp sizes are assigned using the local Southern
 #' method. Basically, for each data point, linear models are made for the lower
@@ -476,9 +472,7 @@ ladder_self_mod_predict <- function(fragments_trace,
 #' plot_ladders(test_ladders[1], n_facet_col = 1)
 #'
 find_ladders <- function(
-    fsa_list,
-    ladder_channel = "DATA.105",
-    signal_channel = "DATA.1",
+    fragments_trace,
     ladder_sizes = c(50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
     spike_location = NULL,
     minimum_peak_signal = NULL,
@@ -488,7 +482,6 @@ find_ladders <- function(
     max_combinations = 2500000,
     smoothing_window = 21,
     show_progress_bar = TRUE) {
-  ####### internal helper functions
 
   fit_ladder <- function(
       ladder,
@@ -538,17 +531,10 @@ find_ladders <- function(
     return(combined_ladder_peaks)
   }
 
-  ladder_list <- vector("list", length(fsa_list))
-  for (i in seq_along(fsa_list)) {
+  for (i in seq_along(fragments_trace)) {
     if (show_progress_bar) {
-      pb <- utils::txtProgressBar(min = 0, max = length(ladder_list), style = 3)
+      pb <- utils::txtProgressBar(min = 0, max = length(fragments_trace), style = 3)
     }
-
-    ladder_list[[i]] <- fragments_trace$new(unique_id = names(fsa_list[i]))
-    ladder_list[[i]]$raw_ladder <- fsa_list[[i]]$Data[[ladder_channel]]
-    ladder_list[[i]]$raw_data <- fsa_list[[i]]$Data[[signal_channel]]
-    ladder_list[[i]]$scan <- 0:(length(fsa_list[[i]]$Data[[signal_channel]]) - 1)
-    ladder_list[[i]]$off_scale_scans <- fsa_list[[i]]$Data$OfSc.1
 
     # make sure that the scan window is at least same length as length of size standards
     if (ladder_selection_window > length(ladder_sizes)) {
@@ -557,9 +543,9 @@ find_ladders <- function(
 
     # allow user to subset to particular scans
     if (!is.null(scan_subset)) {
-      ladder_list[[i]]$raw_ladder <- ladder_list[[i]]$raw_ladder[scan_subset[1]:scan_subset[2]]
-      ladder_list[[i]]$raw_data <- ladder_list[[i]]$raw_data[scan_subset[1]:scan_subset[2]]
-      ladder_list[[i]]$scan <- ladder_list[[i]]$scan[scan_subset[1]:scan_subset[2]]
+      fragments_trace[[i]]$raw_ladder <- fragments_trace[[i]]$raw_ladder[scan_subset[1]:scan_subset[2]]
+      fragments_trace[[i]]$raw_data <- fragments_trace[[i]]$raw_data[scan_subset[1]:scan_subset[2]]
+      fragments_trace[[i]]$scan <- fragments_trace[[i]]$scan[scan_subset[1]:scan_subset[2]]
 
       # set spike location since it's automatically set usually, and user may select scans to start after
       spike_location <- scan_subset[1]
@@ -567,31 +553,31 @@ find_ladders <- function(
 
     # ladder
     ladder_df <- fit_ladder(
-      ladder = ladder_list[[i]]$raw_ladder,
-      scans = ladder_list[[i]]$scan,
-      sample_id = ladder_list[[i]]$unique_id
+      ladder = fragments_trace[[i]]$raw_ladder,
+      scans = fragments_trace[[i]]$scan,
+      sample_id = fragments_trace[[i]]$unique_id
     )
 
-    ladder_list[[i]]$ladder_df <- ladder_df
+    fragments_trace[[i]]$ladder_df <- ladder_df
 
     # predict bp size
     ladder_df <- ladder_df[which(!is.na(ladder_df$size)), ]
     ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
-    ladder_list[[i]]$mod_parameters <- local_southern(ladder_df$scan, ladder_df$size)
+    fragments_trace[[i]]$mod_parameters <- local_southern(ladder_df$scan, ladder_df$size)
 
-    predicted_size <- local_southern_predict(local_southern = ladder_list[[i]]$mod_parameters, scans = ladder_list[[i]]$scan)
+    predicted_size <- local_southern_predict(local_southern = fragments_trace[[i]]$mod_parameters, scans = fragments_trace[[i]]$scan)
 
-    ladder_list[[i]]$trace_bp_df <- data.frame(
-      unique_id = rep(ladder_list[[i]]$unique_id, length(ladder_list[[i]]$scan)),
-      scan = ladder_list[[i]]$scan,
+    fragments_trace[[i]]$trace_bp_df <- data.frame(
+      unique_id = rep(fragments_trace[[i]]$unique_id, length(fragments_trace[[i]]$scan)),
+      scan = fragments_trace[[i]]$scan,
       size = predicted_size,
-      signal = ladder_list[[i]]$raw_data,
-      ladder_signal = ladder_list[[i]]$raw_ladder,
-      off_scale = ladder_list[[i]]$scan %in% ladder_list[[i]]$off_scale_scans
+      signal = fragments_trace[[i]]$raw_data,
+      ladder_signal = fragments_trace[[i]]$raw_ladder,
+      off_scale = fragments_trace[[i]]$scan %in% fragments_trace[[i]]$off_scale_scans
     )
 
     # make a warning if one of the ladder modes is bad
-    ladder_rsq_warning_helper(ladder_list[[i]],
+    ladder_rsq_warning_helper(fragments_trace[[i]],
       rsq_threshold = 0.998
     )
 
@@ -600,9 +586,7 @@ find_ladders <- function(
     }
   }
 
-  names(ladder_list) <- names(fsa_list)
-
-  return(ladder_list)
+  return(fragments_trace)
 }
 
 
@@ -627,7 +611,7 @@ find_ladders <- function(
 #' @export
 #'
 #' @details
-#' This function takes a list of fragments_traces objects and tries to automatically
+#' This function takes a list of fragments_trace objects and tries to automatically
 #' fix the ladder. It uses an assumption that some of the peaks are correct (high
 #' r-squared standard linear model) and then uses those to predict
 #' where the size standard should be. If the size standard is where it's expected,

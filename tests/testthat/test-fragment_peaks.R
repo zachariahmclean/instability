@@ -4,8 +4,6 @@ testthat::test_that("find_fragments", {
   file_list <- instability::cell_line_fsa_list
   suppressWarnings(
     test_ladders <- find_ladders(file_list[which(names(file_list) == "20230413_B03.fsa")],
-      ladder_channel = "DATA.105",
-      signal_channel = "DATA.1",
       ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
       max_combinations = 2500000,
       ladder_selection_window = 8,
@@ -48,8 +46,6 @@ testthat::test_that("metadata transfer", {
 
   suppressWarnings(
     test_ladders <- find_ladders(file_list[1],
-      ladder_channel = "DATA.105",
-      signal_channel = "DATA.1",
       ladder_sizes = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
       max_combinations = 2500000,
       ladder_selection_window = 8,
