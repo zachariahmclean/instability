@@ -485,6 +485,8 @@ plot_size_standard_model <- function(fragments_list) {
     lm_model <- lm(validated_repeats ~ size, data = plate_data)
     graphics::abline(lm_model, col = "blue")
   }
+  graphics::par(mfrow = c(1, 1)) # Reset the layout
+
 }
 
 # plot size standard sample groups ----------------------------------------
@@ -624,19 +626,28 @@ plot_size_standard_samples <- function(
         return(df)
       })
     }
+
+    # normalize signal to samples have the same maxium
+    sample_traces <- lapply(sample_traces, function(x){
+      x$signal <- x$signal - min(x$signal)
+      x$rel_signal <- x$signal / max(x$signal)
+      return(x)
+    })
+
+
     # Plot the first dataframe
-    plot(sample_traces[[1]]$x, sample_traces[[1]]$signal,
+    plot(sample_traces[[1]]$x, sample_traces[[1]]$rel_signal,
       type = "l",
       col = colors[1],
       xlab = ifelse(x_axis == "size", "Size", "Repeats"),
       ylab = "Signal",
-      ylim = range(sapply(sample_traces, function(df) range(df$signal))),
+      ylim = range(sapply(sample_traces, function(df) range(df$rel_signal))),
       main = sample_fragments[[1]]$size_standard_sample_id
     )
 
     # Add lines for remaining dataframes
     for (i in 2:n_dfs) {
-      graphics::lines(sample_traces[[i]]$x, sample_traces[[i]]$signal, col = colors[i])
+      graphics::lines(sample_traces[[i]]$x, sample_traces[[i]]$rel_signal, col = colors[i])
     }
 
     # Add a legend

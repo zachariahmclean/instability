@@ -433,9 +433,6 @@ testthat::test_that("size standards with ids", {
 
     
 
-  # repeats_list <- call_repeats(allele_list,
-  #   repeat_length_correction = "from_metadata"  
-  #   )
   
   sample_group_waning <- tryCatch(call_repeats(allele_list,
     repeat_length_correction = "from_metadata"  
@@ -446,6 +443,11 @@ testthat::test_that("size standards with ids", {
 
   #test that warning is only for "S-21-212"
   testthat::expect_true(grepl("S-21-212", sample_group_waning))
+
+  
+  # repeats_list <- call_repeats(allele_list,
+  #   repeat_length_correction = "from_metadata"  
+  #   )
   
   # plot_size_standard_samples(repeats_list, x_axis = "size", xlim = c(400, 470))
   # plot_size_standard_samples(repeats_list, x_axis = "repeats", xlim = c(100, 130))

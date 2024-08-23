@@ -41,8 +41,10 @@ read_fsa <- function(
   for (i in seq_along(files)) {
     fragments_list[[i]] <- fragments_trace$new(
       unique_id = names(fragments_list[i]),
-      fsa_file = seqinr::read.abif(files[i])
+      fsa_file = seqinr::read.abif(files[i]),
+      ladder_channel = ladder_channel,
+      signal_channel = signal_channel
     )
   }
-  return(file_list)
+  return(fragments_list)
 }
