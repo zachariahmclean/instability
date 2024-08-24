@@ -273,9 +273,9 @@ lapply(metadata_split, function(meta) {
     
     # Add text annotation for allele_1_repeat
     text(
-      x = repeat_data$allele_1_repeat, 
-      y = repeat_data$allele_1_height * 1.02, 
-      labels = round(repeat_data$allele_1_repeat)
+      x = repeat_data$get_alleles()$allele_1_repeat, 
+      y = repeat_data$get_alleles()$allele_1_height * 1.02, 
+      labels = round(repeat_data$get_alleles()$allele_1_repeat)
     )
   }
   

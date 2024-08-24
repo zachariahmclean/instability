@@ -140,7 +140,7 @@ compute_metrics <- function(fragments_repeats,
     stop(paste0(fragments_repeats$unique_id, " requires an index peak to calculate repeat instability metrics. Use 'assign_index_peaks' to set the index peaks."),
          call. = FALSE
     )
-  }else if (is.na(fragments_repeats$allele_1_repeat)) {
+  }else if (is.na(fragments_repeats$get_alleles()$allele_1_repeat)) {
     message(paste0(fragments_repeats$unique_id, ": metrics not calculated (no main peaks in sample)"))
     return(NULL)
   }
@@ -148,8 +148,8 @@ compute_metrics <- function(fragments_repeats,
   # filter dataset to user supplied thresholds
   size_filtered_df <- repeat_table_subset(
     repeat_table_df = fragments_repeats$repeat_table_df,
-    allele_1_height = fragments_repeats$allele_1_height,
-    index_repeat = fragments_repeats$index_repeat,
+    allele_1_height = fragments_repeats$get_alleles()$allele_1_height,
+    index_repeat = fragments_repeats$get_index_peak()$index_repeat,
     peak_threshold = peak_threshold,
     window_around_index_peak = window_around_index_peak
   )
@@ -177,14 +177,14 @@ compute_metrics <- function(fragments_repeats,
 
 
   # first subset to make some dataframe that are just for contractions or expansions
-  size_filtered_df$repeat_delta_index_peak <- size_filtered_df$repeats - fragments_repeats$index_repeat
+  size_filtered_df$repeat_delta_index_peak <- size_filtered_df$repeats - fragments_repeats$get_index_peak()$index_repeat
   expansion_filtered <- size_filtered_df[which(size_filtered_df$repeat_delta_index_peak >= 0), ]
   contraction_filtered <- size_filtered_df[which(size_filtered_df$repeat_delta_index_peak <= 0), ]
 
   # QCs
-  QC_modal_peak_height <- if (fragments_repeats$allele_1_height > 500) {
+  QC_modal_peak_height <- if (fragments_repeats$get_alleles()$allele_1_height > 500) {
     NA_character_
-  } else if (fragments_repeats$allele_1_height > 100) {
+  } else if (fragments_repeats$get_alleles()$allele_1_height > 100) {
     "Low"
   } else {
     "Extremly low"
@@ -214,10 +214,10 @@ compute_metrics <- function(fragments_repeats,
     QC_modal_peak_height = QC_modal_peak_height,
     QC_peak_number = QC_peak_number,
     QC_off_scale = QC_off_scale,
-    modal_peak_repeat = fragments_repeats$allele_1_repeat,
-    modal_peak_height = fragments_repeats$allele_1_height,
-    index_peak_repeat = fragments_repeats$index_repeat,
-    index_peak_height = fragments_repeats$index_height,
+    modal_peak_repeat = fragments_repeats$get_alleles()$allele_1_repeat,
+    modal_peak_height = fragments_repeats$get_alleles()$allele_1_height,
+    index_peak_repeat = fragments_repeats$get_index_peak()$index_repeat,
+    index_peak_height = fragments_repeats$get_index_peak()$index_height,
     index_weighted_mean_repeat = index_weighted_mean_repeat,
     n_peaks_total = nrow(fragments_repeats$repeat_table_df),
     n_peaks_analysis_subset = nrow(size_filtered_df),
@@ -232,37 +232,37 @@ compute_metrics <- function(fragments_repeats,
     max_delta_pos = max(size_filtered_df$repeat_delta_index_peak),
     skewness = fishers_skewness(size_filtered_df$repeats, size_filtered_df$height),
     kurtosis = fishers_kurtosis(size_filtered_df$repeats, size_filtered_df$height),
-    modal_repeat_delta = fragments_repeats$allele_1_repeat - fragments_repeats$index_repeat,
+    modal_repeat_delta = fragments_repeats$get_alleles()$allele_1_repeat - fragments_repeats$get_index_peak()$index_repeat,
     average_repeat_gain = weighted.mean(size_filtered_df$repeats, size_filtered_df$height) - index_weighted_mean_repeat,
     instability_index = instability_index(
       repeats = size_filtered_df$repeats,
       heights = size_filtered_df$height,
-      index_peak_height = fragments_repeats$allele_1_height,
-      index_peak_repeat = fragments_repeats$index_repeat,
+      index_peak_height = fragments_repeats$get_alleles()$allele_1_height,
+      index_peak_repeat = fragments_repeats$get_index_peak()$index_repeat,
       peak_threshold = peak_threshold,
       abs_sum = FALSE
     ),
     instability_index_abs = instability_index(
       repeats = size_filtered_df$repeats,
       heights = size_filtered_df$height,
-      index_peak_height = fragments_repeats$allele_1_height,
-      index_peak_repeat = fragments_repeats$index_repeat,
+      index_peak_height = fragments_repeats$get_alleles()$allele_1_height,
+      index_peak_repeat = fragments_repeats$get_index_peak()$index_repeat,
       peak_threshold = peak_threshold,
       abs_sum = TRUE
     ),
     expansion_index = instability_index(
       repeats = expansion_filtered$repeats,
       heights = expansion_filtered$height,
-      index_peak_height = fragments_repeats$allele_1_height,
-      index_peak_repeat = fragments_repeats$index_repeat,
+      index_peak_height = fragments_repeats$get_alleles()$allele_1_height,
+      index_peak_repeat = fragments_repeats$get_index_peak()$index_repeat,
       peak_threshold = peak_threshold,
       abs_sum = FALSE
     ),
     contraction_index = instability_index(
       repeats = contraction_filtered$repeats,
       heights = contraction_filtered$height,
-      index_peak_height = fragments_repeats$allele_1_height,
-      index_peak_repeat = fragments_repeats$index_repeat,
+      index_peak_height = fragments_repeats$get_alleles()$allele_1_height,
+      index_peak_repeat = fragments_repeats$get_index_peak()$index_repeat,
       peak_threshold = peak_threshold,
       abs_sum = FALSE
     ),
@@ -273,7 +273,7 @@ compute_metrics <- function(fragments_repeats,
   expansion_percentile <- find_percentiles(
     expansion_filtered$repeats,
     expansion_filtered$height,
-    fragments_repeats$index_repeat,
+    fragments_repeats$get_index_peak()$index_repeat,
     type = "percentile",
     range = percentile_range,
     col_preffix = "expansion_percentile"
@@ -282,7 +282,7 @@ compute_metrics <- function(fragments_repeats,
   expansion_repeat <- find_percentiles(
     expansion_filtered$repeats,
     expansion_filtered$height,
-    fragments_repeats$index_repeat,
+    fragments_repeats$get_index_peak()$index_repeat,
     type = "repeat",
     range = repeat_range,
     col_preffix = "expansion_percentile_for_repeat"

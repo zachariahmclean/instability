@@ -60,8 +60,8 @@ plot_fragments_helper <- function(fragment_repeats,
   }
 
 
-  allele_1_mode <- ifelse(is.null(fragment_repeats$repeat_table_df), round(fragment_repeats$allele_1_size), round(fragment_repeats$allele_1_repeat))
-  allele_2_mode <- ifelse(is.null(fragment_repeats$repeat_table_df), round(fragment_repeats$allele_2_size), round(fragment_repeats$allele_2_repeat))
+  allele_1_mode <- ifelse(is.null(fragment_repeats$repeat_table_df), round(fragment_repeats$get_alleles()$allele_1_size), round(fragment_repeats$get_alleles()$allele_1_repeat))
+  allele_2_mode <- ifelse(is.null(fragment_repeats$repeat_table_df), round(fragment_repeats$get_alleles()$allele_2_size), round(fragment_repeats$get_alleles()$allele_2_repeat))
 
   # Fill missing y values with zeros
   rounded_x <- round(data$x)
@@ -166,17 +166,17 @@ plot_trace_helper <- function(fragments,
 
     tallest_peak_height <- peak_table[which(peak_table$height == max(peak_table$height)), "height"]
     tallest_peak_x <- peak_table[which(peak_table$height == tallest_peak_height), "x"]
-    if (!is.null(fragments$allele_1_height) && !is.na(fragments$allele_1_height)) {
-      tallest_peak_height <- fragments$allele_1_height
+    if (!is.null(fragments$get_alleles()$allele_1_height) && !is.na(fragments$get_alleles()$allele_1_height)) {
+      tallest_peak_height <- fragments$get_alleles()$allele_1_height
       # find the tallest peak x axis position
-      if (is.null(x_axis) && is.na(fragments$allele_1_repeat)) {
-        tallest_peak_x <- fragments$allele_1_size
-      } else if (is.null(x_axis) && !is.na(fragments$allele_1_repeat)) {
-        tallest_peak_x <- fragments$allele_1_repeat
+      if (is.null(x_axis) && is.na(fragments$get_alleles()$allele_1_repeat)) {
+        tallest_peak_x <- fragments$get_alleles()$allele_1_size
+      } else if (is.null(x_axis) && !is.na(fragments$get_alleles()$allele_1_repeat)) {
+        tallest_peak_x <- fragments$get_alleles()$allele_1_repeat
       } else if (x_axis == "size") {
-        tallest_peak_x <- fragments$allele_1_size
+        tallest_peak_x <- fragments$get_alleles()$allele_1_size
       } else {
-        tallest_peak_x <- fragments$allele_1_repeat
+        tallest_peak_x <- fragments$get_alleles()$allele_1_repeat
       }
     }
 
@@ -212,8 +212,8 @@ plot_trace_helper <- function(fragments,
   }
 
 
-  if (!is.null(fragments$index_repeat) && !is.na(fragments$index_repeat)) {
-    abline(v = fragments$index_repeat, col = "black", lwd = 2, lty = 3)
+  if (!is.null(fragments$get_index_peak()$index_repeat) && !is.na(fragments$get_index_peak()$index_repeat)) {
+    abline(v = fragments$get_index_peak()$index_repeat, col = "black", lwd = 2, lty = 3)
   }
 }
 

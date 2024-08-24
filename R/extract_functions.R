@@ -60,9 +60,9 @@ extract_alleles <- function(fragments_list) {
   extracted <- lapply(fragments_list, function(x) {
     data.frame(
       unique_id = rep(x$unique_id, 2),
-      size = c(x$allele_1_size, x$allele_2_size),
-      repeats = c(x$allele_1_repeat, x$allele_2_repeat),
-      height = c(x$allele_1_height, x$allele_2_height),
+      size = c(x$get_alleles()$allele_1_size, x$get_alleles()$allele_2_size),
+      repeats = c(x$get_alleles()$allele_1_repeat, x$get_alleles()$allele_2_repeat),
+      height = c(x$get_alleles()$allele_1_height, x$get_alleles()$allele_2_height),
       peak_allele = c(1, 2)
     )
   })
@@ -123,8 +123,8 @@ extract_fragments <- function(fragments_list) {
         df_length <- nrow(x$peak_table_df)
         data.frame(
           unique_id = rep(x$unique_id, df_length),
-          main_peak_size = rep(x$allele_1_size, df_length),
-          main_peak_height = rep(x$allele_1_height, df_length),
+          main_peak_size = rep(x$get_alleles()$allele_1_size, df_length),
+          main_peak_height = rep(x$get_alleles()$allele_1_height, df_length),
           height = x$peak_table_df$height,
           size = x$peak_table_df$size,
           peak_region = x$.__enclos_env__$private$peak_regions
@@ -133,8 +133,8 @@ extract_fragments <- function(fragments_list) {
         df_length <- nrow(x$repeat_table_df)
         data.frame(
           unique_id = rep(x$unique_id, df_length),
-          main_peak_repeat = rep(x$allele_1_repeat, df_length),
-          main_peak_height = rep(x$allele_1_height, df_length),
+          main_peak_repeat = rep(x$get_alleles()$allele_1_repeat, df_length),
+          main_peak_height = rep(x$get_alleles()$allele_1_height, df_length),
           height = x$repeat_table_df$height,
           repeats = x$repeat_table_df$repeats,
           peak_region = x$.__enclos_env__$private$peak_regions

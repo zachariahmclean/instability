@@ -180,39 +180,28 @@ find_alleles <- function(
     if (number_of_peaks_to_return == 2) {
       # shorter repeat allele
       if (is.null(fragment$repeat_table_df)) {
-        fragment$allele_2_size <- fragment_sizes[top_regional_peaks[1]]
+        fragment$set_allele(allele = 2, unit = "size", value = fragment_sizes[top_regional_peaks[1]])
       } else {
-        fragment$allele_2_repeat <- fragment_sizes[top_regional_peaks[1]]
+        fragment$set_allele(allele = 2, unit = "repeats", value = fragment_sizes[top_regional_peaks[1]])
       }
-      fragment$allele_2_height <- fragment_height[top_regional_peaks[1]]
 
       # longer repeat allele
       if (is.null(fragment$repeat_table_df)) {
-        fragment$allele_1_size <- fragment_sizes[top_regional_peaks[2]]
+        fragment$set_allele(allele = 1, unit = "size", value = fragment_sizes[top_regional_peaks[2]])
       } else {
-        fragment$allele_1_repeat <- fragment_sizes[top_regional_peaks[2]]
+        fragment$set_allele(allele = 1, unit = "repeats", value = fragment_sizes[top_regional_peaks[2]])
       }
-      fragment$allele_1_height <- fragment_height[top_regional_peaks[2]]
     } else if (number_of_peaks_to_return == 1) {
-      # shorter repeat allele doesn't exist
-      fragment$allele_2_size <- NA_real_
-      fragment$allele_2_repeat <- NA_real_
-      fragment$allele_2_height <- NA_real_
-
       # longer repeat allele
       if (is.null(fragment$repeat_table_df)) {
-        fragment$allele_1_size <- fragment_sizes[top_regional_peaks[1]]
+        fragment$set_allele(allele = 1, unit = "size", value = fragment_sizes[top_regional_peaks[1]])
       } else {
-        fragment$allele_1_repeat <- fragment_sizes[top_regional_peaks[1]]
+        fragment$set_allele(allele = 1, unit = "repeats", value = fragment_sizes[top_regional_peaks[1]])
       }
-      fragment$allele_1_height <- fragment_height[top_regional_peaks[1]]
     }
 
     # peak_regions
     fragment$.__enclos_env__$private$peak_regions <- peak_regions
-
-    # finally, indicate in the private part of the class that this function has been used since that is required for next steps
-    fragment$.__enclos_env__$private$find_main_peaks_used <- TRUE
 
     return(fragment)
   })

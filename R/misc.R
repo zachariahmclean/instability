@@ -37,6 +37,28 @@ print_helper <- function(fragment,
 
   cat("\033[1;36m-----------------------------\033[0m\n")
 
+   # Check and print called alleles in private fields of fragments_repeats
+  if(class(fragment)[1] == "fragments_repeats"){
+    private_names <- ls(fragment$.__enclos_env__$private, all.names = TRUE)
+    alleles_names <- private_names[which(grepl("allele_", private_names))]
+    alleles_names <- c(alleles_names, "index_repeat")
+    for (name in alleles_names) {
+      value <- fragment$.__enclos_env__$private[[name]]
+      if(grepl("allele_2", name) & is.na(value)){
+        next
+      }
+      class_value <- class(value)
+  
+      cat(sprintf("\033[1m%-30s\033[0m", name))
+  
+      if (is.null(value)) {
+        cat("NULL\n")
+      } else if (is.numeric(value)) {
+        cat(format(value), "\n")
+      } 
+    }
+  }
+
   slot_names <- ls(fragment, all.names = TRUE)
   all_exclusions <- c(
     exclude,

@@ -23,12 +23,10 @@ metrics_override_helper <- function(fragments_list,
 
       closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
       if (length(closest_peak) == 1) {
-        x$index_repeat <- x$repeat_table_df$repeats[closest_peak]
-        x$index_height <- x$repeat_table_df$height[closest_peak]
+        x$set_index_peak(x$repeat_table_df$repeats[closest_peak])
       } else {
         tallest_candidate <- closest_peak[which(x$repeat_table_df$height[closest_peak] == max(x$repeat_table_df$height[closest_peak]))]
-        x$index_repeat <- x$repeat_table_df$repeats[tallest_candidate]
-        x$index_height <- x$repeat_table_df$height[tallest_candidate]
+        x$set_index_peak(x$repeat_table_df$repeats[tallest_candidate])
       }
     }
     return(x)
@@ -127,7 +125,7 @@ assign_index_peaks <- function(
           baseline_control_list[[fragments_list[[i]]$group_id]],
           list(
               list(
-                fragments_list[[i]]$allele_1_repeat,
+                fragments_list[[i]]$get_alleles()$allele_1_repeat,
                 fragments_list[[i]]$repeat_table_df
               )
             )
@@ -171,26 +169,20 @@ assign_index_peaks <- function(
         closest_peak <- which(abs(index_delta) == min(abs(index_delta)))
 
         if (length(closest_peak) == 1) {
-          fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[closest_peak]
-          fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[closest_peak]
+          fragments_list[[i]]$set_index_peak(fragments_list[[i]]$repeat_table_df$repeats[closest_peak])
         } else {
           tallest_candidate <- closest_peak[which(fragments_list[[i]]$repeat_table_df$height[closest_peak] == max(fragments_list[[i]]$repeat_table_df$height[closest_peak]))]
-          fragments_list[[i]]$index_repeat <- fragments_list[[i]]$repeat_table_df$repeats[tallest_candidate]
-          fragments_list[[i]]$index_height <- fragments_list[[i]]$repeat_table_df$height[tallest_candidate]
+          fragments_list[[i]]$set_index_peak(fragments_list[[i]]$repeat_table_df$repeats[tallest_candidate])
         }
+      } else{
+        fragments_list[[i]]$set_index_peak(NA_real_)
       }
-
-      # confirm that the index was set in the class so it can be used for calculate instability metrics
-      fragments_list[[i]]$.__enclos_env__$private$assigned_index_peak_used <- TRUE
-
     }
 
   } else {
     # otherwise just use the modal peak as the index peak
     fragments_list <- lapply(fragments_list, function(x) {
-      x$index_repeat <- x$allele_1_repeat
-      x$index_height <- x$allele_1_height
-      x$.__enclos_env__$private$assigned_index_peak_used <- TRUE
+      x$set_index_peak(x$get_alleles()$allele_1_repeat)
       return(x)
     })
   }

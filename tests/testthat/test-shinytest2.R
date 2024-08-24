@@ -3,7 +3,7 @@ test_that("{shinytest2} recording: fix_ladder-checkbox", {
   skip_on_cran()
 
 
-  file_list <- instability::cell_line_fsa_list[c("20230413_A01.fsa", "20230413_B03.fsa")]
+  file_list <- lapply(instability::cell_line_fsa_list[c("20230413_A01.fsa", "20230413_B03.fsa")], function(x) x$clone())
 
 
   test_ladders <- find_ladders(file_list,

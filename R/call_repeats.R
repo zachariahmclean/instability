@@ -184,7 +184,7 @@ find_peaks_by_scan_period <- function(df,
 fft_repeat_caller <- function(fragments_repeat,
                               scan_peak_window = 3,
                               fragment_window = 3 * 5) {
-  if (is.na(fragments_repeat$allele_1_size)) {
+  if (is.na(fragments_repeat$get_alleles()$allele_1_size)) {
     df <- data.frame(
       "unique_id" = character(),
       "scan" = numeric(),
@@ -195,9 +195,9 @@ fft_repeat_caller <- function(fragments_repeat,
     return(df)
   }
 
-  fragment_window_positions <- which(fragments_repeat$trace_bp_df$size > fragments_repeat$allele_1_size - fragment_window & fragments_repeat$trace_bp_df$size < fragments_repeat$allele_1_size + fragment_window)
+  fragment_window_positions <- which(fragments_repeat$trace_bp_df$size > fragments_repeat$get_alleles()$allele_1_size - fragment_window & fragments_repeat$trace_bp_df$size < fragments_repeat$get_alleles()$allele_1_size + fragment_window)
   window_df <- fragments_repeat$trace_bp_df[fragment_window_positions, ]
-  main_peak_scan <- window_df[which(window_df$size == fragments_repeat$allele_1_size), "scan"]
+  main_peak_scan <- window_df[which(window_df$size == fragments_repeat$get_alleles()$allele_1_size), "scan"]
 
   peak_scan_peroid <- find_scan_period(window_df, main_peak_scan)
 
@@ -232,7 +232,7 @@ size_period_repeat_caller <- function(fragments_repeat,
                                       size_period,
                                       scan_peak_window = 3,
                                       fragment_window = 3 * 5) {
-  if (is.na(fragments_repeat$allele_1_size)) {
+  if (is.na(fragments_repeat$get_alleles()$allele_1_size)) {
     df <- data.frame(
       "unique_id" = character(),
       "scan" = numeric(),
@@ -243,9 +243,9 @@ size_period_repeat_caller <- function(fragments_repeat,
     return(df)
   }
 
-  fragment_window_positions <- which(fragments_repeat$trace_bp_df$size > fragments_repeat$allele_1_size - fragment_window & fragments_repeat$trace_bp_df$size < fragments_repeat$allele_1_size + fragment_window)
+  fragment_window_positions <- which(fragments_repeat$trace_bp_df$size > fragments_repeat$get_alleles()$allele_1_size - fragment_window & fragments_repeat$trace_bp_df$size < fragments_repeat$get_alleles()$allele_1_size + fragment_window)
   window_df <- fragments_repeat$trace_bp_df[fragment_window_positions, ]
-  main_peak_scan <- window_df[which(window_df$size == fragments_repeat$allele_1_size), "scan"]
+  main_peak_scan <- window_df[which(window_df$size == fragments_repeat$get_alleles()$allele_1_size), "scan"]
 
 
   # determine period
@@ -298,8 +298,8 @@ model_repeat_length <- function(fragments_list,
     controls_fragments_df_list <- lapply(controls_fragments, function(x) {
       df_length <- nrow(x$peak_table_df)
       # identify peaks close to modal peak and at least 20% as high
-      main_peak_delta <- x$peak_table_df$size - x$allele_1_size
-      height_prop <- x$peak_table_df$height / x$allele_1_height
+      main_peak_delta <- x$peak_table_df$size - x$get_alleles()$allele_1_size
+      height_prop <- x$peak_table_df$height / x$get_alleles()$allele_1_height
       peak_cluster <- vector("logical", length = nrow(x$peak_table_df))
       for (i in seq_along(main_peak_delta)) {
         if (abs(main_peak_delta[[i]]) < 30 & height_prop[[i]] > 0.2) {
@@ -316,7 +316,7 @@ model_repeat_length <- function(fragments_list,
         size = cluster_df$size,
         validated_repeats = np_repeat(
           size = cluster_df$size,
-          main_peak_size = x$allele_1_size,
+          main_peak_size = x$get_alleles()$allele_1_size,
           main_peak_repeat = x$size_standard_repeat_length,
           repeat_size = repeat_size
         ),
@@ -335,7 +335,7 @@ model_repeat_length <- function(fragments_list,
       data.frame(
         unique_id = x$unique_id,
         size_standard = x$size_standard,
-        allele_1_size = x$allele_1_size,
+        allele_1_size = x$get_alleles()$allele_1_size,
         plate_id = x$plate_id,
         size_standard_sample_id = x$size_standard_sample_id
       )
@@ -367,13 +367,13 @@ model_repeat_length <- function(fragments_list,
       fragments_list[which(names(fragments_list) %in% unique(controls_samples_df$unique_id))],
       function(x) {
         genemapper_alleles <- controls_samples_df[which(controls_samples_df$unique_id == x$unique_id), ]
-        allele_1_delta_abs <- abs(genemapper_alleles$size - x$allele_1_size)
+        allele_1_delta_abs <- abs(genemapper_alleles$size - x$get_alleles()$allele_1_size)
         closest_to_allele_1 <- which(allele_1_delta_abs == min(allele_1_delta_abs))
         selected_genemapper_allele <- genemapper_alleles[closest_to_allele_1[1], ]
 
         # make sure it doesn't modify in place and mess up the selection of the real main peak
         y <- x$clone()
-        y$allele_1_size <- selected_genemapper_allele$size
+        y$set_allele(allele = 1, unit = "size", value = selected_genemapper_allele$size)
         y$size_standard <- TRUE
         y$size_standard_repeat_length <- selected_genemapper_allele$allele
         return(y)
@@ -622,7 +622,7 @@ call_repeats <- function(
       }
 
       # only continue from here if main peaks were successfully found, otherwise, don't return repeat data (ie it can be an empty df)
-      if (is.na(fragment$allele_1_size) | is.na(fragment$allele_1_height)) {
+      if (is.na(fragment$get_alleles()$allele_1_size) | is.na(fragment$get_alleles()$allele_1_height)) {
         fragment$.__enclos_env__$private$repeats_not_called_reason <- "No main peaks"
         warning(paste0(fragment$unique_id, ": repeats were not called (no main peaks in sample)"),
           call. = FALSE
@@ -711,16 +711,18 @@ call_repeats <- function(
         if (force_whole_repeat_units == TRUE) {
           repeat_table_df$repeats <- np_repeat(
             size = repeat_table_df$size,
-            main_peak_size = fragment$allele_1_size,
-            main_peak_repeat = repeat_table_df$calculated_repeats[which(repeat_table_df$size == fragment$allele_1_size)],
+            main_peak_size = fragment$get_alleles()$allele_1_size,
+            main_peak_repeat = repeat_table_df$calculated_repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_1_size)],
             repeat_size = repeat_size
           )
         }
 
         # Finally save main peak repeat length and repeats data
-        fragment$allele_1_repeat <- repeat_table_df$repeats[which(repeat_table_df$size == fragment$allele_1_size)]
-        fragment$allele_2_repeat <- repeat_table_df$repeats[which(repeat_table_df$size == fragment$allele_2_size)]
         fragment$repeat_table_df <- repeat_table_df
+        allele_1_subset <- repeat_table_df$repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_1_size)]
+        fragment$set_allele(allele = 1, unit = "repeats", value = ifelse(length(allele_1_subset) == 1, allele_1_subset, NA_real_))
+        allele_2_subset <- repeat_table_df$repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_2_size)]
+        fragment$set_allele(allele = 2, unit = "repeats", value = ifelse(length(allele_2_subset) == 1, allele_2_subset, NA_real_))
       }
 
 

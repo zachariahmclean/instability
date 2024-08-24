@@ -250,7 +250,7 @@ testthat::test_that("find_alleles", {
 
   allele_1_size <- vector("numeric", length(test_alleles))
   for (i in seq_along(test_alleles)) {
-    allele_1_size[i] <- test_alleles[[i]]$allele_1_size
+    allele_1_size[i] <- test_alleles[[i]]$get_alleles()$allele_1_size
   }
 
   testthat::expect_true(all(!is.na(allele_1_size)))
@@ -324,7 +324,7 @@ testthat::test_that("calculate metrics", {
   testthat::expect_true(round(mean(test_metrics_ungrouped$expansion_index, na.rm = TRUE), 3) == 4.956)
   testthat::expect_true(all(is.na(test_metrics_ungrouped$average_repeat_gain)))
   testthat::expect_true(round(mean(test_metrics_ungrouped$skewness, na.rm = TRUE), 5) == -0.00905)
-  testthat::expect_true(test_assignment_ungrouped[[1]]$allele_1_repeat == test_assignment_ungrouped[[1]]$index_repeat)
+  testthat::expect_true(test_assignment_ungrouped[[1]]$get_alleles()$allele_1_repeat == test_assignment_ungrouped[[1]]$get_index_peak()$index_repeat)
   testthat::expect_true(all(sapply(test_assignment_ungrouped, function(x) x$.__enclos_env__$private$assigned_index_peak_used)))
   #test override
 
@@ -387,7 +387,7 @@ testthat::test_that("calculate metrics", {
   testthat::expect_true(round(mean(test_metrics_grouped$expansion_index, na.rm = TRUE), 3) == 6.727)
   testthat::expect_true(round(mean(test_metrics_grouped$average_repeat_gain, na.rm = TRUE), 3) == 4.14)
   testthat::expect_true(round(mean(test_metrics_grouped$skewness, na.rm = TRUE), 5) == -0.00905)
-  testthat::expect_true(test_assignment_grouped[[1]]$allele_1_repeat != test_assignment_grouped[[1]]$index_repeat)
+  testthat::expect_true(test_assignment_grouped[[1]]$get_alleles()$allele_1_repeat != test_assignment_grouped[[1]]$get_index_peak()$index_repeat)
   testthat::expect_true(all(sapply(test_assignment_grouped, function(x) x$.__enclos_env__$private$assigned_index_peak_used)))
 
 
