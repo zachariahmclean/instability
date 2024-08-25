@@ -1,4 +1,4 @@
-# plot ladder helper ------------------------------------------------------
+# helper functions for class ------------------------------------------------------
 
 plot_ladder_helper <- function(fragments_trace,
                                xlim, ylim,
@@ -27,8 +27,6 @@ plot_ladder_helper <- function(fragments_trace,
   }
 }
 
-
-# plot_fragments_helper ---------------------------------------------------
 
 plot_fragments_helper <- function(fragment_repeats,
                                   ylim,
@@ -85,8 +83,6 @@ plot_fragments_helper <- function(fragment_repeats,
   )
 }
 
-
-# plot_trace helper -------------------------------------------------------
 
 plot_trace_helper <- function(fragments,
                               show_peaks,
@@ -218,11 +214,44 @@ plot_trace_helper <- function(fragments,
 }
 
 
+plot_data_channels_helper <- function(fragment){
+
+  # Extract the names of the data channels that match "DATA."
+  data_channels <- names(fragment$fsa$Data)[grep("DATA.", names(fragment$fsa$Data))]
+  raw_data_list <- fragment$fsa$Data[data_channels]
+    
+  colors <- grDevices::hcl.colors(length(data_channels), palette = "Viridis")
+
+  # Initialize the plot with the first data channel
+  plot(raw_data_list[[1]], 
+      type = "l", col = colors[1], lwd = 2.5, 
+      ylim = range(raw_data_list),
+      ylab = "Signal", xlab = "Scan", 
+      main = fragment$unique_id)
+
+  # Overlay the rest of the data channels
+  for (i in 2:length(data_channels)) {
+    graphics::lines(raw_data_list[[i]], col = colors[i], lwd = 2)
+  }
+
+  # Add a legend to the plot
+  graphics::legend("topright", 
+        legend = data_channels, 
+        col = colors, 
+        lty = 1, lwd = 2.5,
+        cex = 0.8,        # reduce the size of the text
+        ncol = 2,         # Display the legend in 2 columns
+        inset = c(0.1, 0),  # Adjust position to be inside the plot, but in the corner
+        x.intersp = 0.25,   # Adjust horizontal spacing between symbols and text
+        y.intersp = 0.6,   # Adjust vertical spacing to align text under the lines
+        text.width = 100,  #make columns closer for some reason
+        bty = "n")        # Remove the box around the legend
+
+}
 
 
 
-
-# plot ladder -------------------------------------------------------------
+# Main plotting functions -------------------------------------------------------------
 
 #' Plot ladder
 #'
@@ -233,7 +262,6 @@ plot_trace_helper <- function(fragments,
 #' @param sample_subset A character vector of unique ids for a subset of samples to plot
 #' @param xlim the x limits of the plot. A numeric vector of length two.
 #' @param ylim the y limits of the plot. A numeric vector of length two.
-
 #'
 #' @return a plot of ladders
 #' @export
@@ -499,13 +527,18 @@ plot_size_standard_model <- function(fragments_list) {
 #' @param sample_subset A character vector of size_standard_sample_id for a subset of samples to plot. Or alternativly supply a numeric vector.
 #' @param xlim the x limits of the plot. A numeric vector of length two.
 #' @param x_axis A character indicating what should be plotted on the x-axis, chose between `size` or `repeats`. Only use repeats if plotting after the repeat correction.
+#' @param n_facet_col A numeric value indicating the number of columns for faceting in the plot.
 #'
 #' @return plot traces from fragments object
 #' @export
+#' @importFrom grDevices recordPlot replayPlot
+#' 
 #' @details
 #' A plot of the raw signal by bp size or repeats for the size standard samples.
 #'
 #' When plotting the traces before repeat correction we do not expect the samples to be closely overallping due to run-to-run variation. After repeat correction and plotting "repeats" on the x-axis, the traces should be bascially overlapping. It can be difficult from the "repeats" x-axis to figure out which sample is wrong because if one is wrong it will mess up the repeat size for all other samples in that same plate_id. Use the "size" x-axis to make sure all of the traces have the same distribution and modal peak."
+#' 
+#' These plots are made using base R plotting. Sometimes these fail to render in the viewing panes of IDEs (eg you get the error 'Error in `plot.new()`: figure margins too large)'. If this happens, try saving the plot as a pdf using traditional approaches (see grDevices::pdf). To get it to render in the IDE pane, trying matching `n_facet_col` to the number of samples you're attmpting to plot, or using `sample_subset` to limit it to a single sample.
 #'
 #' @examples
 #'
@@ -564,101 +597,167 @@ plot_size_standard_model <- function(fragments_list) {
 #' )
 #'
 plot_size_standard_samples <- function(
-    fragments_list,
-    sample_subset = NULL,
-    x_axis = "size",
-    xlim = NULL) {
-  size_standard_fragments <- sapply(fragments_list, function(x) x$size_standard_sample_id)
-  controls_fragments_list <- fragments_list[which(!is.na(size_standard_fragments))]
+  fragments_list,
+  sample_subset = NULL,
+  x_axis = "size",
+  n_facet_col  = 1, 
+  xlim = NULL) {
+size_standard_fragments <- sapply(fragments_list, function(x) x$size_standard_sample_id)
+controls_fragments_list <- fragments_list[which(!is.na(size_standard_fragments))]
 
-  if (length(unique(na.omit(size_standard_fragments))) == 0) {
+if (length(unique(na.omit(size_standard_fragments))) == 0) {
+  stop(
+    call. = FALSE,
+    "There are no samples with size_standard_sample_id assigned. Check that the size_standard_sample_id has been added to the samples via add_metadata()."
+  )
+}
+
+if (!is.null(sample_subset)) {
+  sample_subset <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id %in% sample_subset)
+  controls_fragments_list <- controls_fragments_list[which(sample_subset)]
+
+  if (length(controls_fragments_list) == 0) {
     stop(
       call. = FALSE,
-      "There are no samples with size_standard_sample_id assigned. Check that the size_standard_sample_id has been added to the samples via add_metadata()."
+      "After subsetting the samples with the provided id, no samples were left. Check that you provided the correct id or that the size_standard_sample_id has been added to the samples."
     )
-  }
-
-  if (!is.null(sample_subset)) {
-    sample_subset <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id %in% sample_subset)
-    controls_fragments_list <- controls_fragments_list[which(sample_subset)]
-
-    if (length(controls_fragments_list) == 0) {
-      stop(
-        call. = FALSE,
-        "After subsetting the samples with the provided id, no samples were left. Check that you provided the correct id or that the size_standard_sample_id has been added to the samples."
-      )
-    }
-  }
-
-  size_standard_fragments_sample_groups <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id)
-
-  split_by_sample <- split(controls_fragments_list, size_standard_fragments_sample_groups)
-
-  overlapping_plot <- function(sample_fragments) {
-    sample_traces <- lapply(sample_fragments, function(y) {
-      df <- y$trace_bp_df
-      if (x_axis == "size") {
-        df$x <- df$size
-      } else if (x_axis == "repeats") {
-        df$x <- df$calculated_repeats
-      } else {
-        stop(
-          call. = FALSE,
-          "Please provide valid x-axis, either: 'size' or 'repeats'"
-        )
-      }
-      return(df)
-    })
-
-    # for (trace_df in split_by_sample[[1]]) {
-    #   plot()
-    # }
-
-
-    # Generate colors dynamically
-    n_dfs <- length(sample_traces)
-    colors <- rainbow(n_dfs, alpha = 0.5) # Generates n colors with alpha for transparency
-
-
-    if (!is.null(xlim)) {
-      sample_traces <- lapply(sample_traces, function(df) {
-        df <- df[which(df$x < xlim[2] & df$x > xlim[1]), ]
-        return(df)
-      })
-    }
-
-    # normalize signal to samples have the same maxium
-    sample_traces <- lapply(sample_traces, function(x){
-      x$signal <- x$signal - min(x$signal)
-      x$rel_signal <- x$signal / max(x$signal)
-      return(x)
-    })
-
-
-    # Plot the first dataframe
-    plot(sample_traces[[1]]$x, sample_traces[[1]]$rel_signal,
-      type = "l",
-      col = colors[1],
-      xlab = ifelse(x_axis == "size", "Size", "Repeats"),
-      ylab = "Signal",
-      ylim = range(sapply(sample_traces, function(df) range(df$rel_signal))),
-      main = sample_fragments[[1]]$size_standard_sample_id
-    )
-
-    # Add lines for remaining dataframes
-    for (i in 2:n_dfs) {
-      graphics::lines(sample_traces[[i]]$x, sample_traces[[i]]$rel_signal, col = colors[i])
-    }
-
-    # Add a legend
-    graphics::legend("topright",
-      legend = sapply(sample_fragments, function(x) x$unique_id),
-      col = colors, lty = 1, cex = 0.7, inset = c(-0.5, 0), seg.len = 0.5
-    )
-  }
-
-  for (i in seq_along(split_by_sample)) {
-    # why does this not split out all the plots?
-    overlapping_plot(split_by_sample[[i]])
   }
 }
+
+size_standard_fragments_sample_groups <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id)
+
+split_by_sample <- split(controls_fragments_list, size_standard_fragments_sample_groups)
+
+overlapping_plot <- function(sample_fragments) {
+  sample_traces <- lapply(sample_fragments, function(y) {
+    df <- y$trace_bp_df
+    if (x_axis == "size") {
+      df$x <- df$size
+    } else if (x_axis == "repeats") {
+      df$x <- df$calculated_repeats
+    } else {
+      stop(
+        call. = FALSE,
+        "Please provide valid x-axis, either: 'size' or 'repeats'"
+      )
+    }
+    return(df)
+  })
+
+  # for (trace_df in split_by_sample[[1]]) {
+  #   plot()
+  # }
+
+
+  # Generate colors dynamically
+  n_dfs <- length(sample_traces)
+  colors <- rainbow(n_dfs, alpha = 0.5) # Generates n colors with alpha for transparency
+
+
+  if (!is.null(xlim)) {
+    sample_traces <- lapply(sample_traces, function(df) {
+      df <- df[which(df$x < xlim[2] & df$x > xlim[1]), ]
+      return(df)
+    })
+  }
+
+  # normalize signal to samples have the same maxium
+  sample_traces <- lapply(sample_traces, function(x){
+    x$signal <- x$signal - min(x$signal)
+    x$rel_signal <- x$signal / max(x$signal)
+    return(x)
+  })
+
+
+  # Plot the first dataframe
+  plot(sample_traces[[1]]$x, sample_traces[[1]]$rel_signal,
+    type = "l",
+    col = colors[1],
+    xlab = ifelse(x_axis == "size", "Size", "Repeats"),
+    ylab = "Signal",
+    ylim = range(sapply(sample_traces, function(df) range(df$rel_signal))),
+    main = sample_fragments[[1]]$size_standard_sample_id
+  )
+
+  # Add lines for remaining dataframes
+  for (i in 2:n_dfs) {
+    graphics::lines(sample_traces[[i]]$x, sample_traces[[i]]$rel_signal, col = colors[i])
+  }
+
+  graphics::legend("topright", 
+  legend = sapply(sample_fragments, function(x) x$unique_id), 
+  col = colors, 
+  lty = 1, lwd = 2.5,
+  cex = 0.8, # reduce the size of the text
+  inset = c(-0.5, 0),  # Adjust position to be inside the plot, but in the corner
+  x.intersp = 0.25,   # Adjust horizontal spacing between symbols and text
+  y.intersp = 0.6,   # Adjust vertical spacing to align text under the lines
+  bty = "n"  # Remove the box around the legend
+)       
+
+}
+  
+graphics::par(mfrow = c(ceiling(length(split_by_sample) / n_facet_col), n_facet_col)) # Adjust layout as needed
+# for some reason we need to use the recordPlot() strategy below.
+# just looping over the plots only rendered one for some reason
+recorded_plots <- vector("list", length(split_by_sample))
+for (i in seq_along(split_by_sample)) {
+  overlapping_plot(split_by_sample[[i]])
+  # Record the plot
+  recorded_plots[[i]] <- grDevices::recordPlot()
+}
+
+for (i in seq_along(recorded_plots)) {
+  grDevices::replayPlot(recorded_plots[[i]])
+}
+
+graphics::par(mfrow = c(1, 1)) # Reset the layout
+  
+}
+
+
+
+#' plot_data_channels
+#'
+#' Plot the raw data from the fsa file
+#'
+#' @param fragments_list A list of fragments_trace objects.
+#' @param n_facet_col A numeric value indicating the number of columns for faceting in the plot.
+#' @param sample_subset A character vector of unique ids for a subset of samples to plot
+#'
+#' @return a plot of ladders
+#' @export
+#' @details
+#' A plot of the raw data channels in the fsa file.
+#' 
+#' These plots are made using base R plotting. Sometimes these fail to render in the viewing panes of IDEs (eg you get the error 'Error in `plot.new()`: figure margins too large)'. If this happens, try saving the plot as a pdf using traditional approaches (see grDevices::pdf). To get it to render in the IDE pane, trying matching `n_facet_col` to the number of samples you're attmpting to plot, or using `sample_subset` to limit it to a single sample.
+#'
+#' @examples
+#' 
+#' plot_data_channels(cell_line_fsa_list[1])
+#'
+plot_data_channels <- function(
+    fragments_list,
+    sample_subset = NULL,
+    n_facet_col = 1) {
+  if (!is.null(sample_subset)) {
+    fragments_list <- fragments_list[which(names(fragments_list) %in% sample_subset)]
+  }
+  graphics::par(mfrow = c(ceiling(length(fragments_list) / n_facet_col), n_facet_col)) # Adjust layout as needed
+  # for some reason we need to use the recordPlot() strategy below.
+  # just looping over the plots only rendered one for some reason
+  recorded_plots <- vector("list", length(fragments_list))
+  for (i in seq_along(fragments_list)) {
+    fragments_list[[i]]$plot_data_channels()
+    # Record the plot
+    recorded_plots[[i]] <- grDevices::recordPlot()
+  }
+
+  for (i in seq_along(recorded_plots)) {
+    grDevices::replayPlot(recorded_plots[[i]])
+  }
+
+  graphics::par(mfrow = c(1, 1)) # Reset the layout
+}
+
+

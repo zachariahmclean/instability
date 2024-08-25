@@ -449,8 +449,8 @@ testthat::test_that("size standards with ids", {
   #   repeat_length_correction = "from_metadata"  
   #   )
   
-  # plot_size_standard_samples(repeats_list, x_axis = "size", xlim = c(400, 470))
-  # plot_size_standard_samples(repeats_list, x_axis = "repeats", xlim = c(100, 130))
+  # plot_size_standard_samples(repeats_list, x_axis = "size", xlim = c(400, 470), n_facet_col = 2)
+  # plot_size_standard_samples(repeats_list, x_axis = "repeats", xlim = c(100, 130), n_facet_col = 2)
 
 
 })

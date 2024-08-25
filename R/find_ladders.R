@@ -560,7 +560,7 @@ find_ladders <- function(
     ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
     fragments_trace[[i]]$local_southern_mod <- local_southern(ladder_df$scan, ladder_df$size)
 
-    predicted_size <- local_southern_predict(local_southern = fragments_trace[[i]]$local_southern_mod, scans = fragments_trace[[i]]$scan)
+    predicted_size <- local_southern_predict(local_southern_output = fragments_trace[[i]]$local_southern_mod, scans = fragments_trace[[i]]$scan)
 
     fragments_trace[[i]]$trace_bp_df <- data.frame(
       unique_id = rep(fragments_trace[[i]]$unique_id, length(fragments_trace[[i]]$scan)),
