@@ -196,8 +196,8 @@ rsq_table_server <- function(id, fragment_ladder, fragment_ladder_trigger) {
     rsq_table <- shiny::reactive({
       fragment_ladder_trigger()  # Trigger reactivity with fragment_ladder_trigger
 
-      rsq <- sapply(fragment_ladder()$mod_parameters, function(y) suppressWarnings(summary(y$mod)$r.squared))
-      size_ranges <- sapply(fragment_ladder()$mod_parameters, function(y) y$mod$model$yi)
+      rsq <- sapply(fragment_ladder()$local_southern_mod, function(y) suppressWarnings(summary(y$mod)$r.squared))
+      size_ranges <- sapply(fragment_ladder()$local_southern_mod, function(y) y$mod$model$yi)
       size_ranges_vector <- vector("numeric", ncol(size_ranges))
       for (j in seq_along(size_ranges_vector)) {
         size_ranges_vector[j] <- paste0(size_ranges[1, j], ", ", size_ranges[2, j], ", ", size_ranges[3, j])
@@ -258,7 +258,7 @@ server_function <- function(input, output, session, fragment_trace_list) {
 
   # provide a reactive trigger that class has been updated
   # this is for the rsq_table_server that needs to see that selected_fragments_trace$sample has been updated
-  fragment_ladder_trigger <- reactiveVal(0)
+  fragment_ladder_trigger <- shiny::reactiveVal(0)
 
   rsq_table_server("rsq_table", selected_fragments_trace$sample, fragment_ladder_trigger)
 
@@ -294,6 +294,79 @@ server_function <- function(input, output, session, fragment_trace_list) {
   ladder_export_server("ladder_df_list_download", manual_ladder_list)
 }
 
+
+#' Fix ladders interactively
+#'
+#' An app for fixing ladders
+#'
+#' @param fragment_trace_list A list of fragments_trace objects containing fragment data
+#'
+#' @return interactive shiny app
+#' @export
+#' @details
+#' This function helps you fix ladders that are incorrectly assigned. Run `fix_ladders_interactive()`
+#' and provide output from `find_ladders`. In the app, for each sample, click on
+#' line for the incorrect ladder size and drag it to the correct peak.
+#'
+#' Once you are satisfied with the ladders for all the broken samples, click the download
+#' button to generate a file that has the ladder correction data. Read this file
+#' back into R using readRDS, then use [fix_ladders_manual()] and supply the ladder
+#' correction data as `ladder_df_list`. This allows the manually corrected data to
+#' be saved and used within a script so that the correct does not need to be done
+#' every time.
+#'
+#' @seealso [fix_ladders_manual()], [find_ladders()]
+#'
+#'
+#' @examples
+#' file_list <- instability::cell_line_fsa_list[c("20230413_B03.fsa")]
+#'
+#' test_ladders <- find_ladders(file_list)
+#'
+#' # to create an example, lets brake one of the ladders
+#' brake_ladder_list <- list(
+#'   "20230413_B03.fsa" = data.frame(
+#'     size = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
+#'     scan = c(1555, 1633, 1783, 1827, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792,
+#'              4085, 4322, 4370)
+#'   )
+#' )
+#'
+#' test_ladders_broken <- fix_ladders_manual(
+#'   test_ladders,
+#'   brake_ladder_list
+#' )
+#'
+#' plot_ladders(test_ladders_broken["20230413_B03.fsa"],
+#'   n_facet_col = 1
+#' )
+#'
+#'
+#' if (interactive()) {
+#'   fix_ladders_interactive(test_ladders_broken)
+#' }
+#'
+#' # once you have corrected your ladders in the app,
+#' # export the data we need to incorporate that into the script:
+#' # ladder_df_list <- readRDS('path/to/exported/data.rds')
+#' # test_ladders_fixed <- fix_ladders_manual(test_ladders_broken, ladder_df_list)
+#'
+#' # plot_ladders(test_ladders_fixed["20230413_B03.fsa"],
+#' #           n_facet_col = 1)
+#'
+fix_ladders_interactive <- function(fragment_trace_list) {
+  message("To incorporate the manual corrections into your script you need to do the following:")
+  message("1: read in the corrected ladder data using 'ladder_df_list <- readRDS('path/to/exported/data.rds')'")
+  message("2: Run 'fix_ladders_manual(fragments_trace_list, ladder_df_list)'")
+
+  # Launch the Shiny app with fragment_trace_list passed as a parameter
+  shiny::shinyApp(
+    ui = ui,
+    server = function(input, output, session) {
+      server_function(input, output, session, fragment_trace_list)
+    }
+  )
+}
 
 
 

@@ -454,11 +454,11 @@ plot_fragments <- function(
 #'
 plot_size_standard_model <- function(fragments_list) {
   # Check if all models in the list are the same
-  first_model_df <- fragments_list[[1]]$.__enclos_env__$private$correction_mod$model
+  first_model_df <- fragments_list[[1]]$.__enclos_env__$private$repeat_correction_mod$model
   identical_model_test <- logical(length(fragments_list))
 
   for (i in seq_along(fragments_list)) {
-    identical_model_test[i] <- identical(first_model_df, fragments_list[[i]]$.__enclos_env__$private$correction_mod$model)
+    identical_model_test[i] <- identical(first_model_df, fragments_list[[i]]$.__enclos_env__$private$repeat_correction_mod$model)
   }
 
   if (!all(identical_model_test)) {

@@ -191,9 +191,9 @@ ladder_iteration <- function(reference_sizes,
 ladder_rsq_warning_helper <- function(
     framents_trace,
     rsq_threshold) {
-  rsq <- sapply(framents_trace$mod_parameters, function(x) suppressWarnings(summary(x$mod)$r.squared))
+  rsq <- sapply(framents_trace$local_southern_mod, function(x) suppressWarnings(summary(x$mod)$r.squared))
   if (any(rsq < rsq_threshold)) {
-    size_ranges <- sapply(framents_trace$mod_parameters, function(x) x$mod$model$yi)
+    size_ranges <- sapply(framents_trace$local_southern_mod, function(x) x$mod$model$yi)
     size_ranges <- size_ranges[, which(rsq < rsq_threshold), drop = FALSE]
     size_ranges_vector <- vector("numeric", ncol(size_ranges))
     for (j in seq_along(size_ranges_vector)) {
@@ -284,9 +284,9 @@ ladder_fix_helper <- function(fragments_trace,
   fragments_trace$ladder_df <- replacement_ladder_df
   ladder_df <- fragments_trace$ladder_df[which(!is.na(fragments_trace$ladder_df$size)), ]
   ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
-  fragments_trace$mod_parameters <- local_southern(ladder_df$scan, ladder_df$size)
+  fragments_trace$local_southern_mod <- local_southern(ladder_df$scan, ladder_df$size)
 
-  predicted_size <- local_southern_predict(local_southern_output = fragments_trace$mod_parameters, scans = fragments_trace$scan)
+  predicted_size <- local_southern_predict(local_southern_output = fragments_trace$local_southern_mod, scans = fragments_trace$scan)
 
   fragments_trace$trace_bp_df <- data.frame(
     unique_id = rep(fragments_trace$unique_id, length(fragments_trace$scan)),
@@ -314,14 +314,14 @@ ladder_self_mod_predict <- function(fragments_trace,
   ladder_sizes <- fragments_trace$ladder_df[which(!is.na(fragments_trace$ladder_df$size)), "size"]
   ladder_peaks <- fragments_trace$ladder_df$scan
 
-  mod_validations <- vector("list", length(fragments_trace$mod_parameters))
-  for (i in seq_along(fragments_trace$mod_parameters)) {
-    predictions <- stats::predict(fragments_trace$mod_parameters[[i]]$mod, newdata = data.frame(xi = ladder_peaks))
-    low_size_threshold <- fragments_trace$mod_parameters[[i]]$mod$model$yi[1] - size_threshold
-    high_size_threshold <- fragments_trace$mod_parameters[[i]]$mod$model$yi[3] + size_threshold
+  mod_validations <- vector("list", length(fragments_trace$local_southern_mod))
+  for (i in seq_along(fragments_trace$local_southern_mod)) {
+    predictions <- stats::predict(fragments_trace$local_southern_mod[[i]]$mod, newdata = data.frame(xi = ladder_peaks))
+    low_size_threshold <- fragments_trace$local_southern_mod[[i]]$mod$model$yi[1] - size_threshold
+    high_size_threshold <- fragments_trace$local_southern_mod[[i]]$mod$model$yi[3] + size_threshold
 
     predictions_close <- predictions[which(predictions > low_size_threshold & predictions < high_size_threshold)]
-    mod_sizes <- fragments_trace$mod_parameters[[i]]$mod$model$yi
+    mod_sizes <- fragments_trace$local_southern_mod[[i]]$mod$model$yi
 
     ladder_hits <- sapply(predictions_close, function(x) {
       diff <- ladder_sizes - x
@@ -339,9 +339,9 @@ ladder_self_mod_predict <- function(fragments_trace,
     mod_validations[[i]]$predictions <- predictions
     mod_validations[[i]]$predictions_close <- predictions_close
     mod_validations[[i]]$mod_sizes <- mod_sizes
-    mod_validations[[i]]$rsq <- summary(fragments_trace$mod_parameters[[i]]$mod)$r.squared
+    mod_validations[[i]]$rsq <- summary(fragments_trace$local_southern_mod[[i]]$mod)$r.squared
     mod_validations[[i]]$ladder_hits <- ladder_hits
-    mod_validations[[i]]$mod <- fragments_trace$mod_parameters[[i]]$mod
+    mod_validations[[i]]$mod <- fragments_trace$local_southern_mod[[i]]$mod
   }
 
   # predicted to be a good model if it has some ladder hits and good rsq
@@ -558,9 +558,9 @@ find_ladders <- function(
     # predict bp size
     ladder_df <- ladder_df[which(!is.na(ladder_df$size)), ]
     ladder_df <- ladder_df[which(!is.na(ladder_df$scan)), ]
-    fragments_trace[[i]]$mod_parameters <- local_southern(ladder_df$scan, ladder_df$size)
+    fragments_trace[[i]]$local_southern_mod <- local_southern(ladder_df$scan, ladder_df$size)
 
-    predicted_size <- local_southern_predict(local_southern = fragments_trace[[i]]$mod_parameters, scans = fragments_trace[[i]]$scan)
+    predicted_size <- local_southern_predict(local_southern = fragments_trace[[i]]$local_southern_mod, scans = fragments_trace[[i]]$scan)
 
     fragments_trace[[i]]$trace_bp_df <- data.frame(
       unique_id = rep(fragments_trace[[i]]$unique_id, length(fragments_trace[[i]]$scan)),
@@ -726,79 +726,6 @@ fix_ladders_manual <- function(fragments_trace_list,
   return(fragments_trace_list)
 }
 
-
-#' Fix ladders interactively
-#'
-#' An app for fixing ladders
-#'
-#' @param fragment_trace_list A list of fragments_trace objects containing fragment data
-#'
-#' @return interactive shiny app
-#' @export
-#' @details
-#' This function helps you fix ladders that are incorrectly assigned. Run `fix_ladders_interactive()`
-#' and provide output from `find_ladders`. In the app, for each sample, click on
-#' line for the incorrect ladder size and drag it to the correct peak.
-#'
-#' Once you are satisfied with the ladders for all the broken samples, click the download
-#' button to generate a file that has the ladder correction data. Read this file
-#' back into R using readRDS, then use [fix_ladders_manual()] and supply the ladder
-#' correction data as `ladder_df_list`. This allows the manually corrected data to
-#' be saved and used within a script so that the correct does not need to be done
-#' every time.
-#'
-#' @seealso [fix_ladders_manual()], [find_ladders()]
-#'
-#'
-#' @examples
-#' file_list <- instability::cell_line_fsa_list[c("20230413_B03.fsa")]
-#'
-#' test_ladders <- find_ladders(file_list)
-#'
-#' # to create an example, lets brake one of the ladders
-#' brake_ladder_list <- list(
-#'   "20230413_B03.fsa" = data.frame(
-#'     size = c(35, 50, 75, 100, 139, 150, 160, 200, 250, 300, 340, 350, 400, 450, 490, 500),
-#'     scan = c(1555, 1633, 1783, 1827, 2159, 2218, 2278, 2525, 2828, 3161, 3408, 3470, 3792,
-#'              4085, 4322, 4370)
-#'   )
-#' )
-#'
-#' test_ladders_broken <- fix_ladders_manual(
-#'   test_ladders,
-#'   brake_ladder_list
-#' )
-#'
-#' plot_ladders(test_ladders_broken["20230413_B03.fsa"],
-#'   n_facet_col = 1
-#' )
-#'
-#'
-#' if (interactive()) {
-#'   fix_ladders_interactive(test_ladders_broken)
-#' }
-#'
-#' # once you have corrected your ladders in the app,
-#' # export the data we need to incorporate that into the script:
-#' # ladder_df_list <- readRDS('path/to/exported/data.rds')
-#' # test_ladders_fixed <- fix_ladders_manual(test_ladders_broken, ladder_df_list)
-#'
-#' # plot_ladders(test_ladders_fixed["20230413_B03.fsa"],
-#' #           n_facet_col = 1)
-#'
-fix_ladders_interactive <- function(fragment_trace_list) {
-  message("To incorporate the manual corrections into your script you need to do the following:")
-  message("1: read in the corrected ladder data using 'ladder_df_list <- readRDS('path/to/exported/data.rds')'")
-  message("2: Run 'fix_ladders_manual(fragments_trace_list, ladder_df_list)'")
-
-  # Launch the Shiny app with fragment_trace_list passed as a parameter
-  shiny::shinyApp(
-    ui = ui,
-    server = function(input, output, session) {
-      server_function(input, output, session, fragment_trace_list)
-    }
-  )
-}
 
 
 

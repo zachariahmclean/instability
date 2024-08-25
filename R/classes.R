@@ -42,7 +42,7 @@ fragments <- R6::R6Class("fragments",
     peak_regions = NA_real_,
     repeats_not_called_reason = NA_character_,
     validated_peaks_df = NULL,
-    correction_mod = NULL,
+    repeat_correction_mod = NULL,
     controls_repeats_df = NULL,
     assigned_index_peak_used = FALSE,
     index_samples = NULL
@@ -68,7 +68,7 @@ fragments_trace <- R6::R6Class(
     ladder_df = NULL,
     trace_bp_df = NULL,
     peak_table_df = NULL,
-    mod_parameters = NULL,
+    local_southern_mod = NULL,
     initialize = function(
       unique_id, 
       fsa_file,

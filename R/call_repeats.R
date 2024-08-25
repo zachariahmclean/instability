@@ -434,18 +434,18 @@ model_repeat_length <- function(fragments_list,
   # Can now make a model based on the bp size and the known repeat size
   if (length(unique(controls_repeats_df$plate_id)) == 1) {
     # when there's only one plate just set up simple lm
-    correction_mods <- stats::lm(validated_repeats ~ size, data = controls_repeats_df)
-    repeat_bp_size <- round(1 / correction_mods$coefficients[2], 2)
+    repeat_correction_mod <- stats::lm(validated_repeats ~ size, data = controls_repeats_df)
+    repeat_bp_size <- round(1 / repeat_correction_mod$coefficients[2], 2)
     message(paste0("Repeat correction model: ", repeat_bp_size, " bp increase per repeat"))
   } else {
     # when there are multiple samples a linear model can be made using the modal peak and the known repeat length of the modal peak
-    correction_mods <- lm(validated_repeats ~ size * plate_id, data = controls_repeats_df)
+    repeat_correction_mod <- lm(validated_repeats ~ size * plate_id, data = controls_repeats_df)
   }
 
   # check to see if any samples look off
 
-  controls_repeats_df$predicted_repeat <- stats::predict.lm(correction_mods, controls_repeats_df)
-  controls_repeats_df$residuals <- correction_mods$residuals
+  controls_repeats_df$predicted_repeat <- stats::predict.lm(repeat_correction_mod, controls_repeats_df)
+  controls_repeats_df$residuals <- repeat_correction_mod$residuals
   message(paste0("Repeat correction model: Average repeat residual ", round(mean(controls_repeats_df$residuals), 10)))
 
   if (any(abs(controls_repeats_df$residuals) > 0.3)) {
@@ -463,7 +463,7 @@ model_repeat_length <- function(fragments_list,
       message(paste0(sample_id, " has ", sample_control_peaks_off_df_n, "/", sample_control_peaks_n, " peaks used for making model with high residual repeat size (average residual ", round(mean(sample_control_df$residuals), 2), " repeats)"))
     }
   }
-  return(list(correction_mods = correction_mods, controls_repeats_df = controls_repeats_df))
+  return(list(repeat_correction_mod = repeat_correction_mod, controls_repeats_df = controls_repeats_df))
 }
 
 
@@ -595,7 +595,7 @@ call_repeats <- function(
     )
 
     for (i in seq_along(fragments_list)) {
-      fragments_list[[i]]$.__enclos_env__$private$correction_mod <- mod$correction_mods
+      fragments_list[[i]]$.__enclos_env__$private$repeat_correction_mod <- mod$repeat_correction_mod
       fragments_list[[i]]$.__enclos_env__$private$controls_repeats_df <- mod$controls_repeats_df
     }
   }
@@ -607,7 +607,7 @@ call_repeats <- function(
       ##
       ### in this function, need to do the following in the correct order
       #### 1) calculate repeats by assay_size_without_repeat and repeat size
-      #### 2) correct repeat length with positive control
+      #### 2) correct repeat length with positive control if required
       #### 3) use a method to calculate repeats
 
       # check to make sure all the required inputs for the function have been given
@@ -615,8 +615,8 @@ call_repeats <- function(
         stop(paste0(fragment$unique_id, " requires main alleles to be identified before repeats can be called. Find alleles using 'find_main_peaks()' whitin the class, or use the 'find_alleles()' accesesor to find the main peaks across a list of 'fragments_repeats' objects"),
           call. = FALSE
         )
-      } else if (repeat_length_correction != "none" & is.null(fragment$.__enclos_env__$private$correction_mod)) {
-        stop("Correcting the repeat length requires a model based on positive controls, so 'correct_repeat_length' & 'correction_mod' inputs are not meant for users to directly use. To correct the repeat length, you need to work on the 'fragments_repeats' objects in a list format and use accessor functions. On a list of 'fragments_repeats' objects, i) use 'add_metadata()' to indicate which samples are positive controls, and ii) use 'find_alleles()' accesesor function to call and correct repeat lengths across all samples",
+      } else if (repeat_length_correction != "none" & is.null(fragment$.__enclos_env__$private$repeat_correction_mod)) {
+        stop("Correcting the repeat length requires a model based on positive controls, so 'correct_repeat_length' & 'repeat_correction_mod' inputs are not meant for users to directly use. To correct the repeat length, you need to work on the 'fragments_repeats' objects in a list format and use accessor functions. On a list of 'fragments_repeats' objects, i) use 'add_metadata()' to indicate which samples are positive controls, and ii) use 'find_alleles()' accesesor function to call and correct repeat lengths across all samples",
           call. = FALSE
         )
       }
@@ -703,7 +703,7 @@ call_repeats <- function(
         # Correct repeat length with positive controls
         if (repeat_length_correction != "none") {
           repeat_table_df$plate_id <- rep(fragment$plate_id, nrow(repeat_table_df))
-          repeat_table_df$calculated_repeats <- stats::predict.lm(fragment$.__enclos_env__$private$correction_mod, repeat_table_df)
+          repeat_table_df$calculated_repeats <- stats::predict.lm(fragment$.__enclos_env__$private$repeat_correction_mod, repeat_table_df)
           repeat_table_df$repeats <- repeat_table_df$calculated_repeats
         }
 
@@ -730,7 +730,7 @@ call_repeats <- function(
       if (!is.null(fragment$trace_bp_df)) {
         if (repeat_length_correction != "none") {
           fragment$trace_bp_df$plate_id <- rep(fragment$plate_id, nrow(fragment$trace_bp_df))
-          fragment$trace_bp_df$calculated_repeats <- stats::predict.lm(fragment$.__enclos_env__$private$correction_mod, fragment$trace_bp_df)
+          fragment$trace_bp_df$calculated_repeats <- stats::predict.lm(fragment$.__enclos_env__$private$repeat_correction_mod, fragment$trace_bp_df)
         } else {
           fragment$trace_bp_df$calculated_repeats <- (fragment$trace_bp_df$size - assay_size_without_repeat) / repeat_size
         }

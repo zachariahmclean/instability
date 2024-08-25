@@ -83,7 +83,7 @@ testthat::test_that("call_repeats", {
     )
   )
 
-  mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$correction_mod$coefficients
+  mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$repeat_correction_mod$coefficients
 
   testthat::expect_true(round(mod_coefficients[2], 3) == 0.337)
 })
@@ -116,7 +116,7 @@ testthat::test_that("call_repeats with correction from genemapper alleles", {
     )
   )
 
-  mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$correction_mod$coefficients
+  mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$repeat_correction_mod$coefficients
 
   testthat::expect_true(round(mod_coefficients[2], 3) == 0.337)
 })
