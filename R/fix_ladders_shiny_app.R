@@ -156,8 +156,6 @@ plot_module_server <- function(id, fragment_ladder, input_unique_id_selection,
       }
     })
 
-    # Reset other reactive values if needed
-
     return(list(ladders = shiny::reactive(ladders)))
   })
 }
@@ -193,9 +191,11 @@ rsq_table_ui <- function(id) {
   )
 }
 
-rsq_table_server <- function(id, fragment_ladder) {
+rsq_table_server <- function(id, fragment_ladder, fragment_ladder_trigger) {
   shiny::moduleServer(id, function(input, output, session) {
     rsq_table <- shiny::reactive({
+      fragment_ladder_trigger()  # Trigger reactivity with fragment_ladder_trigger
+
       rsq <- sapply(fragment_ladder()$mod_parameters, function(y) suppressWarnings(summary(y$mod)$r.squared))
       size_ranges <- sapply(fragment_ladder()$mod_parameters, function(y) y$mod$model$yi)
       size_ranges_vector <- vector("numeric", ncol(size_ranges))
@@ -256,8 +256,11 @@ server_function <- function(input, output, session, fragment_trace_list) {
     shiny::reactive(input$find_scan_max)
   )
 
+  # provide a reactive trigger that class has been updated
+  # this is for the rsq_table_server that needs to see that selected_fragments_trace$sample has been updated
+  fragment_ladder_trigger <- reactiveVal(0)
 
-  rsq_table_server("rsq_table", selected_fragments_trace$sample)
+  rsq_table_server("rsq_table", selected_fragments_trace$sample, fragment_ladder_trigger)
 
 
   # have a reactive list that gets updated when you change the stuff
@@ -282,6 +285,9 @@ server_function <- function(input, output, session, fragment_trace_list) {
       shiny::reactiveValuesToList(fragment_trace_list_reactive)[sample_unique_id],
       shiny::reactiveValuesToList(manual_ladder_list)[sample_unique_id]
     )[[1]]
+
+    fragment_ladder_trigger(fragment_ladder_trigger() + 1)
+
   })
 
   # export data
