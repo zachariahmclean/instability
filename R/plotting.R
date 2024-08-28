@@ -445,6 +445,8 @@ plot_fragments <- function(
 #'
 #' @return A base R graphic object displaying the repeat correction model results.
 #' @export
+#' @details
+#' These plots are made using base R plotting. Sometimes these fail to render in the viewing panes of IDEs (eg you get the error 'Error in `plot.new()`: figure margins too large)'. If this happens, try saving the plot as a pdf using traditional approaches (see grDevices::pdf). 
 #'
 #' @examples
 #'
@@ -494,24 +496,37 @@ plot_size_standard_model <- function(fragments_list) {
   }
 
   controls_repeats_df <- fragments_list[[1]]$.__enclos_env__$private$controls_repeats_df
+  unique_plate_ids <- unique(controls_repeats_df$plate_id)
+  n_plates <- length(unique_plate_ids)
 
-  # Plotting
-  graphics::par(mfrow = c(1, length(unique(controls_repeats_df$plate_id))))
-  for (plate_id in unique(controls_repeats_df$plate_id)) {
-    plate_data <- controls_repeats_df[which(controls_repeats_df$plate_id == plate_id), ]
+  graphics::par(mfrow = c(1, n_plates)) # Adjust layout as needed
+  # for some reason we need to use the recordPlot() strategy below.
+  # just looping over the plots only rendered one for some reason
+  recorded_plots <- vector("list", n_plates)
+  for (i in 1:n_plates) {
+    plate_data <- controls_repeats_df[which(controls_repeats_df$plate_id == unique_plate_ids[i]), ]
 
     # Generating unique colors for each unique value in unique_id
     unique_ids <- unique(plate_data$unique_id)
     colors <- grDevices::rainbow(length(unique_ids))
     id_color_map <- setNames(colors, unique_ids)
 
+    
+    lm_model <- lm(validated_repeats ~ size, data = plate_data)
+
     plot(plate_data$size, plate_data$validated_repeats,
       pch = 21, col = id_color_map[plate_data$unique_id],
-      cex = 2, main = paste("Plate ID:", plate_id), xlab = "Size", ylab = "User supplied repeat length"
+      cex = 2, main = paste("Plate ID:", unique_plate_ids[i]), xlab = "Size", ylab = "User supplied repeat length"
     )
 
-    lm_model <- lm(validated_repeats ~ size, data = plate_data)
     graphics::abline(lm_model, col = "blue")
+
+    recorded_plots[[i]] <- grDevices::recordPlot()
+
+  }
+  
+  for (i in seq_along(recorded_plots)) {
+    grDevices::replayPlot(recorded_plots[[i]])
   }
   graphics::par(mfrow = c(1, 1)) # Reset the layout
 
@@ -534,9 +549,9 @@ plot_size_standard_model <- function(fragments_list) {
 #' @importFrom grDevices recordPlot replayPlot
 #' 
 #' @details
-#' A plot of the raw signal by bp size or repeats for the size standard samples.
+#' A plot of the raw signal by bp size or repeats for the size standard samples. The cicle at the top of the plot is for the called allele for that sample.
 #'
-#' When plotting the traces before repeat correction we do not expect the samples to be closely overallping due to run-to-run variation. After repeat correction and plotting "repeats" on the x-axis, the traces should be bascially overlapping. It can be difficult from the "repeats" x-axis to figure out which sample is wrong because if one is wrong it will mess up the repeat size for all other samples in that same plate_id. Use the "size" x-axis to make sure all of the traces have the same distribution and modal peak."
+#' When plotting the traces before repeat correction, we do not expect the samples to be closely overallping due to run-to-run variation. After repeat correction and plotting "repeats" on the x-axis, the traces should be bascially overlapping. It can be difficult from the "repeats" x-axis to figure out which sample is wrong because if one is wrong it will mess up the repeat size for all other samples in that same plate_id. Use the "size" x-axis to make sure all of the traces have the same distribution and modal peak."
 #' 
 #' These plots are made using base R plotting. Sometimes these fail to render in the viewing panes of IDEs (eg you get the error 'Error in `plot.new()`: figure margins too large)'. If this happens, try saving the plot as a pdf using traditional approaches (see grDevices::pdf). To get it to render in the IDE pane, trying matching `n_facet_col` to the number of samples you're attmpting to plot, or using `sample_subset` to limit it to a single sample.
 #'
@@ -644,11 +659,6 @@ overlapping_plot <- function(sample_fragments) {
     return(df)
   })
 
-  # for (trace_df in split_by_sample[[1]]) {
-  #   plot()
-  # }
-
-
   # Generate colors dynamically
   n_dfs <- length(sample_traces)
   colors <- rainbow(n_dfs, alpha = 0.5) # Generates n colors with alpha for transparency
@@ -678,16 +688,27 @@ overlapping_plot <- function(sample_fragments) {
     ylim = range(sapply(sample_traces, function(df) range(df$rel_signal))),
     main = sample_fragments[[1]]$size_standard_sample_id
   )
+  # also add point for tallest peak. sample_traces and sample_fragments are in the same order
+  points(
+    ifelse(x_axis == "size", sample_fragments[[1]]$get_alleles()$allele_1_size, sample_fragments[[1]]$get_alleles()$allele_1_repeat),
+    1,
+    col = colors[1]
+  )
 
   # Add lines for remaining dataframes
   for (i in 2:n_dfs) {
     graphics::lines(sample_traces[[i]]$x, sample_traces[[i]]$rel_signal, col = colors[i])
+    points(
+      ifelse(x_axis == "size", sample_fragments[[i]]$get_alleles()$allele_1_size, sample_fragments[[i]]$get_alleles()$allele_1_repeat),
+      1,
+      col = colors[i]
+    )
   }
 
   graphics::legend("topright", 
   legend = sapply(sample_fragments, function(x) x$unique_id), 
   col = colors, 
-  lty = 1, lwd = 2.5,
+  lty = 1, lwd = 1,
   cex = 0.8, # reduce the size of the text
   inset = c(-0.5, 0),  # Adjust position to be inside the plot, but in the corner
   x.intersp = 0.25,   # Adjust horizontal spacing between symbols and text
