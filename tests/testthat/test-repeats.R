@@ -22,8 +22,7 @@ testthat::test_that("call_repeats", {
       fragments_list = test_alleles,
       repeat_calling_algorithm = "simple",
       assay_size_without_repeat = 87,
-      repeat_size = 3,
-      repeat_length_correction = "none"
+      repeat_size = 3
     )
   )
 
@@ -44,8 +43,7 @@ testthat::test_that("call_repeats", {
       fragments_list = test_alleles,
       force_whole_repeat_units = TRUE,
       assay_size_without_repeat = 87,
-      repeat_size = 3,
-      repeat_length_correction = "none"
+      repeat_size = 3
     )
   )
 
@@ -66,59 +64,7 @@ testthat::test_that("call_repeats", {
 
   testthat::expect_true(all(all_integers))
 
-  # correct repeat length
-
-  test_alleles_metadata <- add_metadata(test_alleles, metadata
-  )
-
-  suppressMessages(
-    suppressMessages(
-      test_repeats_corrected <- call_repeats(
-        fragments_list = test_alleles_metadata,
-        repeat_calling_algorithm = "simple",
-        assay_size_without_repeat = 87,
-        repeat_size = 3,
-        repeat_length_correction = "from_metadata"
-      )
-    )
-  )
-
-  mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$repeat_correction_mod$coefficients
-
-  testthat::expect_true(round(mod_coefficients[2], 3) == 0.337)
-})
-
-
-testthat::test_that("call_repeats with correction from genemapper alleles", {
-  gm_raw <- instability::example_data_genemapper_alleles
-  metadata <- instability::metadata
-  # Save raw data as a fragment class
-
-  test_fragments <- peak_table_to_fragments(gm_raw,
-                                            data_format = "genemapper5",
-                                            dye_channel = "B"
-  )
-
-  test_alleles <- find_alleles(
-    fragments_list = test_fragments,
-    number_of_peaks_to_return = 2,
-    peak_region_size_gap_threshold = 6,
-    peak_region_height_threshold_multiplier = 1
-  )
-
-  suppressMessages(
-    test_repeats_corrected <- call_repeats(
-      fragments_list = test_alleles,
-      repeat_calling_algorithm = "simple",
-      assay_size_without_repeat = 87,
-      repeat_size = 3,
-      repeat_length_correction = "from_genemapper"
-    )
-  )
-
-  mod_coefficients <- test_repeats_corrected[[1]]$.__enclos_env__$private$repeat_correction_mod$coefficients
-
-  testthat::expect_true(round(mod_coefficients[2], 3) == 0.337)
+  
 })
 
 
@@ -306,7 +252,6 @@ testthat::test_that("full pipline repeat size algo", {
     suppressWarnings(
       test_repeats <- call_repeats(
         fragments_list = fragment_alleles,
-        repeat_length_correction = "from_metadata",
         repeat_calling_algorithm = "size_period"
       )
     )
@@ -339,7 +284,7 @@ testthat::test_that("full pipline repeat size algo", {
   plot_data <- plot_data[plot_data$day > 0 & plot_data$modal_peak_height > 500, ]
 
   # Group by
-  plot_data <- split(plot_data, plot_data$group_id)
+  plot_data <- split(plot_data, plot_data$metrics_group_id)
 
   # Mutate
   for (i in seq_along(plot_data)) {
@@ -367,7 +312,7 @@ testthat::test_that("full pipline repeat size algo", {
 
   medians <- aggregate(rel_gain ~ treatment + genotype, plot_data, median, na.rm = TRUE)
 
-  testthat::expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85562, 0.70208, 0.56223, 1.00000, 1.18592, 1.10739, 1.00075)))
+  testthat::expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85696, 0.70208, 0.57056, 1.00000, 1.17918, 1.10739, 1.00046)))
 })
 
 
@@ -378,7 +323,7 @@ testthat::test_that("size standards with ids", {
   H7_metadata <- lapply(1:10, function(x){
     df <- metadata[which(metadata$unique_id %in% c("20230413_H07.fsa", "20230413_H08.fsa")), ]
     df$unique_id <- paste0(df$unique_id, "_", x)
-    df$plate_id <- x 
+    df$batch_run_id <- x 
 
      return(df)
   })
@@ -431,23 +376,10 @@ testthat::test_that("size standards with ids", {
 
   allele_list <- find_alleles(metadata_list)
 
-    
+  repeats_list <- call_repeats(allele_list,
+    batch_correction = TRUE)
 
-  
-  sample_group_waning <- tryCatch(call_repeats(allele_list,
-    repeat_length_correction = "from_metadata"  
-    ), warning=function(w) w)
-  
-  #test that warning is given
-  testthat::expect_true(class(sample_group_waning)[1] == "simpleWarning")
-
-  #test that warning is only for "S-21-212"
-  testthat::expect_true(grepl("S-21-212", sample_group_waning))
-
-  
-  # repeats_list <- call_repeats(allele_list,
-  #   repeat_length_correction = "from_metadata"  
-  #   )
+  testthat::expect_true(all(sapply(allele_list, function(x) x$.__enclos_env__$private$batch_correction_factor) == c(0:9, 0:9)))
   
   # plot_size_standard_samples(repeats_list, x_axis = "size", xlim = c(400, 470), n_facet_col = 2)
   # plot_size_standard_samples(repeats_list, x_axis = "repeats", xlim = c(100, 130), n_facet_col = 2)

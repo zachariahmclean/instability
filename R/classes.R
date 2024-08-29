@@ -12,23 +12,17 @@ fragments <- R6::R6Class("fragments",
     #' @field unique_id unique id of the sanmple usually the file name
     unique_id = NA_character_,
 
-    #' @field plate_id fragment analsyis run. Associated with `add_metdata()`.
-    plate_id = NA_character_,
-
-    #' @field group_id sample grouping for metrics calculations. Associated with `add_metdata()`.
-    group_id = NA_character_,
+    #' @field metrics_group_id sample grouping for metrics calculations. Associated with `add_metdata()`.
+    metrics_group_id = NA_character_,
 
     #' @field metrics_baseline_control logical to indicate if sample is the baseline control. Associated with `add_metdata()`.
     metrics_baseline_control = FALSE,
 
-    #' @field size_standard logical to indicate if sample is a size standard for repeat calculation. Associated with `add_metdata()`.
-    size_standard = FALSE,
+    #' @field batch_run_id fragment analsyis run. Associated with `add_metdata()`.
+    batch_run_id = NA_character_,
 
-    #' @field size_standard_sample_id An id for the sample used as size standard for repeat calculation. Associated with `add_metdata()`.
-    size_standard_sample_id = NA_character_,
-
-    #' @field size_standard_repeat_length a numeric value inidcating the repeat size of the modal peak. Associated with `add_metdata()`.
-    size_standard_repeat_length = NA_real_,
+    #' @field batch_sample_id An id for the sample used as size standard for repeat calculation. Associated with `add_metdata()`.
+    batch_sample_id = NA_character_,
 
     #' @description
     #' initialization function that is not used since the child classes are the main object of this package.
@@ -41,7 +35,7 @@ fragments <- R6::R6Class("fragments",
     #' A function to print informative information to the console
     print = function() {
       print_helper(self,
-        sample_attrs = c("unique_id", "plate_id", "group_id", "metrics_baseline_control", "size_standard", "size_standard_sample_id", "size_standard_repeat_length")
+        sample_attrs = c("unique_id", "batch_run_id", "metrics_group_id", "metrics_baseline_control", "size_standard", "batch_sample_id", "size_standard_repeat_length")
       )
     },
     #' @description
@@ -72,15 +66,7 @@ fragments <- R6::R6Class("fragments",
   ),
   private = list(
     min_bp_size = NULL,
-    max_bp_size = NULL,
-    find_main_peaks_used = FALSE,
-    peak_regions = NA_real_,
-    repeats_not_called_reason = NA_character_,
-    validated_peaks_df = NULL,
-    repeat_correction_mod = NULL,
-    controls_repeats_df = NULL,
-    assigned_index_peak_used = FALSE,
-    index_samples = NULL
+    max_bp_size = NULL
   )
 )
 
@@ -292,6 +278,8 @@ fragments_repeats <- R6::R6Class(
     }
   ),
   private = list(
+    find_main_peaks_used = FALSE,
+    peak_regions = NA_real_,
     allele_1_size = NA_real_,
     allele_1_repeat = NA_real_,
     allele_1_height = NA_real_,
@@ -299,6 +287,11 @@ fragments_repeats <- R6::R6Class(
     allele_2_repeat = NA_real_,
     allele_2_height = NA_real_,
     index_repeat = NA_real_,
-    index_height = NA_real_
+    index_height = NA_real_,
+    batch_correction_factor = NA_real_,
+    repeats_not_called_reason = NA_character_,
+    controls_repeats_df = NULL,
+    assigned_index_peak_used = FALSE,
+    index_samples = NULL
   )
 )

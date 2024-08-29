@@ -170,7 +170,7 @@ remove_fragments <- function(
 #'
 generate_instability_template <- function(
   file_name = NULL,
-  size_standards = TRUE,
+  batch_correction = TRUE,
   samples_grouped = TRUE) {
 
 comment_out_lines <- function(content, start_pattern, end_pattern, comment_message = NULL) {
@@ -199,25 +199,23 @@ if (!file.exists(source_file)) {
 
 template_content <- readLines(source_file)
 
-if (!size_standards) {
-  template_content <- gsub('metadata\\$plate_id <- metadata\\$plate_id', '# metadata$plate_id <- metadata$plate_id', template_content)
-  template_content <- gsub('metadata\\$size_standard <- metadata\\$size_standard', '# metadata$size_standard <- metadata$size_standard', template_content)
-  template_content <- gsub('metadata\\$size_standard_repeat_length <', '# metadata\\$size_standard_repeat_length <', template_content)
-  template_content <- gsub('repeat_length_correction = "from_metadata"', 'repeat_length_correction = "none"', template_content)
-  template_content <- gsub('plate_id = "plate_id"', 'plate_id = NA', template_content)
-  template_content <- gsub('size_standard = "size_standard"', 'size_standard = NA', template_content)
-  template_content <- gsub('size_standard_repeat_length = "size_standard_repeat_length"', 'size_standard_repeat_length = NA', template_content)
+if (!batch_correction) {
+  template_content <- gsub('metadata\\$batch_run_id <- metadata\\$batch_run_id', '# metadata$batch_run_id <- metadata$batch_run_id', template_content)
+  template_content <- gsub('batch_correction = TRUE', 'batch_correction = FALSE', template_content)
+  template_content <- gsub('batch_run_id = "batch_run_id"', 'batch_run_id = NA', template_content)
+  ## TOODO fix this for new names
 }
 
 if (!samples_grouped) {
-  template_content <- gsub('metadata\\$group_id <- metadata\\$group_id', '# metadata$group_id <- metadata$group_id', template_content)
+   ## TOODO fix this for new names
+  template_content <- gsub('metadata\\$metrics_group_id <- metadata\\$metrics_group_id', '# metadata$metrics_group_id <- metadata$metrics_group_id', template_content)
   template_content <- gsub('metadata\\$metrics_baseline_control <- metadata\\$metrics_baseline_control', '# metadata$metrics_baseline_control <- metadata$metrics_baseline_control', template_content)
   template_content <- gsub('grouped = TRUE', 'grouped = FALSE', template_content)
-  template_content <- gsub('group_id = "group_id"', 'group_id = NA', template_content)
+  template_content <- gsub('metrics_group_id = "metrics_group_id"', 'metrics_group_id = NA', template_content)
   template_content <- gsub('metrics_baseline_control = "metrics_baseline_control"', 'metrics_baseline_control = NA', template_content)
 }
 
-if (!size_standards & !samples_grouped) {
+if (!batch_correction & !samples_grouped) {
   template_content <- gsub('metadata <- read.csv\\("")', '# metadata <- read.csv("")', template_content)
   template_content <- gsub('fragments_list = metadata_added_list', 'fragments_list = peak_list', template_content)
 

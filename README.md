@@ -49,7 +49,7 @@ experiment and things to consider when using this package:
   they are comparable. This is usually achieved by running running
   positive control samples with a known validated repeat size of the
   modal peak in each fragment analysis run. These samples are then
-  indicated in the metadata with `plate_id` (to group samples by
+  indicated in the metadata with `batch_run_id` (to group samples by
   fragment analysis run), `size_standard` (to indicate which sames are
   size standards), `size_standard_sample_id` (to enable checking that
   the modal peak is consistent across runs and plotting functions to
@@ -175,8 +175,8 @@ need to match up which column name belongs to which metadata category
 | unique_id                   | Required for adding metadata using `add_metdata()`          | The unique identifier for the fsa file. Usually the sample file name. This must be unique, including across runs.                                                                                                                                                                                               |
 | group_id                    | `assign_index_peaks()`, allows setting `grouped = TRUE`     | This groups the samples for instability metric calculations. Provide a group id value for each sample. For example, in a mouse experiment and using the expansion index, you need to group the samples since they have the same metrics baseline control (eg inherited repeat length), so provide the mouse id. |
 | metrics_baseline_control    | `assign_index_peaks()`, allows setting `grouped = TRUE`     | This is related to group_id. Indicate with ‘TRUE’ to specify which sample is the baseline control (eg mouse tail for inherited repeat length, or day-zero sample in cell line experiments)                                                                                                                      |
-| plate_id                    | `call_repeats()`, allows setting `repeat_length_correction` | This groups the samples for correcting the repeat length. Provide a value for each fragment analysis run (eg date).                                                                                                                                                                                             |
-| size_standard               | `call_repeats()`, allows setting `repeat_length_correction` | This is related to plate_id. Indicate with ‘TRUE’ to specify which sample is the size standard of the repeat length.                                                                                                                                                                                            |
+| batch_run_id                    | `call_repeats()`, allows setting `repeat_length_correction` | This groups the samples for correcting the repeat length. Provide a value for each fragment analysis run (eg date).                                                                                                                                                                                             |
+| size_standard               | `call_repeats()`, allows setting `repeat_length_correction` | This is related to batch_run_id. Indicate with ‘TRUE’ to specify which sample is the size standard of the repeat length.                                                                                                                                                                                            |
 | size_standard_sample_id     | `call_repeats()`, allows setting `repeat_length_correction` | Give an id for the size standard. This allows comparison of the size standard across fragment analysis runs and plotting to visualize corrections.                                                                                                                                                              |
 | size_standard_repeat_length | `call_repeats()`, allows setting `repeat_length_correction` | This is related to size_standard. If the sample is a size standard, provide a numeric value of the modal repeat length.                                                                                                                                                                                         |
 
@@ -188,7 +188,7 @@ metadata_added_list <- add_metadata(
   unique_id = "unique_id",
   group_id = "group_id",
   metrics_baseline_control = "metrics_baseline_control",
-  plate_id = "plate_id",
+  batch_run_id = "batch_run_id",
   size_standard = "size_standard",
   size_standard_repeat_length = "size_standard_repeat_length"
 )

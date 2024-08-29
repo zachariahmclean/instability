@@ -276,195 +276,75 @@ size_period_repeat_caller <- function(fragments_repeat,
 
 
 
+# find_size_batch_correction_factor
+
+find_batch_correction_factor <- function(fragments_list, trace_window_size = 50, smoothing_window = 301){
+  # make df for all samples of plate id, size_standard sample id
+  metadata_list <- lapply(fragments_list, function(x){
+    df <- data.frame(
+      unique_id = x$unique_id,
+      batch_run_id = x$batch_run_id,
+      batch_sample_id = x$batch_sample_id
+    )
+    return(df)
+  })
+
+  metadata_df <- do.call(rbind, metadata_list)
+
+  # make sure there is a least one run with common samples to all others
+  size_std_df <- metadata_df[which(!is.na(metadata_df$batch_sample_id)), , drop = FALSE]
+  if(nrow(size_std_df) == 0 ){
+    stop(call. = FALSE, "Size correction requires 'batch_sample_id' samples indicated in the metadata. See ?add_metadata for more info.")
+  }
 
 
+  sample_run_table <- table(metadata_df$batch_sample_id, metadata_df$batch_run_id)
+  runs_with_all_samples <- colnames(sample_run_table)[colSums(sample_run_table == 1) == length(unique(na.omit(metadata_df$batch_sample_id)))]
 
+  if(length(runs_with_all_samples) == 0){
+    stop(call. = FALSE, "There needs to be at least one batch_run_id with all batch_sample_id for batch correction.")
+  }
+  index_batch_run_id <- runs_with_all_samples[1]
 
+  # first group samples across runs by sample id
+  size_std_fragments <- fragments_list[size_std_df$unique_id]
+  split_by_sample_id <- split(size_std_fragments, sapply(size_std_fragments, function(x) x$batch_sample_id ))
 
-
-
-
-
-
-# repeat length correction -------------------------------------------------------
-
-model_repeat_length <- function(fragments_list,
-                                repeat_size,
-                                assay_size_without_repeat,
-                                repeat_length_correction) {
-  calling_close_neighbouring_repeats <- function(controls_fragments) {
-    # use np_repeat to accurately call the repeat length of the neighboring peaks
-    # extract a dataframe of the called repeats that can then be used to make a model
-    controls_fragments_df_list <- lapply(controls_fragments, function(x) {
-      df_length <- nrow(x$peak_table_df)
-      # identify peaks close to modal peak and at least 20% as high
-      main_peak_delta <- x$peak_table_df$size - x$get_alleles()$allele_1_size
-      height_prop <- x$peak_table_df$height / x$get_alleles()$allele_1_height
-      peak_cluster <- vector("logical", length = nrow(x$peak_table_df))
-      for (i in seq_along(main_peak_delta)) {
-        if (abs(main_peak_delta[[i]]) < 30 & height_prop[[i]] > 0.2) {
-          peak_cluster[[i]] <- TRUE
-        } else {
-          peak_cluster[[i]] <- FALSE
-        }
-      }
-      cluster_df <- x$peak_table_df[peak_cluster, ]
-      cluster_df_length <- nrow(cluster_df)
-      # use np_repeat method to accurately call the neighboring repeats
-      data.frame(
-        unique_id = rep(x$unique_id, cluster_df_length),
-        size = cluster_df$size,
-        validated_repeats = np_repeat(
-          size = cluster_df$size,
-          main_peak_size = x$get_alleles()$allele_1_size,
-          main_peak_repeat = x$size_standard_repeat_length,
-          repeat_size = repeat_size
-        ),
-        height = cluster_df$height,
-        plate_id = rep(x$plate_id, cluster_df_length)
-      )
+  correction_factor_by_sample_list <- lapply(split_by_sample_id, function(sample_list){
+    sample_modal_size <- sapply(sample_list, function(fragment){
+      df <- fragment$trace_bp_df[which(fragment$trace_bp_df$size < fragment$get_alleles()$allele_1_size + trace_window_size & fragment$trace_bp_df$size > fragment$get_alleles()$allele_1_size - trace_window_size ), ]
+      df$smoothed <- pracma::savgol(df$signal, smoothing_window)
+      smoothed_modal_size <- df[which.max(df$smoothed), "size"]
+      return(smoothed_modal_size)
     })
 
-    controls_repeats_df <- do.call(rbind, controls_fragments_df_list)
-  }
-
-  # correct repeats
-  if (repeat_length_correction == "from_metadata") {
-    ## first pull out a dataframe for all samples with a column that indicates if it's a positive control or not
-    extracted <- lapply(fragments_list, function(x) {
-      data.frame(
-        unique_id = x$unique_id,
-        size_standard = x$size_standard,
-        allele_1_size = x$get_alleles()$allele_1_size,
-        plate_id = x$plate_id,
-        size_standard_sample_id = x$size_standard_sample_id
-      )
-    })
-    extracted_df <- do.call(rbind, extracted)
-
-    # Check to see if there are controls, if there are none, give error
-    if (!any(extracted_df$size_standard == TRUE)) {
-      stop("No repeat-length control samples were detected. Ensure that the metadata has been added to the samples with 'add_metadata()' and check your metadata to make sure 'TRUE' is indicated in the appropriate column to indicate samples that are to be used for predicting the repeat length",
-        call. = FALSE
-      )
-    }
-    # pull out the controls
-    controls_df <- extracted_df[which(extracted_df$size_standard == TRUE), , drop = FALSE]
-    controls_fragments <- fragments_list[which(names(fragments_list) %in% controls_df$unique_id)]
-    controls_repeats_df <- calling_close_neighbouring_repeats(controls_fragments)
-  } else if (repeat_length_correction == "from_genemapper") {
-    # Do some checks by identify samples that have genemapper called alleles
-    controls_samples_list <- lapply(fragments_list, function(x) x$peak_table_df[which(!is.na(x$peak_table_df$allele)), ])
-    controls_samples_df <- do.call(rbind, controls_samples_list)
-    if (nrow(controls_samples_df) == 0) {
-      stop(paste("Correction could not go ahead because no genemapper alleles could be indetified"),
-        call. = FALSE
-      )
-    }
-
-    # pick the closest peak to the main peak size and temporarily make that allele_1
-    controls_fragments <- lapply(
-      fragments_list[which(names(fragments_list) %in% unique(controls_samples_df$unique_id))],
-      function(x) {
-        genemapper_alleles <- controls_samples_df[which(controls_samples_df$unique_id == x$unique_id), ]
-        allele_1_delta_abs <- abs(genemapper_alleles$size - x$get_alleles()$allele_1_size)
-        closest_to_allele_1 <- which(allele_1_delta_abs == min(allele_1_delta_abs))
-        selected_genemapper_allele <- genemapper_alleles[closest_to_allele_1[1], ]
-
-        # make sure it doesn't modify in place and mess up the selection of the real main peak
-        y <- x$clone()
-        y$set_allele(allele = 1, unit = "size", value = selected_genemapper_allele$size)
-        y$size_standard <- TRUE
-        y$size_standard_repeat_length <- selected_genemapper_allele$allele
-        return(y)
-      }
+    df <- data.frame(
+      unique_id = sapply(sample_list, function(x) x$unique_id),
+      batch_run_id = sapply(sample_list, function(x) x$batch_run_id),
+      smoothed_modal_size = sample_modal_size
     )
 
-    controls_repeats_df <- calling_close_neighbouring_repeats(controls_fragments)
+    index_plate_smoothed_modal_size <- median(df[which(df$batch_run_id == index_batch_run_id), "smoothed_modal_size"])
+    df$correction_factor <- df$smoothed_modal_size - index_plate_smoothed_modal_size
+
+    return(df)
+
+  })
+  correction_factor_by_sample_df <- do.call(rbind, correction_factor_by_sample_list)
+
+  #now group by plate and find the average correction factor
+  correction_factor_by_plate_df_list <- split(correction_factor_by_sample_df, correction_factor_by_sample_df$batch_run_id)
+  correction_factor_by_plate_list <- lapply(correction_factor_by_plate_df_list, function(x) median(x$correction_factor))
+
+  # save correction factor for each class object
+  for (i in seq_along(fragments_list)) {
+    # Made the plate id explicity match the list name for cases when the plate name is a number. It could cause subsetting issues
+    fragments_list[[i]]$.__enclos_env__$private$batch_correction_factor <- correction_factor_by_plate_list[[which(names(correction_factor_by_plate_list) == fragments_list[[i]]$batch_run_id)]]
   }
-
-  # Check to see if there are controls for each plate, if there are no controls for a plate, give error
-  all_plate_ids <- lapply(fragments_list, function(x) x$plate_id)
-  control_plate_ids <- unique(controls_repeats_df$plate_id)
-  if (length(unique(control_plate_ids)) != length(unique(all_plate_ids))) {
-    plates_missing_controls <- paste0(all_plate_ids[which(!all_plate_ids %in% control_plate_ids)], collapse = ", ")
-    stop(paste("Plate(s)", plates_missing_controls, "have no repeat-length control samples"),
-      call. = FALSE
-    )
-  }
-
-  # identify size stds with shared id for more quality control
-  # can compare to each other to make sure that the same peak in the distribution has been selected as the modal
-  standard_sample_ids <- sapply(controls_fragments, function(x) x$size_standard_sample_id)
-  if (any(!is.na(standard_sample_ids))) {
-    unique_standard_sample_ids <- unique(standard_sample_ids)
-
-    for (i in seq_along(unique_standard_sample_ids)) {
-      ids_i <- controls_df[which(controls_df$size_standard_sample_id == unique_standard_sample_ids[i]), "unique_id"]
-      controls_repeats_df_i <- controls_repeats_df[which(controls_repeats_df$unique_id %in% ids_i), ]
-      controls_repeats_df_list_i <- split(controls_repeats_df_i, controls_repeats_df_i$unique_id)
-      differences_i <- sapply(controls_repeats_df_list_i, function(x) {
-        # this compares the average (weighted mean) and the mode
-        # if there's a little wobble at the top with two cloes peaks
-        # then the average size shouldn't change much
-        # but the difference between the mode and the average changes a whole repeat unit
-        # which can indicate to us that one of the stds might be off
-        weighted.mean(x$size, x$height) - x$size[which.max(x$height)]
-      })
-      differences_of_differences_i <- lapply(differences_i, function(x) differences <- x - differences_i)
-      if (any(sapply(differences_of_differences_i, function(x) abs(x) > repeat_size * 0.8))) {
-        # how do you dtermine which of the samples might be off?
-        # perhaps we could try and help the person figure that out
-        # but that is complicated, instead give them a warning
-        warning(
-          call. = FALSE,
-          paste0(
-            "Warning! It looks like at least one of the samples in the size standard group '",
-            unique_standard_sample_ids[i], "' has a different modal peak than the other samples. ",
-            "It's possible that the modal peak has shifted to a different spot in the distribution in at least of one the runs. ",
-            "Use plot_size_standard_samples() to visualize and identify this sample, the update metadata with the correct repeat length of the modal peak."
-          )
-        )
-      }
-    }
-  }
-
-  message(paste0("Repeat correction model: ", length(unique(controls_repeats_df$unique_id)), " samples used to build model"))
-
-  # Can now make a model based on the bp size and the known repeat size
-  if (length(unique(controls_repeats_df$plate_id)) == 1) {
-    # when there's only one plate just set up simple lm
-    repeat_correction_mod <- stats::lm(validated_repeats ~ size, data = controls_repeats_df)
-    repeat_bp_size <- round(1 / repeat_correction_mod$coefficients[2], 2)
-    message(paste0("Repeat correction model: ", repeat_bp_size, " bp increase per repeat"))
-  } else {
-    # when there are multiple samples a linear model can be made using the modal peak and the known repeat length of the modal peak
-    repeat_correction_mod <- lm(validated_repeats ~ size * plate_id, data = controls_repeats_df)
-  }
-
-  # check to see if any samples look off
-
-  controls_repeats_df$predicted_repeat <- stats::predict.lm(repeat_correction_mod, controls_repeats_df)
-  controls_repeats_df$residuals <- repeat_correction_mod$residuals
-  message(paste0("Repeat correction model: Average repeat residual ", round(mean(controls_repeats_df$residuals), 10)))
-
-  if (any(abs(controls_repeats_df$residuals) > 0.3)) {
-    message("Repeat correction model: Warning! The following samples may be off and need investigaion. It's possible that at least one of these samples has the incorrect repeat length indicated in the metadata.")
-
-    samples_all_controls <- unique(controls_repeats_df$unique_id)
-    samples_high_diff <- unique(controls_repeats_df[which(abs(controls_repeats_df$residuals) > 0.5), "unique_id"])
-    for (i in seq_along(samples_high_diff)) {
-      sample_id <- samples_high_diff[i]
-      sample_control_df <- controls_repeats_df[which(controls_repeats_df$unique_id == sample_id), ]
-      sample_control_peaks_n <- nrow(sample_control_df)
-      sample_control_peaks_off_df <- sample_control_df[which(abs(sample_control_df$residuals) > 0.5), ]
-      sample_control_peaks_off_df_n <- nrow(sample_control_peaks_off_df)
-
-      message(paste0(sample_id, " has ", sample_control_peaks_off_df_n, "/", sample_control_peaks_n, " peaks used for making model with high residual repeat size (average residual ", round(mean(sample_control_df$residuals), 2), " repeats)"))
-    }
-  }
-  return(list(repeat_correction_mod = repeat_correction_mod, controls_repeats_df = controls_repeats_df))
+  
 }
+
+
 
 
 # call_repeats ------------------------------------------------------------
@@ -477,7 +357,7 @@ model_repeat_length <- function(fragments_list,
 #' @param assay_size_without_repeat An integer specifying the assay size without repeat for repeat calling. Default is 87.
 #' @param repeat_size An integer specifying the repeat size for repeat calling. Default is 3.
 #' @param force_whole_repeat_units A logical value specifying if the peaks should be forced to be whole repeat units apart. Usually the peaks are slightly under the whole repeat unit if left unchanged.
-#' @param repeat_length_correction A character specifying the repeat length correction method. Options: \code{"none"}, \code{"from_metadata"}, \code{"from_genemapper"}. Default is \code{"none"}.
+#' @param batch_correction A logical specifying if the size should be adjusted across fragment analysis runs. Requires metadata to be added to specify samples (\code{"batch_sample_id"}) common across runs (\code{"batch_run_id"})(see [add_metadata()]).
 #' @param repeat_calling_algorithm A character specifying the repeat calling algorithm. Options: \code{"simple"}, \code{"fft"}, or \code{"size_period"} (see details section for more information on these).
 #' @param repeat_calling_algorithm_size_window_around_allele A numeric value for how big of a window around the tallest peak should be used to find the peak periodicity. Used for both \code{"fft"} and \code{"size_period"}. For \code{"fft"}, you want to make sure that this window is limited to where there are clear peaks. For \code{"size_period"}, it will not make a big difference.
 #' @param repeat_calling_algorithm_peak_assignment_scan_window A numeric value for the scan window when assigning the peak. This is used for both \code{"fft"} and \code{"size_period"}. When the scan period is determined, the algorithm jumps to the predicted scan for the next peak. This value opens a window of the neighboring scans to pick the tallest in.
@@ -488,13 +368,13 @@ model_repeat_length <- function(fragments_list,
 #' @details
 #' The calculated repeat lengths are assigned to the corresponding peaks in the provided `fragments_repeats` object. The repeat lengths can be used for downstream instability analysis.
 #'
-#' The `simple` algorithm is just the repeat size calculated either directly, or when size standards are used to correct the repeat, it's the repeat length calculated from the model of bp vs repeat length.
+#' The `simple` algorithm is just the repeat size calculated directly from bp: (bp - assay_size_without_repeat) / repeat_size
 #'
 #' The `fft` or `size_period` algorithms both re-call the peaks based on empirically determined (`fft`) or specified (`size_period`) periodicity of the peaks. The main application of these algorithms is to solve the issue of contaminating peaks that are not expected in the expected regular pattern of peaks. The `fft` approach applies a fourier transform to the peak signal to determine the underlying periodicity of the signal. `size_period` is similar and simpler, where instead of automatically figuring out the periodicity we as users usually know the size distance between repeat units. We can use that known peroidicty to jump between peaks.
 #'
 #' The `force_whole_repeat_units` algorithm aims to correct for the systematic drift in fragment sizes that occurs. It calculates repeat lengths in a way that helps align peaks with the underlying repeat pattern, making the estimation of repeat lengths more reliable relative to the main peak. The calculated repeat lengths start from the main peak's repeat length and increases in increments of the specified `repeat_size`.
 #'
-#' @seealso [find_alleles()]
+#' @seealso [find_alleles()], [add_metadata()]
 #'
 #' @export
 #'
@@ -568,7 +448,7 @@ model_repeat_length <- function(fragments_list,
 #'
 #' test_repeats_corrected <- call_repeats(
 #'   fragments_list = test_alleles_metadata,
-#'   repeat_length_correction = "from_metadata"
+#'   batch_correction = TRUE
 #' )
 #'
 #'
@@ -579,44 +459,29 @@ call_repeats <- function(
     assay_size_without_repeat = 87,
     repeat_size = 3,
     force_whole_repeat_units = FALSE,
-    repeat_length_correction = "none",
+    batch_correction = FALSE,
     repeat_calling_algorithm = "simple",
     repeat_calling_algorithm_size_window_around_allele = repeat_size * 5,
     repeat_calling_algorithm_peak_assignment_scan_window = 3,
     repeat_calling_algorithm_size_period = repeat_size * 0.93) {
-  # Check to see if repeats are to be corrected
-  # if so, supply the model to each of the samples in the list
-  if (repeat_length_correction %in% c("from_metadata", "from_genemapper")) {
-    mod <- model_repeat_length(
-      fragments_list = fragments_list,
-      assay_size_without_repeat = assay_size_without_repeat,
-      repeat_size = repeat_size,
-      repeat_length_correction = repeat_length_correction
-    )
-
-    for (i in seq_along(fragments_list)) {
-      fragments_list[[i]]$.__enclos_env__$private$repeat_correction_mod <- mod$repeat_correction_mod
-      fragments_list[[i]]$.__enclos_env__$private$controls_repeats_df <- mod$controls_repeats_df
-    }
+  # Check to see if repeats are to be batch corrected
+  # if so, find correction factor by looking across all samples before drilling down to a per sample level
+  # the size correction then needs to be applied downstream
+  if (batch_correction) {
+    find_batch_correction_factor(fragments_list)
   }
-
   # call repeats for each sample
   added_repeats <- lapply(
     fragments_list,
     function(fragment) {
-      ##
-      ### in this function, need to do the following in the correct order
-      #### 1) calculate repeats by assay_size_without_repeat and repeat size
-      #### 2) correct repeat length with positive control if required
+      ### in this function, we are doing three key things
+      #### 1) correct bp size if required
+      #### 2) calculate repeats by assay_size_without_repeat and repeat size
       #### 3) use a method to calculate repeats
 
       # check to make sure all the required inputs for the function have been given
       if (fragment$.__enclos_env__$private$find_main_peaks_used == FALSE) {
         stop(paste0(fragment$unique_id, " requires main alleles to be identified before repeats can be called. Find alleles using 'find_main_peaks()' whitin the class, or use the 'find_alleles()' accesesor to find the main peaks across a list of 'fragments_repeats' objects"),
-          call. = FALSE
-        )
-      } else if (repeat_length_correction != "none" & is.null(fragment$.__enclos_env__$private$repeat_correction_mod)) {
-        stop("Correcting the repeat length requires a model based on positive controls, so 'correct_repeat_length' & 'repeat_correction_mod' inputs are not meant for users to directly use. To correct the repeat length, you need to work on the 'fragments_repeats' objects in a list format and use accessor functions. On a list of 'fragments_repeats' objects, i) use 'add_metadata()' to indicate which samples are positive controls, and ii) use 'find_alleles()' accesesor function to call and correct repeat lengths across all samples",
           call. = FALSE
         )
       }
@@ -635,105 +500,116 @@ call_repeats <- function(
           repeats = numeric(),
           off_scale = logical()
         )
+        # exit lapply early 
+        return(fragment)
+      } 
+      # repeat calling algorithm
+      if (repeat_calling_algorithm == "simple") {
+
+        if (batch_correction) {
+          peak_table_size <- fragment$peak_table_df$size - fragment$.__enclos_env__$private$batch_correction_factor
+        } else{
+          peak_table_size <- fragment$peak_table_df$size
+        }
+
+        repeat_table_df <- data.frame(
+          unique_id = fragment$peak_table_df$unique_id,
+          size = peak_table_size,
+          height = fragment$peak_table_df$height,
+          calculated_repeats = (peak_table_size- assay_size_without_repeat) / repeat_size,
+          repeats = (peak_table_size - assay_size_without_repeat) / repeat_size,
+          off_scale = ifelse(any(colnames(fragment$peak_table_df) == "off_scale"),
+          fragment$peak_table_df$off_scale,
+            rep(FALSE, nrow(fragment$peak_table_df))
+          )
+        )
+      } else if (repeat_calling_algorithm == "fft") {
+        # check to see that fragments repeats has trace data since that is required.
+        if (is.null(fragment$trace_bp_df)) {
+          stop("fft algorithim requires trace data. Use fsa samples rather than peak table is inputs into the pipeline.",
+            call. = FALSE
+          )
+        }
+
+        fft_peak_df <- fft_repeat_caller(fragment,
+          fragment_window = repeat_calling_algorithm_size_window_around_allele,
+          scan_peak_window = repeat_calling_algorithm_peak_assignment_scan_window
+        )
+
+        if (batch_correction) {
+          fft_peak_size <- fft_peak_df$size - fragment$.__enclos_env__$private$batch_correction_factor
+        } else{
+          fft_peak_size <- fft_peak_df$size
+        }
+
+        repeat_table_df <- data.frame(
+          unique_id = fft_peak_df$unique_id,
+          size = fft_peak_size,
+          height = fft_peak_df$signal,
+          calculated_repeats = (fft_peak_size - assay_size_without_repeat) / repeat_size,
+          repeats = (fft_peak_size - assay_size_without_repeat) / repeat_size,
+          off_scale = fft_peak_df$off_scale
+        )
+      } else if (repeat_calling_algorithm == "size_period") {
+        # check to see that fragments repeats has trace data since that is required.
+        if (is.null(fragment$trace_bp_df)) {
+          stop("size_period algorithim requires trace data. Use fsa samples rather than peak table is inputs into the pipeline.",
+            call. = FALSE
+          )
+        }
+
+        size_period_df <- size_period_repeat_caller(fragment,
+          size_period = repeat_calling_algorithm_size_period,
+          fragment_window = repeat_calling_algorithm_size_window_around_allele,
+          scan_peak_window = repeat_calling_algorithm_peak_assignment_scan_window
+        )
+
+        if (batch_correction) {
+          size_period_size <- size_period_df$size - fragment$.__enclos_env__$private$batch_correction_factor
+        } else{
+          size_period_size <- size_period_df$size
+        }
+
+        repeat_table_df <- data.frame(
+          unique_id = size_period_df$unique_id,
+          size = size_period_size,
+          height = size_period_df$signal,
+          calculated_repeats = (size_period_size - assay_size_without_repeat) / repeat_size,
+          repeats = (size_period_size - assay_size_without_repeat) / repeat_size,
+          off_scale = size_period_df$off_scale
+        )
       } else {
-        # repeat calling algorithm
-        if (repeat_calling_algorithm == "simple") {
-          repeat_table_df <- data.frame(
-            unique_id = fragment$peak_table_df$unique_id,
-            size = fragment$peak_table_df$size,
-            height = fragment$peak_table_df$height,
-            calculated_repeats = (fragment$peak_table_df$size - assay_size_without_repeat) / repeat_size,
-            repeats = (fragment$peak_table_df$size - assay_size_without_repeat) / repeat_size,
-            off_scale = ifelse(any(colnames(fragment$peak_table_df) == "off_scale"),
-              fragment$peak_table_df$off_scale,
-              rep(FALSE, nrow(fragment$peak_table_df))
-            )
-          )
-        } else if (repeat_calling_algorithm == "fft") {
-          # check to see that fragments repeats has trace data since that is required.
-          if (is.null(fragment$trace_bp_df)) {
-            stop("fft algorithim requires trace data. Use fsa samples rather than peak table is inputs into the pipeline.",
-              call. = FALSE
-            )
-          }
-
-          fft_peak_df <- fft_repeat_caller(fragment,
-            fragment_window = repeat_calling_algorithm_size_window_around_allele,
-            scan_peak_window = repeat_calling_algorithm_peak_assignment_scan_window
-          )
-
-          repeat_table_df <- data.frame(
-            unique_id = fft_peak_df$unique_id,
-            size = fft_peak_df$size,
-            height = fft_peak_df$signal,
-            calculated_repeats = (fft_peak_df$size - assay_size_without_repeat) / repeat_size,
-            repeats = (fft_peak_df$size - assay_size_without_repeat) / repeat_size,
-            off_scale = fft_peak_df$off_scale
-          )
-        } else if (repeat_calling_algorithm == "size_period") {
-          # check to see that fragments repeats has trace data since that is required.
-          if (is.null(fragment$trace_bp_df)) {
-            stop("size_period algorithim requires trace data. Use fsa samples rather than peak table is inputs into the pipeline.",
-              call. = FALSE
-            )
-          }
-
-          size_period_df <- size_period_repeat_caller(fragment,
-            size_period = repeat_calling_algorithm_size_period,
-            fragment_window = repeat_calling_algorithm_size_window_around_allele,
-            scan_peak_window = repeat_calling_algorithm_peak_assignment_scan_window
-          )
-
-          repeat_table_df <- data.frame(
-            unique_id = size_period_df$unique_id,
-            size = size_period_df$size,
-            height = size_period_df$signal,
-            calculated_repeats = (size_period_df$size - assay_size_without_repeat) / repeat_size,
-            repeats = (size_period_df$size - assay_size_without_repeat) / repeat_size,
-            off_scale = size_period_df$off_scale
-          )
-        } else {
-          stop(
-            call. = FALSE,
-            "Invalid repeat calling algorithim selected"
-          )
-        }
-
-
-        # Correct repeat length with positive controls
-        if (repeat_length_correction != "none") {
-          repeat_table_df$plate_id <- rep(fragment$plate_id, nrow(repeat_table_df))
-          repeat_table_df$calculated_repeats <- stats::predict.lm(fragment$.__enclos_env__$private$repeat_correction_mod, repeat_table_df)
-          repeat_table_df$repeats <- repeat_table_df$calculated_repeats
-        }
-
-        # Force the repeat units to be whole numbers
-        if (force_whole_repeat_units == TRUE) {
-          repeat_table_df$repeats <- np_repeat(
-            size = repeat_table_df$size,
-            main_peak_size = fragment$get_alleles()$allele_1_size,
-            main_peak_repeat = repeat_table_df$calculated_repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_1_size)],
-            repeat_size = repeat_size
-          )
-        }
-
-        # Finally save main peak repeat length and repeats data
-        fragment$repeat_table_df <- repeat_table_df
-        allele_1_subset <- repeat_table_df$repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_1_size)]
-        fragment$set_allele(allele = 1, unit = "repeats", value = ifelse(length(allele_1_subset) == 1, allele_1_subset, NA_real_))
-        allele_2_subset <- repeat_table_df$repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_2_size)]
-        fragment$set_allele(allele = 2, unit = "repeats", value = ifelse(length(allele_2_subset) == 1, allele_2_subset, NA_real_))
+        stop(
+          call. = FALSE,
+          "Invalid repeat calling algorithim selected"
+        )
       }
 
+      # Force the repeat units to be whole numbers
+      if (force_whole_repeat_units == TRUE) {
+        repeat_table_df$repeats <- np_repeat(
+          size = repeat_table_df$size,
+          main_peak_size = fragment$get_alleles()$allele_1_size,
+          main_peak_repeat = repeat_table_df$calculated_repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_1_size)],
+          repeat_size = repeat_size
+        )
+      }
+
+      # Finally save main peak repeat length and repeats data
+      fragment$repeat_table_df <- repeat_table_df
+      allele_1_subset <- repeat_table_df$repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_1_size)]
+      fragment$set_allele(allele = 1, unit = "repeats", value = ifelse(length(allele_1_subset) == 1, allele_1_subset, NA_real_))
+      allele_2_subset <- repeat_table_df$repeats[which(repeat_table_df$size == fragment$get_alleles()$allele_2_size)]
+      fragment$set_allele(allele = 2, unit = "repeats", value = ifelse(length(allele_2_subset) == 1, allele_2_subset, NA_real_))
 
       # also calculate repeat length for the trace-level data if it exists
       if (!is.null(fragment$trace_bp_df)) {
-        if (repeat_length_correction != "none") {
-          fragment$trace_bp_df$plate_id <- rep(fragment$plate_id, nrow(fragment$trace_bp_df))
-          fragment$trace_bp_df$calculated_repeats <- stats::predict.lm(fragment$.__enclos_env__$private$repeat_correction_mod, fragment$trace_bp_df)
-        } else {
-          fragment$trace_bp_df$calculated_repeats <- (fragment$trace_bp_df$size - assay_size_without_repeat) / repeat_size
+        if (batch_correction) {
+          trace_bp_size <- fragment$trace_bp_df$size - fragment$.__enclos_env__$private$batch_correction_factor
+        } else{
+          trace_bp_size <- fragment$trace_bp_df$size
         }
+        fragment$trace_bp_df$calculated_repeats <- (trace_bp_size - assay_size_without_repeat) / repeat_size
       }
 
       return(fragment)

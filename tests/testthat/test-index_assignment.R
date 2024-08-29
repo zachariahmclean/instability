@@ -44,8 +44,7 @@ test_that("index assignment", {
   suppressMessages(
     suppressWarnings(
       test_repeats <- call_repeats(
-        fragments_list = fragment_alleles,
-        repeat_length_correction = "from_metadata"
+        fragments_list = fragment_alleles
       )
     )
   )

@@ -93,23 +93,23 @@ testthat::test_that("add_metadata", {
   )
 
 
-  # plate id assigned
-  test_fragments_plate_id <- vector("character", length(test_metadata))
+  # batch_run_id assigned
+  test_fragments_batch_run_id <- vector("character", length(test_metadata))
   for (i in seq_along(test_metadata)) {
-    test_fragments_plate_id[i] <- test_metadata[[i]]$plate_id
+    test_fragments_batch_run_id[i] <- test_metadata[[i]]$batch_run_id
   }
 
-  testthat::expect_true(all(test_fragments_plate_id == 20230414))
+  testthat::expect_true(all(test_fragments_batch_run_id == 20230414))
 
-  # sample group id assigned
-  test_fragments_group_id <- vector("character", length(test_metadata))
+  # metrics_group_id assigned
+  test_fragments_metrics_group_id <- vector("character", length(test_metadata))
   for (i in seq_along(test_metadata)) {
-    test_fragments_group_id[i] <- test_metadata[[i]]$group_id
+    test_fragments_metrics_group_id[i] <- test_metadata[[i]]$metrics_group_id
   }
 
-  testthat::expect_true(all(!is.na(test_fragments_group_id)))
+  testthat::expect_true(all(!is.na(test_fragments_metrics_group_id)))
 
-  # index samples assigned
+  # metrics_baseline_control assigned
   test_fragments_index <- vector("logical", length(test_metadata))
   for (i in seq_along(test_metadata)) {
     test_fragments_index[i] <- test_metadata[[i]]$metrics_baseline_control
@@ -120,37 +120,14 @@ testthat::test_that("add_metadata", {
   testthat::expect_true(all(as.logical(test_fragments_index[index_samples])))
   testthat::expect_true(unique(test_fragments_index[which(!seq_along(test_fragments_index) %in% index_samples)]) == FALSE)
 
-  #  sizing controls assigned
-  test_fragments_repeat_sizing <- vector("logical", length(test_metadata))
-  for (i in seq_along(test_metadata)) {
-    test_fragments_repeat_sizing[i] <- test_metadata[[i]]$size_standard
-  }
-
-  repeat_sizing_samples <- which(metadata$size_standard == TRUE)
-
-  testthat::expect_true(all(as.logical(test_fragments_repeat_sizing[repeat_sizing_samples])))
-  testthat::expect_false(unique(test_fragments_repeat_sizing[which(!seq_along(test_fragments_repeat_sizing) %in% repeat_sizing_samples)]))
-
-  # size values assigned
-  test_fragments_repeat_sizing_value <- vector("character", length(test_metadata))
-  for (i in seq_along(test_metadata)) {
-    test_fragments_repeat_sizing_value[i] <- test_metadata[[i]]$size_standard_repeat_length
-  }
-
-  testthat::expect_true(test_fragments_repeat_sizing_value[repeat_sizing_samples[1]] == 113 & test_fragments_repeat_sizing_value[repeat_sizing_samples[2]] == 115)
-  testthat::expect_true(all(is.na(test_fragments_repeat_sizing_value[which(!seq_along(test_fragments_repeat_sizing_value) %in% repeat_sizing_samples)])))
-
-
   # skip columns
   test_metadata_skip <- add_metadata(
     fragments_list = test_fragments,
     metadata_data.frame = metadata,
     unique_id = "unique_id",
-    plate_id = NA,
-    group_id = NA,
-    metrics_baseline_control = NA,
-    size_standard = NA,
-    size_standard_repeat_length = NA
+    batch_run_id = NA,
+    metrics_group_id = NA,
+    metrics_baseline_control = NA
   )
 
 
@@ -175,27 +152,27 @@ testthat::test_that("add_metadata missing", {
     fragments_list = test_fragments,
     metadata_data.frame = metadata,
     unique_id = "unique_id",
-    plate_id = NA
+    batch_run_id = NA
   )
 
-  testthat::expect_true(is.na(test_metadata[[1]]$plate_id))
+  testthat::expect_true(is.na(test_metadata[[1]]$batch_run_id))
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
     metadata_data.frame = metadata,
     unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = NA
+    batch_run_id = "batch_run_id",
+    metrics_group_id = NA
   )
 
-  testthat::expect_true(is.na(test_metadata[[1]]$group_id))
+  testthat::expect_true(is.na(test_metadata[[1]]$metrics_group_id))
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
     metadata_data.frame = metadata,
     unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "group_id",
+    batch_run_id = "batch_run_id",
+    metrics_group_id = "metrics_group_id",
     metrics_baseline_control = NA
   )
 
@@ -206,26 +183,22 @@ testthat::test_that("add_metadata missing", {
     fragments_list = test_fragments,
     metadata_data.frame = metadata,
     unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "group_id",
-    metrics_baseline_control = "metrics_baseline_control",
-    size_standard = NA
+    batch_run_id = "batch_run_id",
+    metrics_group_id = "metrics_group_id",
+    metrics_baseline_control = "metrics_baseline_control"
   )
 
-  testthat::expect_false(test_metadata[[1]]$size_standard)
+
 
   test_metadata <- add_metadata(
     fragments_list = test_fragments,
     metadata_data.frame = metadata,
     unique_id = "unique_id",
-    plate_id = "plate_id",
-    group_id = "group_id",
-    metrics_baseline_control = "metrics_baseline_control",
-    size_standard = "size_standard",
-    size_standard_repeat_length = NA
+    batch_run_id = "batch_run_id",
+    metrics_group_id = "metrics_group_id",
+    metrics_baseline_control = "metrics_baseline_control"
   )
 
-  testthat::expect_true(is.na(test_metadata[[1]]$size_standard_repeat_length))
 })
 
 
@@ -292,8 +265,7 @@ testthat::test_that("calculate metrics", {
       fragments_list = test_alleles,
       repeat_calling_algorithm = "simple",
       assay_size_without_repeat = 87,
-      repeat_size = 3,
-      repeat_length_correction = "none"
+      repeat_size = 3
     )
   )
 
@@ -467,7 +439,6 @@ testthat::test_that("full pipline", {
     suppressWarnings(
       test_repeats <- call_repeats(
         fragments_list = fragment_alleles,
-        repeat_length_correction = "from_metadata"
       )
     )
   )
@@ -507,7 +478,7 @@ testthat::test_that("full pipline", {
   plot_data <- plot_data[plot_data$day > 0 & plot_data$modal_peak_height > 500, ]
 
   # Group by
-  plot_data <- split(plot_data, plot_data$group_id)
+  plot_data <- split(plot_data, plot_data$metrics_group_id)
 
   # Mutate
   for (i in seq_along(plot_data)) {
@@ -535,6 +506,6 @@ testthat::test_that("full pipline", {
 
   medians <- aggregate(rel_gain ~ treatment + genotype, plot_data, median, na.rm = TRUE)
 
-  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85697, 0.70219, 0.56223, 1.00000, 1.18329, 1.10977, 1.00459)))
+  expect_true(all(round(medians$rel_gain, 5) == c(1.00000, 0.85831, 0.70219, 0.57056, 1.00000, 1.17666, 1.10977, 1.00459)))
 })
 

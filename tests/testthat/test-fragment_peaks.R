@@ -63,9 +63,7 @@ testthat::test_that("metadata transfer", {
   )
 
   testthat::expect_true(metadata_added[[1]]$unique_id == peak_list[[1]]$unique_id)
-  testthat::expect_true(metadata_added[[1]]$plate_id == peak_list[[1]]$plate_id)
-  testthat::expect_true(metadata_added[[1]]$group_id == peak_list[[1]]$group_id)
+  testthat::expect_true(metadata_added[[1]]$batch_run_id == peak_list[[1]]$batch_run_id)
+  testthat::expect_true(metadata_added[[1]]$metrics_group_id == peak_list[[1]]$metrics_group_id)
   testthat::expect_true(metadata_added[[1]]$metrics_baseline_control == peak_list[[1]]$metrics_baseline_control)
-  testthat::expect_false(metadata_added[[1]]$size_standard & peak_list[[1]]$size_standard)
-  testthat::expect_true(is.na(metadata_added[[1]]$size_standard_repeat_length) & is.na(peak_list[[1]]$size_standard_repeat_length))
 })

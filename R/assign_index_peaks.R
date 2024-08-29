@@ -25,7 +25,7 @@
 #' For example, this is the the inherited repeat length of a mouse, or the modal repeat length for the cell line at a starting time point.
 #'
 #'
-#' If `grouped` is set to `TRUE`, this function groups the samples by their group_id and uses the samples set as
+#' If `grouped` is set to `TRUE`, this function groups the samples by their metrics_group_id and uses the samples set as
 #' metrics_baseline_control to set the index peak. Use \code{link{add_metadata()}}
 #' to set these variables.
 #'
@@ -80,17 +80,17 @@ assign_index_peaks <- function(
     # looks at a specific subset of the table, which is not set until the calculate metrics function
 
     # make a list of dataframes and alleles for each of the controls for the groups
-    group_ids <- sapply(fragments_list, function(x) x$group_id)
-    unique_group_ids <- unique(group_ids)
+    metrics_group_ids <- sapply(fragments_list, function(x) x$metrics_group_id)
+    unique_metrics_group_ids <- unique(metrics_group_ids)
 
-    baseline_control_list <- vector("list", length(unique_group_ids))
-    names(baseline_control_list) <- unique_group_ids
+    baseline_control_list <- vector("list", length(unique_metrics_group_ids))
+    names(baseline_control_list) <- unique_metrics_group_ids
 
     for (i in seq_along(fragments_list)) {
       if (fragments_list[[i]]$metrics_baseline_control == TRUE) {
         # since there can be more than one control, make a list of them
-        baseline_control_list[[fragments_list[[i]]$group_id]] <- c(
-          baseline_control_list[[fragments_list[[i]]$group_id]],
+        baseline_control_list[[fragments_list[[i]]$metrics_group_id]] <- c(
+          baseline_control_list[[fragments_list[[i]]$metrics_group_id]],
           list(
             list(
               fragments_list[[i]]$get_alleles()$allele_1_repeat,
@@ -104,7 +104,7 @@ assign_index_peaks <- function(
     # do some quality control
 
     for (i in seq_along(baseline_control_list)) {
-      controls_missing_allele <- all(sapply(baseline_control_list[[fragments_list[[i]]$group_id]], function(x) is.na(x[[1]])))
+      controls_missing_allele <- all(sapply(baseline_control_list[[fragments_list[[i]]$metrics_group_id]], function(x) is.na(x[[1]])))
 
       if (length(baseline_control_list[[i]]) == 0) {
         stop(paste0("Group '", names(baseline_control_list)[[i]], "' has no 'metrics_baseline_control'. Go back to metadata to check that each group has a baseline control, or remove samples from the list for analysis with 'remove_fragments()' if it doesn't make sense to include them beyond this point (eg size standards or no template controls)"),
@@ -121,9 +121,9 @@ assign_index_peaks <- function(
 
     # loop over each sample and put data inside
     for (i in seq_along(fragments_list)) {
-      fragments_list[[i]]$.__enclos_env__$private$index_samples <- baseline_control_list[[fragments_list[[i]]$group_id]]
+      fragments_list[[i]]$.__enclos_env__$private$index_samples <- baseline_control_list[[fragments_list[[i]]$metrics_group_id]]
 
-      control_index_median_repeat <- median(sapply(baseline_control_list[[fragments_list[[i]]$group_id]], function(x) x[[1]]))
+      control_index_median_repeat <- median(sapply(baseline_control_list[[fragments_list[[i]]$metrics_group_id]], function(x) x[[1]]))
 
 
       # since the repeat size may not be an integer, need to find what the closest peak is to the control sample

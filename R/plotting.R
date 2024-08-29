@@ -433,105 +433,6 @@ plot_fragments <- function(
 }
 
 
-# plot size standard model --------------------------------------------
-
-
-
-#' Plot Repeat Correction Model
-#'
-#' Plots the results of the repeat correction model for a list of fragments.
-#'
-#' @param fragments_list A list of fragments_repeats class objects obtained from the 'call_repeats' function when the 'repeat_length_correction' was either 'from_metadata' or 'from_genemapper'.
-#'
-#' @return A base R graphic object displaying the repeat correction model results.
-#' @export
-#' @details
-#' These plots are made using base R plotting. Sometimes these fail to render in the viewing panes of IDEs (eg you get the error 'Error in `plot.new()`: figure margins too large)'. If this happens, try saving the plot as a pdf using traditional approaches (see grDevices::pdf). 
-#'
-#' @examples
-#'
-#'
-#' gm_raw <- instability::example_data
-#' metadata <- instability::metadata
-#'
-#' test_fragments <- peak_table_to_fragments(
-#'   gm_raw,
-#'   data_format = "genemapper5",
-#'   dye_channel = "B"
-#' )
-#'
-#' test_alleles <- find_alleles(
-#'   fragments_list = test_fragments,
-#'   number_of_peaks_to_return = 2,
-#'   peak_region_size_gap_threshold = 6,
-#'   peak_region_height_threshold_multiplier = 1
-#' )
-#'
-#' test_metadata <- add_metadata(
-#'   fragments_list = test_alleles,
-#'   metadata_data.frame = metadata
-#' )
-#'
-#' test_repeats_corrected <- call_repeats(
-#'   fragments_list = test_metadata,
-#'   repeat_calling_algorithm = "simple",
-#'   assay_size_without_repeat = 87,
-#'   repeat_size = 3,
-#'   repeat_length_correction = "from_metadata"
-#' )
-#'
-#' plot_size_standard_model(test_repeats_corrected)
-#'
-plot_size_standard_model <- function(fragments_list) {
-  # Check if all models in the list are the same
-  first_model_df <- fragments_list[[1]]$.__enclos_env__$private$repeat_correction_mod$model
-  identical_model_test <- logical(length(fragments_list))
-
-  for (i in seq_along(fragments_list)) {
-    identical_model_test[i] <- identical(first_model_df, fragments_list[[i]]$.__enclos_env__$private$repeat_correction_mod$model)
-  }
-
-  if (!all(identical_model_test)) {
-    stop("The supplied fragments list must come from the same 'call_repeats' function output", call. = FALSE)
-  }
-
-  controls_repeats_df <- fragments_list[[1]]$.__enclos_env__$private$controls_repeats_df
-  unique_plate_ids <- unique(controls_repeats_df$plate_id)
-  n_plates <- length(unique_plate_ids)
-
-  graphics::par(mfrow = c(1, n_plates)) # Adjust layout as needed
-  # for some reason we need to use the recordPlot() strategy below.
-  # just looping over the plots only rendered one for some reason
-  recorded_plots <- vector("list", n_plates)
-  for (i in 1:n_plates) {
-    plate_data <- controls_repeats_df[which(controls_repeats_df$plate_id == unique_plate_ids[i]), ]
-
-    # Generating unique colors for each unique value in unique_id
-    unique_ids <- unique(plate_data$unique_id)
-    colors <- grDevices::rainbow(length(unique_ids))
-    id_color_map <- setNames(colors, unique_ids)
-
-    
-    lm_model <- lm(validated_repeats ~ size, data = plate_data)
-
-    plot(plate_data$size, plate_data$validated_repeats,
-      pch = 21, col = id_color_map[plate_data$unique_id],
-      cex = 2, main = paste("Plate ID:", unique_plate_ids[i]), xlab = "Size", ylab = "User supplied repeat length"
-    )
-
-    graphics::abline(lm_model, col = "blue")
-
-    recorded_plots[[i]] <- grDevices::recordPlot()
-
-  }
-  
-  for (i in seq_along(recorded_plots)) {
-    grDevices::replayPlot(recorded_plots[[i]])
-  }
-  graphics::par(mfrow = c(1, 1)) # Reset the layout
-
-}
-
 # plot size standard sample groups ----------------------------------------
 
 #' plot size standard samples
@@ -539,7 +440,7 @@ plot_size_standard_model <- function(fragments_list) {
 #' Plot the overlapping traces of the size standards by their size standard ids
 #'
 #' @param fragments_list A list of fragments_repeats objects containing fragment data.
-#' @param sample_subset A character vector of size_standard_sample_id for a subset of samples to plot. Or alternativly supply a numeric vector.
+#' @param sample_subset A character vector of batch_sample_id for a subset of samples to plot. Or alternativly supply a numeric vector.
 #' @param xlim the x limits of the plot. A numeric vector of length two.
 #' @param x_axis A character indicating what should be plotted on the x-axis, chose between `size` or `repeats`. Only use repeats if plotting after the repeat correction.
 #' @param n_facet_col A numeric value indicating the number of columns for faceting in the plot.
@@ -551,7 +452,7 @@ plot_size_standard_model <- function(fragments_list) {
 #' @details
 #' A plot of the raw signal by bp size or repeats for the size standard samples. The cicle at the top of the plot is for the called allele for that sample.
 #'
-#' When plotting the traces before repeat correction, we do not expect the samples to be closely overallping due to run-to-run variation. After repeat correction and plotting "repeats" on the x-axis, the traces should be bascially overlapping. It can be difficult from the "repeats" x-axis to figure out which sample is wrong because if one is wrong it will mess up the repeat size for all other samples in that same plate_id. Use the "size" x-axis to make sure all of the traces have the same distribution and modal peak."
+#' When plotting the traces before repeat correction, we do not expect the samples to be closely overallping due to run-to-run variation. After repeat correction and plotting "repeats" on the x-axis, the traces should be bascially overlapping. It can be difficult from the "repeats" x-axis to figure out which sample is wrong because if one is wrong it will mess up the repeat size for all other samples in that same batch_run_id. Use the "size" x-axis to make sure all of the traces have the same distribution and modal peak."
 #' 
 #' These plots are made using base R plotting. Sometimes these fail to render in the viewing panes of IDEs (eg you get the error 'Error in `plot.new()`: figure margins too large)'. If this happens, try saving the plot as a pdf using traditional approaches (see grDevices::pdf). To get it to render in the IDE pane, trying matching `n_facet_col` to the number of samples you're attmpting to plot, or using `sample_subset` to limit it to a single sample.
 #'
@@ -573,7 +474,7 @@ plot_size_standard_model <- function(fragments_list) {
 #'   sample2 <- sample$clone()
 #'   sample2$trace_bp_df$size <- sample2$trace_bp_df$size + 2
 #'   sample2$unique_id <- paste0(sample$unique_id, "_2")
-#'   sample2$plate_id <- paste0(sample2$plate_id, "_2")
+#'   sample2$batch_run_id <- paste0(sample2$batch_run_id, "_2")
 #'   return(sample2)
 #' })
 #'
@@ -617,29 +518,29 @@ plot_size_standard_samples <- function(
   x_axis = "size",
   n_facet_col  = 1, 
   xlim = NULL) {
-size_standard_fragments <- sapply(fragments_list, function(x) x$size_standard_sample_id)
+size_standard_fragments <- sapply(fragments_list, function(x) x$batch_sample_id)
 controls_fragments_list <- fragments_list[which(!is.na(size_standard_fragments))]
 
 if (length(unique(na.omit(size_standard_fragments))) == 0) {
   stop(
     call. = FALSE,
-    "There are no samples with size_standard_sample_id assigned. Check that the size_standard_sample_id has been added to the samples via add_metadata()."
+    "There are no samples with batch_sample_id assigned. Check that the batch_sample_id has been added to the samples via add_metadata()."
   )
 }
 
 if (!is.null(sample_subset)) {
-  sample_subset <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id %in% sample_subset)
+  sample_subset <- sapply(controls_fragments_list, function(x) x$batch_sample_id %in% sample_subset)
   controls_fragments_list <- controls_fragments_list[which(sample_subset)]
 
   if (length(controls_fragments_list) == 0) {
     stop(
       call. = FALSE,
-      "After subsetting the samples with the provided id, no samples were left. Check that you provided the correct id or that the size_standard_sample_id has been added to the samples."
+      "After subsetting the samples with the provided id, no samples were left. Check that you provided the correct id or that the batch_sample_id has been added to the samples."
     )
   }
 }
 
-size_standard_fragments_sample_groups <- sapply(controls_fragments_list, function(x) x$size_standard_sample_id)
+size_standard_fragments_sample_groups <- sapply(controls_fragments_list, function(x) x$batch_sample_id)
 
 split_by_sample <- split(controls_fragments_list, size_standard_fragments_sample_groups)
 
@@ -686,7 +587,7 @@ overlapping_plot <- function(sample_fragments) {
     xlab = ifelse(x_axis == "size", "Size", "Repeats"),
     ylab = "Signal",
     ylim = range(sapply(sample_traces, function(df) range(df$rel_signal))),
-    main = sample_fragments[[1]]$size_standard_sample_id
+    main = sample_fragments[[1]]$batch_sample_id
   )
   # also add point for tallest peak. sample_traces and sample_fragments are in the same order
   points(

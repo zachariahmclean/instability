@@ -8,6 +8,8 @@ format: html
 ```{r}
 library(instability)
 
+#TOODO fix this whole thing
+
 ```
 
 # About this file
@@ -48,12 +50,10 @@ metadata <- read.csv("")
 metadata$unique_id <- metadata$unique_id
 
 # metadata for repeat calling
-metadata$plate_id <- metadata$plate_id
-metadata$size_standard <- metadata$size_standard
-metadata$size_standard_repeat_length <- metadata$size_standard_repeat_length
+metadata$batch_run_id <- metadata$batch_run_id
 
 #metadata for sample grouping
-metadata$group_id <- metadata$group_id
+metadata$metrics_group_id <- metadata$metrics_group_id
 metadata$metrics_baseline_control <- metadata$metrics_baseline_control
 
 
@@ -61,7 +61,7 @@ metadata$metrics_baseline_control <- metadata$metrics_baseline_control
 # for exporting traces we can give the samples a useful identifying name for a subtitle
 #add more lines like the ones commented out to give informative titles from your own metadata
 metadata$sample_name <- paste(
-  metadata$group_id, 
+  metadata$metrics_group_id, 
   # metadata$day,
   # metadata$treatment, 
   # metadata$genotype, 
@@ -118,8 +118,8 @@ metadata_added_list <- add_metadata(
   fragments_list = peak_list,
   metadata_data.frame = metadata,
   unique_id = "unique_id",
-  plate_id = "plate_id",
-  group_id = "group_id",
+  batch_run_id = "batch_run_id",
+  metrics_group_id = "metrics_group_id",
   metrics_baseline_control = "metrics_baseline_control",
   size_standard = "size_standard",
   size_standard_repeat_length = "size_standard_repeat_length"
@@ -194,27 +194,27 @@ if (!dir.exists("outputs")) {
   dir.create("outputs")
 }
 
-plate_id_names <- unique(metadata$plate_id)
-for (i in seq_along(plate_id_names)) {
-  output_folder_path <- paste("outputs/",plate_id_names[i],"_outputs",sep="")
+batch_run_id_names <- unique(metadata$batch_run_id)
+for (i in seq_along(batch_run_id_names)) {
+  output_folder_path <- paste("outputs/",batch_run_id_names[i],"_outputs",sep="")
   if (!dir.exists(output_folder_path)) dir.create(output_folder_path)
 }
 
 ```
 
 ## ladders
-This code loops over the different fragment analysis plate_ids and generates a file with the ladders
+This code loops over the different fragment analysis batch_run_ids and generates a file with the ladders
 
 ```{r ladders}
-# Split metadata by plate_id
-metadata_split <- split(metadata, metadata$plate_id)
+# Split metadata by batch_run_id
+metadata_split <- split(metadata, metadata$batch_run_id)
 
 # Loop through each subset of metadata
 lapply(metadata_split, function(meta) {
-  plate_id <- unique(meta$plate_id)
+  batch_run_id <- unique(meta$batch_run_id)
   
   # Generate the output file path
-  output_name_ladders <- file.path("outputs", paste0(plate_id, "_outputs"), paste0(plate_id, "_ladders.pdf"))
+  output_name_ladders <- file.path("outputs", paste0(batch_run_id, "_outputs"), paste0(batch_run_id, "_ladders.pdf"))
   
   # Subset the ladder list using unique_id from meta
   ladder_list_subset <- ladder_list[meta$unique_id]
@@ -242,15 +242,15 @@ lapply(metadata_split, function(meta) {
 
 ## sample traces
 
-This code loops over the different fragment analysis plate_ids and generates a file with the traces
+This code loops over the different fragment analysis batch_run_ids and generates a file with the traces
 
 ```{r sample traces}
 # Loop through each subset of metadata
 lapply(metadata_split, function(meta) {
-  plate_id <- unique(meta$plate_id)
+  batch_run_id <- unique(meta$batch_run_id)
   
   # Generate the output file path
-  output_name_traces <- file.path("outputs", paste0(plate_id, "_outputs"), paste0(plate_id, "_traces.pdf"))
+  output_name_traces <- file.path("outputs", paste0(batch_run_id, "_outputs"), paste0(batch_run_id, "_traces.pdf"))
   
   # Subset the index_assigned list using unique_id from meta
   fragments_list_subset <- index_assigned[meta$unique_id]
